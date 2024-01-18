@@ -364,6 +364,7 @@ namespace WhatsSocket.Core
             return null;
         }
 
+        /** send a binary node */
         private void SendNode(BinaryNode iq)
         {
             var buffer = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
