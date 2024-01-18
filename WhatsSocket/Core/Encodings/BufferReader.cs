@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Utilities.Encoders;
 using System;
+using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using static WhatsSocket.Core.Helper.Constants;
@@ -10,6 +11,33 @@ namespace WhatsSocket.Core.Encodings
 {
     public class BufferReader
     {
+        public static BinaryNode DecodeDecompressedBinaryNode(byte[] buffer)
+        {
+            buffer = DecompressIfRequired(buffer);
+            var reader = new BufferReader();
+            var node = reader.DecodeDecompressedBinaryNode(new MemoryStream(buffer));
+            return node;
+        }
+
+
+        private static byte[] DecompressIfRequired(byte[] buffer)
+        {
+            if ((2 & buffer[0]) != 0)
+            {
+                using (MemoryStream memoryStream = new MemoryStream(buffer, 1, buffer.Length - 1))
+                using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))
+                using (MemoryStream decompressedStream = new MemoryStream())
+                {
+                    deflateStream.CopyTo(decompressedStream);
+                    return decompressedStream.ToArray();
+                }
+            }
+            else
+            {
+                return buffer[1..];
+            }
+        }
+
         public int IndexRef { get; set; }
         public BufferReader()
         {
@@ -250,7 +278,7 @@ namespace WhatsSocket.Core.Encodings
             return messages;
         }
 
-        public BinaryNode DecodeDecompressedBinaryNode(Stream buffer, int index = 0)
+        private BinaryNode DecodeDecompressedBinaryNode(Stream buffer, int index = 0)
         {
             BinaryNode node = new BinaryNode();
             IndexRef = index;

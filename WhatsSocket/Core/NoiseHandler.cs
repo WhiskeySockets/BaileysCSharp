@@ -114,7 +114,7 @@ namespace WhatsSocket.Core
         public void FinishInit()
         {
             var writeRead = LocalHKDF(new byte[0]);
-            EncKey = writeRead.read;
+            EncKey = writeRead.write;
             DecKey = writeRead.read;
             Hash = new byte[0];
             readCounter = 0;
@@ -224,7 +224,7 @@ namespace WhatsSocket.Core
                 if (IsFinished)
                 {
                     var decrypted = Decrypt(message.ToByteArray());
-                    message = BufferDecoder.DecodeBinaryNode(decrypted);
+                    message = BufferReader.DecodeDecompressedBinaryNode(decrypted);
                 }
 
                 if (message.attrs.ContainsKey("id"))

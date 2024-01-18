@@ -14,6 +14,9 @@ namespace WhatsSocket.Core.Sockets
         public WebSocketClient()
         {
             socket = new WebSocket("wss://web.whatsapp.com/ws/chat");
+            socket.Origin = "https://web.whatsapp.com";
+            socket.Compression = CompressionMethod.Deflate;//?
+            socket.WaitTime = TimeSpan.FromSeconds(20);
             socket.OnOpen += Socket_OnOpen;
             socket.OnClose += Socket_OnClose;
             socket.OnMessage += Socket_OnMessage;
