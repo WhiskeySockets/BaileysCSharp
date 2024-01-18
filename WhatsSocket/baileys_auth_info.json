@@ -1,0 +1,78 @@
+{
+  "noiseKey": {
+    "private": {
+      "type": "Buffer",
+      "data": "+EbMiQ4sUqYE16NAYAniTnC/8rP7hTcZNfeeucaWIWw="
+    },
+    "public": {
+      "type": "Buffer",
+      "data": "dBVTAe3/vXi2mZgg04UFB/VHL46IcwsJZQfV1Mry1l8="
+    }
+  },
+  "ephemeralKeyPair": {
+    "private": {
+      "type": "Buffer",
+      "data": "OAuQZpzxrc0BaMMjjfm0g6SryS/uhBRS1mmLndhlcn4="
+    },
+    "public": {
+      "type": "Buffer",
+      "data": "6UKtVV7psksSsgHpDJPk68Z/QFC6ERFF4IpgOpxTq2U="
+    }
+  },
+  "pairingEphemeralKeyPair": {
+    "private": {
+      "type": "Buffer",
+      "data": "SJLcV/fo7OhSXW+6ODci+NfjINns+0GJRZGO17gPmXY="
+    },
+    "public": {
+      "type": "Buffer",
+      "data": "g0rFVqypZjbTsLkSima6AIvREG1TmQ5iRCZO6tgPimQ="
+    }
+  },
+  "signedIdentityKey": {
+    "private": {
+      "type": "Buffer",
+      "data": "mJ0Uy1BK8pFBsIRxRXBQHK3z04IHtg9U3Rok2Mb+/V0="
+    },
+    "public": {
+      "type": "Buffer",
+      "data": "PcYSr+Zp7LBu6t7jTw5sGZLXsb9Rc+1clPpSWlo7F18="
+    }
+  },
+  "signedPreKey": {
+    "keyPair": {
+      "private": {
+        "type": "Buffer",
+        "data": "GLwmHSRCryIk6vFhzAoBm8DGhoZpnCbZ9OWTeKfB6kk="
+      },
+      "public": {
+        "type": "Buffer",
+        "data": "mi2GsBZlc01gf4qDtfZG4/VhJ6F28aq0xJZwMLb252I="
+      }
+    },
+    "signature": {
+      "type": "Buffer",
+      "data": "X4b+3e5PqvPQc14gOyUUjW822csdxI3MYVoiqsuJ750wuf1vLgtAbQWL2sGnrmES2vqL1/JW6BfvDsoSv6hpgg=="
+    },
+    "keyId": 1
+  },
+  "registrationId": 221,
+  "advSecretKey": "xkheFvN9TX11PPmIZmGvNgMdPgrUjeogtKEfMfVZ3KY=",
+  "processedHistoryMessages": [],
+  "nextPreKeyId": 1,
+  "firstUnuploadedPreKeyId": 1,
+  "accountSyncCounter": 0,
+  "accountSettings": { "unarchiveChats": false },
+  "deviceId": "X0V9FtLKS1SkIbJXp0sFCA",
+  "phoneId": "adfbda44-9340-4044-b291-c9247562d696",
+  "identityId": {
+    "type": "Buffer",
+    "data": "xD0K5+1vpTR8doosdyEq8La07Hg="
+  },
+  "registered": false,
+  "backupToken": {
+    "type": "Buffer",
+    "data": "X72/izf+oYQt5Kg5E5Jk5M7wp3Y="
+  },
+  "registration": {}
+}
