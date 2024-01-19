@@ -12,8 +12,9 @@ namespace WhatsSocket.Core.Sockets
         public event OnReceiveArgs MessageRecieved;
 
         public event EventHandler Opened;
-        public event EventHandler Ping;
+        //public event EventHandler Ping;
         public event EventHandler Disconnected;
+        public event EventHandler ConnectFailed;
         public event EventHandler<string> Error;
 
         public bool IsConnected { get; protected set; }
@@ -37,13 +38,13 @@ namespace WhatsSocket.Core.Sockets
         {
             Disconnected?.Invoke(this, EventArgs.Empty);
         }
-        public void OnPing()
-        {
-            Ping?.Invoke(this, EventArgs.Empty);
-        }
         public void OnError(string message)
         {
             Error?.Invoke(this, message);
+        }
+        public void OnConnectFailed()
+        {
+            ConnectFailed?.Invoke(this, EventArgs.Empty);
         }
     }
 }

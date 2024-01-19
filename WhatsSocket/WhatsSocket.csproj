@@ -28,10 +28,4 @@
     <Protobuf Include="Proto\WAProto.3.proto" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="baileys_auth_info.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

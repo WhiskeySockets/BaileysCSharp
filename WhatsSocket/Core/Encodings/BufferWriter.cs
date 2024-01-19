@@ -15,15 +15,16 @@ namespace WhatsSocket.Core.Encodings
         MemoryStream Buffer;
         BinaryNode Node { get; set; }
 
-        public void EncodeBinaryNode(BinaryNode node, MemoryStream buffer = default)
+        public void EncodeBinaryNode(BinaryNode node, MemoryStream buffer = null)
         {
-            Buffer = new MemoryStream();
-            PushByte(0);
+            Buffer = buffer ?? new MemoryStream();
+            if (buffer == null)
+                PushByte(0);
             Node = node;
 
 
             var validAttributes = Node.attrs.Where(x => !string.IsNullOrEmpty(x.Key)).Select(x => x.Key).ToList();
-            WriteLineStart((2 * validAttributes.Count) + 1 + (Node.content != null ? 1 : 0));
+            WriteListStart((2 * validAttributes.Count) + 1 + (Node.content != null ? 1 : 0));
             WriteString(Node.tag);
 
             foreach (var item in validAttributes)
@@ -46,7 +47,7 @@ namespace WhatsSocket.Core.Encodings
             }
             else if (Node.content is BinaryNode[] binaryNodes)
             {
-                WriteByteLength(binaryNodes.Length);
+                WriteListStart(binaryNodes.Length);
                 foreach (var item in binaryNodes)
                 {
                     EncodeBinaryNode(item, Buffer);
@@ -55,9 +56,10 @@ namespace WhatsSocket.Core.Encodings
 
         }
 
+
         private void PushByte(int value)
         {
-            var @byte = Convert.ToByte(value& 0xff);
+            var @byte = Convert.ToByte(value & 0xff);
             Buffer.WriteByte(@byte);
         }
 
@@ -94,6 +96,25 @@ namespace WhatsSocket.Core.Encodings
         private void PushInt20(int value)
         {
             PushBytes((value >> 16) & 0x0f, (value >> 8) & 0xff, value & 0xff);
+        }
+
+
+        private void WriteListStart(int listSize)
+        {
+            if (listSize == 0)
+            {
+                PushByte(TAGS.LIST_EMPTY);
+            }
+            else if (listSize < 256)
+            {
+                PushBytes(TAGS.LIST_8, listSize);
+            }
+            else
+            {
+                PushByte(TAGS.LIST_16);
+                PushInt16((short)listSize);
+            }
+
         }
 
         private void WriteByteLength(int length)
@@ -309,22 +330,22 @@ namespace WhatsSocket.Core.Encodings
             }
         }
 
-        private void WriteLineStart(int listSize)
-        {
-            if (listSize == 0)
-            {
-                PushByte(TAGS.LIST_EMPTY);
-            }
-            else if (listSize < 256)
-            {
-                PushBytes(TAGS.LIST_8, listSize);
-            }
-            else
-            {
-                PushByte(TAGS.LIST_16);
-                PushInt16(listSize);
-            }
-        }
+        //private void WriteLineStart(int listSize)
+        //{
+        //    if (listSize == 0)
+        //    {
+        //        PushByte(TAGS.LIST_EMPTY);
+        //    }
+        //    else if (listSize < 256)
+        //    {
+        //        PushBytes(TAGS.LIST_8, listSize);
+        //    }
+        //    else
+        //    {
+        //        PushByte(TAGS.LIST_16);
+        //        PushInt16(listSize);
+        //    }
+        //}
 
 
 

@@ -18,6 +18,7 @@ namespace WhatsSocket
 
             //StartServer();
 
+            TestPingEncoding();
             TestEncodeAndDecode();
             TestDecodeFrame();
             TestHKDIF();
@@ -43,6 +44,34 @@ namespace WhatsSocket
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void TestPingEncoding()
+        {
+            var iq = new BinaryNode()
+            {
+                tag = "iq",
+                attrs = new Dictionary<string, string>()
+                    {
+                        {"id", "23788.8381-1" },
+                        {"to",Constants.S_WHATSAPP_NET },
+                        {"type","get" },
+                        {"xmlns" ,"w:p" }
+                    },
+                content = new BinaryNode[]
+                    {
+                        new BinaryNode()
+                        {
+                            tag = "ping",
+                            
+                        }
+                    }
+            };
+
+            var data = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
+            var data2 = Convert.FromBase64String("APgKHgj/BiN4i4OBoQ76AAMEMRlf+AH4AVA=");
+            var iq2 = BufferReader.DecodeDecompressedBinaryNode(data2);
+            Debug.Assert(iq.attrs["id"] == iq2.attrs["id"]);
         }
 
         private static void TestEncodeAndDecode()

@@ -19,9 +19,6 @@ namespace WhatsSocket.Core.Credentials
         [JsonProperty("noiseKey")]
         public KeyPair NoiseKey { get; set; }
 
-        [JsonProperty("ephemeralKeyPair")]
-        public KeyPair EphemeralKeyPair { get; set; }
-
         [JsonProperty("pairingEphemeralKeyPair")]
         public KeyPair PairingEphemeralKeyPair { get; set; }
 

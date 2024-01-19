@@ -87,7 +87,7 @@ namespace WhatsSocket.Core
             Client.MessageRecieved += Client_MessageRecieved;
 
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
-            EphemeralKeyPair = Creds.EphemeralKeyPair ?? EncryptionHelper.GenerateKeyPair();
+            EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
 
             /** WA noise protocol wrapper */
             noise = MakeNoiseHandler();
@@ -114,7 +114,7 @@ namespace WhatsSocket.Core
         private void SendRawMessage(byte[] bytes)
         {
             var toSend = noise.EncodeFrame(bytes);
-            Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes" );
+            Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
             Client.Send(toSend);
         }
 
@@ -234,7 +234,7 @@ namespace WhatsSocket.Core
             noise.FinishInit();
 
             //TODO: Uncomment below
-            //StartKeepAliveRequest();
+            StartKeepAliveRequest();
         }
 
         private void StartKeepAliveRequest()
@@ -378,7 +378,7 @@ namespace WhatsSocket.Core
 
         CancellationTokenSource qrTimerToken = new CancellationTokenSource();
 
-        private void KeepAliveHandler()
+        private async void KeepAliveHandler()
         {
             lastReceived = DateTime.Now;
             var keepAliveIntervalMs = 30000;
@@ -411,13 +411,15 @@ namespace WhatsSocket.Core
                     }
                 };
 
-                Query(iq);
+
+
+                var result = await Query(iq);
 
                 Thread.Sleep(keepAliveIntervalMs);
             }
         }
 
-        private async void Query(BinaryNode iq)
+        private Task<BinaryNode> Query(BinaryNode iq)
         {
             if (!iq.attrs.ContainsKey("id"))
             {
@@ -425,7 +427,7 @@ namespace WhatsSocket.Core
             }
             waits[iq.attrs["id"]] = new TaskCompletionSource<BinaryNode>();
             SendNode(iq);
-            var result = await waits[iq.attrs["id"]].Task;
+            return waits[iq.attrs["id"]].Task;
         }
 
         private void End(string reason, DisconnectReason connectionLost)
