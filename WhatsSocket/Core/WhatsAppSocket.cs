@@ -22,6 +22,9 @@ using System.Diagnostics;
 using WhatsSocket.Core.Sockets;
 using System.Xml.Linq;
 using WhatsSocket.Core.Credentials;
+using WhatsSocket.Core.Events;
+using System.Security.Cryptography;
+using QRCoder;
 
 namespace WhatsSocket.Core
 {
@@ -60,6 +63,8 @@ namespace WhatsSocket.Core
             events["frame"] = OnFrame;
             events["CB:iq,type:set,pair-device"] = OnPairDevice;
             events["CB:xmlstreamend"] = StreamEnd;
+            events["CB:iq,,pair-success"] = OnPairSuccess;
+
             //events["CB:iq,,pair-success"] = OnPairSuccess;
             //events["CB:success"] = OnSuccess;
             //events["CB:failure"] = OnFailure;
@@ -84,6 +89,7 @@ namespace WhatsSocket.Core
         {
             Client = new WebSocketClient();
             Client.Opened += Client_Opened;
+            Client.Disconnected += Client_Disconnected;
             Client.MessageRecieved += Client_MessageRecieved;
 
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
@@ -97,6 +103,16 @@ namespace WhatsSocket.Core
             Epoch = 1;
 
             Client.Connect();
+        }
+
+        private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
+        {
+            Client.Opened -= Client_Opened;
+            Client.Disconnected -= Client_Disconnected;
+            if (reason == DisconnectReason.TimedOut)
+            {
+                MakeSocket();
+            }
         }
 
         private NoiseHandler MakeNoiseHandler()
@@ -121,10 +137,12 @@ namespace WhatsSocket.Core
         #region Receiving
 
         //Data Received from WA
-        private void Client_MessageRecieved(AbstractSocketClient sender, byte[] frame)
+
+        private void Client_MessageRecieved(AbstractSocketClient sender, DataFrame frame)
         {
-            noise.DecodeFrame(frame, OnFrameDeecoded);
+            noise.DecodeFrame(frame.Buffer, OnFrameDeecoded);
         }
+
         //Binary Node Received from WA
         private async void OnFrameDeecoded(BinaryNode message)
         {
@@ -170,7 +188,8 @@ namespace WhatsSocket.Core
         #endregion
 
 
-        private void Client_Opened(object? sender, EventArgs e)
+
+        private void Client_Opened(AbstractSocketClient sender)
         {
             try
             {
@@ -318,7 +337,8 @@ namespace WhatsSocket.Core
             var identityKeyB64 = Creds.SignedIdentityKey.Public.ToBase64();
             var advB64 = Creds.AdvSecretKey;
 
-            var qrTimeout = 20000;
+            var qrTimeout = 60000;
+            qrTimerToken = new CancellationTokenSource(); 
             while (!qrTimerToken.IsCancellationRequested)
             {
                 if (!Client.IsConnected)
@@ -328,15 +348,30 @@ namespace WhatsSocket.Core
                 {
                     var @ref = Encoding.UTF8.GetString(refNode.ToByteArray());
                     var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
+
+
+
+                    QRCodeGenerator QrGenerator = new QRCodeGenerator();
+                    QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(qr, QRCodeGenerator.ECCLevel.L);
+                    AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
+                    var data = qrCode.GetGraphic(1);
+                    //File.WriteAllBytes("qr.png", data);
+
+                    
+
+
                     await Console.Out.WriteLineAsync(qr);
+                    await Console.Out.WriteLineAsync(data);
                 }
                 else
                 {
-                    throw new Exception("QR refs attempts ended");
+                    End("QR refs attempts ended", DisconnectReason.TimedOut);
+                    return true;
                 }
                 try
                 {
                     await Task.Delay(qrTimeout, qrTimerToken.Token);
+                    qrTimeout = 20000;
                 }
                 catch (TaskCanceledException)
                 {
@@ -344,6 +379,42 @@ namespace WhatsSocket.Core
                 }
             }
             return true;
+        }
+
+
+
+        private Task<bool> OnPairSuccess(BinaryNode node)
+        {
+            var msgId = node.attrs["id"].ToString();
+            var pairSuccessNode = GetBinaryNodeChild(node, "pair-success");
+
+
+            var deviceIdentityNode = GetBinaryNodeChild(pairSuccessNode, "device-identity");
+            var platformNode = GetBinaryNodeChild(pairSuccessNode, "platform");
+            var deviceNode = GetBinaryNodeChild(pairSuccessNode, "device");
+            var businessNode = GetBinaryNodeChild(pairSuccessNode, "biz");
+
+            var bizName = businessNode?.attrs["name"];
+            var jid = deviceNode.attrs["jid"];
+
+            var detailsHmac = ADVSignedDeviceIdentityHMAC.Parser.ParseFrom(deviceIdentityNode.ToByteArray());
+
+
+            var advSign = EncryptionHelper.HmacSign(detailsHmac.Details.ToByteArray(), Convert.FromBase64String(Creds.AdvSecretKey));
+
+            // check HMAC matches
+            var hmac = detailsHmac.Hmac.ToBase64();
+            if (hmac != advSign)
+            {
+                End("Invalid Account Signature", DisconnectReason.BadSession);
+            }
+
+            var account = ADVSignedDeviceIdentity.Parser.ParseFrom(detailsHmac.Details);
+
+
+
+
+            return Task.FromResult(true);
         }
 
         private BinaryNode[] GetBinaryNodeChildren(BinaryNode? message, string tag)
@@ -376,7 +447,7 @@ namespace WhatsSocket.Core
         CancellationTokenSource keepAliveToken;
         DateTime lastReceived;
 
-        CancellationTokenSource qrTimerToken = new CancellationTokenSource();
+        CancellationTokenSource qrTimerToken;
 
         private async void KeepAliveHandler()
         {
@@ -444,7 +515,7 @@ namespace WhatsSocket.Core
 
         private ClientPayload GenerateRegistrationNode(AuthenticationCreds creds)
         {
-            var appVersion = EncryptionHelper.Mdf("2.2329.9");
+            var appVersion = EncryptionHelper.Md5("2.2329.9");
             var companion = new DeviceProps()
             {
                 Os = "Baileys",

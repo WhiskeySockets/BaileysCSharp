@@ -20,12 +20,19 @@
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
+    <PackageReference Include="QRCoder" Version="1.4.3" />
     <PackageReference Include="WebSocketSharp-netstandard" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="Proto\WAProto.2.proto" />
     <Protobuf Include="Proto\WAProto.3.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="creds.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

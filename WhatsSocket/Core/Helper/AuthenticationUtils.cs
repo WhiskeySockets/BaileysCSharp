@@ -70,6 +70,16 @@ namespace WhatsSocket.Core.Helper
 
             return creds;
         }
+
+
+        internal static void Randomize(AuthenticationCreds? creds)
+        {
+            if (creds != null)
+            {
+                creds.NoiseKey = EncryptionHelper.GenerateKeyPair();
+                creds.AdvSecretKey = RandomBytes(32).ToBase64();
+            }
+        }
         static string ConvertToBase64Url(string input)
         {
             // Convert hex string to byte array
@@ -107,6 +117,10 @@ namespace WhatsSocket.Core.Helper
             var preKey = EncryptionHelper.GenerateKeyPair();
             var pubKey = GenerateSignalPubKey(preKey.Public);
 
+
+
+
+
             var signature = EncryptionHelper.Sign(identityKeyPair.Private, pubKey);
 
             return new SignedPreKey()
@@ -116,5 +130,6 @@ namespace WhatsSocket.Core.Helper
                 KeyId = keyId
             };
         }
+
     }
 }

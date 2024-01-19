@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Events;
 
 namespace WhatsSocket.Core.Sockets
 {
     public abstract class AbstractSocketClient
     {
-        public delegate void OnReceiveArgs(AbstractSocketClient sender, byte[] frame);
-        public event OnReceiveArgs MessageRecieved;
+        public event MessageArgs MessageRecieved;
 
-        public event EventHandler Opened;
+        public event ConnectEventArgs Opened;
         //public event EventHandler Ping;
-        public event EventHandler Disconnected;
+        public event DisconnectEventArgs Disconnected;
         public event EventHandler ConnectFailed;
         public event EventHandler<string> Error;
 
@@ -26,22 +26,24 @@ namespace WhatsSocket.Core.Sockets
 
         protected void EmitReceivedData(byte[] data)
         {
-            MessageRecieved?.Invoke(this, data);
+            MessageRecieved?.Invoke(this, new DataFrame() { Buffer = data });
         }
 
         public void OnOpened()
         {
-            Opened?.Invoke(this, EventArgs.Empty);
+            Opened?.Invoke(this);
         }
 
-        public void OnDisconnected()
+        public void OnDisconnected(DisconnectReason reason)
         {
-            Disconnected?.Invoke(this, EventArgs.Empty);
+            Disconnected?.Invoke(this, reason);
         }
+
         public void OnError(string message)
         {
             Error?.Invoke(this, message);
         }
+
         public void OnConnectFailed()
         {
             ConnectFailed?.Invoke(this, EventArgs.Empty);

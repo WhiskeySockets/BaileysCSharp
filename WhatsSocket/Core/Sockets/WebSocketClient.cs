@@ -55,9 +55,8 @@ namespace WhatsSocket.Core.Sockets
             }
             catch (Exception ex)
             {
-
+                OnDisconnected(Events.DisconnectReason.ConnectionLost);
             }
-            OnDisconnected();
         }
 
 
@@ -85,7 +84,7 @@ namespace WhatsSocket.Core.Sockets
             if (socket.State == WebSocketState.Open)
             {
                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Bey", CancellationToken.None);
-                OnDisconnected();
+                OnDisconnected(Events.DisconnectReason.ConnectionClosed);
             }
         }
 

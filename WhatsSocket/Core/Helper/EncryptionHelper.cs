@@ -13,6 +13,10 @@ using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
 using WhatsSocket.Core.Credentials;
+using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Security.Cryptography;
+//using Sodium;
 
 namespace WhatsSocket.Core.Helper
 {
@@ -62,23 +66,30 @@ namespace WhatsSocket.Core.Helper
             return buffer;
         }
 
-        public static byte[] Sign(byte[] privateKey, byte[] buffer)
+        public static byte[] Sign(byte[] privateKey, byte[] data)
         {
-            Ed25519PrivateKeyParameters privateParamenter = new Ed25519PrivateKeyParameters(privateKey, 0);
-            Ed25519Signer signer = new Ed25519Signer();
-            signer.Init(true, privateParamenter);
-            signer.BlockUpdate(buffer, 0, buffer.Length);
-            var signature = signer.GenerateSignature();
-            return signature;
+            //Ed25519PrivateKeyParameters privateParamenter = new Ed25519PrivateKeyParameters(privateKey, 0);
+            //var signer = SignerUtilities.GetSigner("Ed25519");
+            //signer.Init(true, privateParamenter);
+            //signer.BlockUpdate(data, 0, data.Length);
+            //return signer.GenerateSignature();
         }
 
-        public static byte[] Mdf(string input)
+        public static byte[] Md5(string input)
         {
             using (MD5 md5 = MD5.Create())
             {
                 byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
                 byte[] hashBytes = md5.ComputeHash(inputBytes);
                 return hashBytes;
+            }
+        }
+        public static string HmacSign(byte[] text, byte[] key)
+        {
+            using (var hmacsha256 = new HMACSHA256(key))
+            {
+                var hash = hmacsha256.ComputeHash(text);
+                return Convert.ToBase64String(hash);
             }
         }
 

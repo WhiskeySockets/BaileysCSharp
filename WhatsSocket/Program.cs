@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
 using WhatsSocket.Core;
 using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Encodings;
@@ -23,16 +24,19 @@ namespace WhatsSocket
             TestDecodeFrame();
             TestHKDIF();
             TestEncoder();
+            TestDecodeQRNode();
+            TestSign();
 
 
             //This creds file comes from the nodejs sample    
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "baileys_auth_info.json");
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds2.json");
 
 
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {
                 authentication = AuthenticationCreds.Deserialize(File.ReadAllText(credsFile));
+                AuthenticationUtils.Randomize(authentication);
             }
             authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
 
@@ -44,6 +48,28 @@ namespace WhatsSocket
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void TestSign()
+        {
+            var signature = EncryptionHelper.Sign(Convert.FromBase64String("cP8xTjRQa+HsaIalLAd0w0oiIUWjfzdWhINgd/uwIGc="), Convert.FromBase64String("BWNOGybEazgfAVgDD69E4+TWAZsBRTRPDCB9Faq/JC8/"));
+        
+            var signB64 = Convert.ToBase64String(signature);
+
+            Debug.Assert(signB64 == "f1wuqbrGH09sqT14gBIO6Ea2KVjWE+MwOxzkxJ5JsYlbDIJkEYXL9YFQlog0jPlNXVClHGQr/W16QqsTso3eCw==");
+        }
+
+        private static void TestDecodeQRNode()
+        {
+            var qrNode = Convert.FromBase64String("APgKHgb6AAMEPgj7BTU3lSSUGfwCbWT4AfgC/AtwYWlyLWRldmljZfgG+AL8A3JlZvxSMkBSa0ZwQVJsZmdBazNRQXlzSjA3RVVBWThNUEdrZWtveE4zamlMK0swL0VaK0pXbEhIbE50TTk3ZUNBcm5ScXNQNFplRStUMXRzRks5YXc9PfgC/ANyZWb8UjJATGVVckdJMmlidTl0S01TTXlsR0ZIcWtsRG42aC96UGxlK2xmOTY2czNmWlZEc1hueUFqQ29EczZEdUkyMUF3WWVMWlBTSUpKTkJEVzVBPT34AvwDcmVm/FIyQFZ3RVQ2TWdXQ1I4L3J5MW1IWTI2elFNb2I5cVl4czBEbE53OFErRmhYblhDQlN0Wk5TSEh4a0pJaTBuZ2hzU1VDdUt6Rmtxamg3UkEyUT09+AL8A3JlZvxSMkBlYmNHOHlIenZsOEhNYUFrMjRZWkJwWkFpdk1MNkZLWkc3Qnp3WG5lejM2OXgzT292dlVRbzRiRWdtbTNsd3NOU3ZWZFpucEFVVWVuM1E9PfgC/ANyZWb8UjJAVkRUOEhBeWl3aGIxc1N1K2xaaWtQVmlhY0oyL3JXNGFZeGF2THNBaTRsa1FUelJwYSsxNEZJOHRtUFNoUDBVaU5JbEhBNnN0S0FramVBPT34AvwDcmVm/FIyQFBnY21selB2S1hWM2hZbUJtQnBDRjJpckUyNEc2TmFzNGVIL1lxQURZK01oZFFweTlxSHJTbmtIZmFsZWFJNGp5SnA0em84ZW10ejkrUT09");
+            var decoded = BufferReader.DecodeDecompressedBinaryNode(qrNode);
+
+
+            var encoding = ((decoded.content as BinaryNode[])?.FirstOrDefault()?.content as BinaryNode[])?.FirstOrDefault()?.content as byte[];
+
+            var @ref2 = Encoding.UTF8.GetString(encoding ?? new byte[] { 0 });
+            var @ref = "2@RkFpARlfgAk3QAysJ07EUAY8MPGkekoxN3jiL+K0/EZ+JWlHHlNtM97eCArnRqsP4ZeE+T1tsFK9aw==";
+            Debug.Assert(@ref == @ref2);
         }
 
         private static void TestPingEncoding()
@@ -63,7 +89,7 @@ namespace WhatsSocket
                         new BinaryNode()
                         {
                             tag = "ping",
-                            
+
                         }
                     }
             };
@@ -105,9 +131,9 @@ namespace WhatsSocket
 
         private static void StartServer()
         {
-            var server = new WebSocketSharp.Server.WebSocketServer(533);
-            server.AddWebSocketService<Behaviour>("/ws/chat");
-            server.Start();
+            //var server = new WebSocketSharp.Server.WebSocketServer(533);
+            //server.AddWebSocketService<Behaviour>("/ws/chat");
+            //server.Start();
 
         }
 
