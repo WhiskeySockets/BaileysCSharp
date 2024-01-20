@@ -14,8 +14,9 @@ using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
 using WhatsSocket.Core.Credentials;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Security.Cryptography;
+using Org.BouncyCastle.Tls.Crypto.Impl.BC;
+using WhatsSocket.Core.Curve;
+using System.Linq;
 //using Sodium;
 
 namespace WhatsSocket.Core.Helper
@@ -66,14 +67,26 @@ namespace WhatsSocket.Core.Helper
             return buffer;
         }
 
+        public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
+        {
+            publicKey = AuthenticationUtils.GenerateSignalPubKey(publicKey);
+            return Curve25519.Verify(publicKey, message, signature);
+        }
+
+
+
         public static byte[] Sign(byte[] privateKey, byte[] data)
         {
+            var signature = Curve25519.Sign(privateKey, data);
+            return signature;
+
             //Ed25519PrivateKeyParameters privateParamenter = new Ed25519PrivateKeyParameters(privateKey, 0);
             //var signer = SignerUtilities.GetSigner("Ed25519");
             //signer.Init(true, privateParamenter);
             //signer.BlockUpdate(data, 0, data.Length);
             //return signer.GenerateSignature();
         }
+
 
         public static byte[] Md5(string input)
         {
@@ -108,16 +121,6 @@ namespace WhatsSocket.Core.Helper
             sha256.DoFinal(hash, 0);
             return hash;
         }
-
-        public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
-        {
-            Ed25519PublicKeyParameters publicParamenter = new Ed25519PublicKeyParameters(publicKey);
-            Ed25519Signer verifier = new Ed25519Signer();
-            verifier.Init(false, publicParamenter);
-            verifier.BlockUpdate(message, 0, message.Length);
-            return verifier.VerifySignature(signature);
-        }
-
 
 
         public static byte[] EncryptAESGCM(byte[] plaintext, byte[] encKey, byte[] iv, byte[] hash)

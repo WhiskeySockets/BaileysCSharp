@@ -2,67 +2,67 @@
   "noiseKey": {
     "private": {
       "type": "Buffer",
-      "data": "kMxFsabS8glB2SK7S4tTXWX5DiwiiVbjAAUnop3Cn24="
+      "data": "4BNLcneXFmV6Y+ZwPj0wM2+OzZnczcgr+XZsHmCPz0w="
     },
     "public": {
       "type": "Buffer",
-      "data": "V8ac5AkyrU5OW+vGGglUYbyrqy3PwLm34VqNt7/LgHA="
+      "data": "4dh/qsqYRup+URxh1imEe/AgvgL7rYeweUC+4a++q3U="
     }
   },
   "pairingEphemeralKeyPair": {
     "private": {
       "type": "Buffer",
-      "data": "sHyuDNO6LCWUN1qV2NenkpGPDt2HQd1lTIPgpeDpFH8="
+      "data": "UGbTvtRQ/YZNP4+4B/bIfM+bS1aALPPUXm3tkZHMlFA="
     },
     "public": {
       "type": "Buffer",
-      "data": "Q5gYc+A2TnBMGG1FLA/Xjor4zc+zRDQe/V7mif8hsgM="
+      "data": "bnX88x+RbxEZfog0HPmNnq/yXri1rmJvqtNkxraV91g="
     }
   },
   "signedIdentityKey": {
     "private": {
       "type": "Buffer",
-      "data": "8OL2XY4vKzA3vCgOfvLSbfiu5NC8p3zEQuYizCqmFks="
+      "data": "SMXiDivzWGpSekW4vjNPXt+ju+HNzE0+oKVlYTCftUs="
     },
     "public": {
       "type": "Buffer",
-      "data": "Vj/vv+ilxbAuV4TFGuy8Rnpl1JA0ZpPUzcM+p9rYuUQ="
+      "data": "EJHw6gOAb0JnlmiC+UzEIlZEeNFBwb6Tjukb3qjPZS4="
     }
   },
   "signedPreKey": {
     "keyPair": {
       "private": {
         "type": "Buffer",
-        "data": "QDxGbGm1L1EU0kQqjiMuPujYwNjyRYB6nDIxKf9kt1Q="
+        "data": "eCoZQnIkKuC25YBFMN0YC4G14OfOAixuBj73AN/VwnM="
       },
       "public": {
         "type": "Buffer",
-        "data": "+60bQ6W1qORSLc9fh0bhKTsKb/GZDUwikA+ZWgNGlUk="
+        "data": "aH04O93K9OAoKUpVWjpA+qvLP5THMvIJn17MTT2nThI="
       }
     },
     "signature": {
       "type": "Buffer",
-      "data": "iP46lnzaROPHrVl0m5G7kLQGDCV3Wf+GhXXVbKFNdyqGxU8i8ObesfXJTMKtqe9d50naqgz04cP+PUgn1svyhA=="
+      "data": "yTwBqeACJ/8FY/0H5eVYDt7b51Ma9cK1cP5puMa89nzYXN+PErHYEq5SkWpheCSO0kcIqGiadNwOoZDJzZ4fDQ=="
     },
     "keyId": 1
   },
-  "registrationId": 34,
-  "advSecretKey": "4DuV4v//dzhhQwEbXsNmxAiojbcR6eM50V9ck8HkXiY=",
+  "registrationId": 206,
+  "advSecretKey": "b1efMhQNcDBIXju+feL9cJkTszdLpjE6coIQQHeGtpI=",
   "processedHistoryMessages": [],
   "nextPreKeyId": 1,
   "firstUnuploadedPreKeyId": 1,
   "accountSyncCounter": 0,
   "accountSettings": { "unarchiveChats": false },
-  "deviceId": "kxFY29mOSOW8xjcqqO8M9w",
-  "phoneId": "aeed3953-7a7a-48e6-8251-04cfd8d8c027",
+  "deviceId": "cGlKKTBaRqWpZBQkMakrMQ",
+  "phoneId": "2142c0a3-7ac2-4f5f-b04f-aff539f5ad47",
   "identityId": {
     "type": "Buffer",
-    "data": "/IcPgQd+iCCdfNc7QP5WUs+IUUc="
+    "data": "gyCGSkk5AquXzXMkBfJgydEunL0="
   },
   "registered": false,
   "backupToken": {
     "type": "Buffer",
-    "data": "UHWw2MigNe7qL2UGQUjRm8C9NGc="
+    "data": "jne413fmwXmH1zVhuuiX3ktLPxI="
   },
   "registration": {}
 }

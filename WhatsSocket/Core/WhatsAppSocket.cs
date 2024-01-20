@@ -338,7 +338,7 @@ namespace WhatsSocket.Core
             var advB64 = Creds.AdvSecretKey;
 
             var qrTimeout = 60000;
-            qrTimerToken = new CancellationTokenSource(); 
+            qrTimerToken = new CancellationTokenSource();
             while (!qrTimerToken.IsCancellationRequested)
             {
                 if (!Client.IsConnected)
@@ -357,7 +357,7 @@ namespace WhatsSocket.Core
                     var data = qrCode.GetGraphic(1);
                     //File.WriteAllBytes("qr.png", data);
 
-                    
+
 
 
                     await Console.Out.WriteLineAsync(qr);
@@ -411,6 +411,13 @@ namespace WhatsSocket.Core
 
             var account = ADVSignedDeviceIdentity.Parser.ParseFrom(detailsHmac.Details);
 
+            var accountMsg = new byte[] { 6, 0 }
+            .Concat(account.Details.ToByteArray())
+            .Concat(Creds.SignedIdentityKey.Public).ToArray();
+            if (!EncryptionHelper.Verify(account.AccountSignatureKey.ToByteArray(), accountMsg, account.AccountSignature.ToByteArray()))
+            {
+                End("Failed to verify Signature", DisconnectReason.BadSession);
+            }
 
 
 

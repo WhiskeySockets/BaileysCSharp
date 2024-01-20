@@ -1,8 +1,10 @@
-﻿using System.Diagnostics;
+﻿using Proto;
+using System.Diagnostics;
 using System.Text;
 using System.Xml.Linq;
 using WhatsSocket.Core;
 using WhatsSocket.Core.Credentials;
+using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.TestModels;
@@ -17,6 +19,8 @@ namespace WhatsSocket
         static void Main(string[] args)
         {
 
+            var v = 15313511022L * 38;
+
             //StartServer();
 
             TestPingEncoding();
@@ -26,17 +30,17 @@ namespace WhatsSocket
             TestEncoder();
             TestDecodeQRNode();
             TestSign();
+            TestVerifyCurve();
 
 
             //This creds file comes from the nodejs sample    
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds2.json");
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds.json");
 
 
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {
                 authentication = AuthenticationCreds.Deserialize(File.ReadAllText(credsFile));
-                AuthenticationUtils.Randomize(authentication);
             }
             authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
 
@@ -50,13 +54,48 @@ namespace WhatsSocket
             Console.ReadLine();
         }
 
+        private static void TestVerifyCurve()
+        {
+
+            var deviceDetails = "CP3+57ACELqtra0GGB4gACgA";
+            var accountSignatureKey = "vLor8AqiLTwALyLbB3SkcItDrNlKf88nqhMPHsO8sGI=";
+            var signedIdentityKeypublic = "EJHw6gOAb0JnlmiC+UzEIlZEeNFBwb6Tjukb3qjPZS4=";
+            var accountSignature = "rXS7h0kpENziw/rStkiNf3De3lI8/pNhnztmC3hcVBDr4SgjvrPzfxHhcVsqVe1TJ4QqzdpMtOzD6Og8xGoBCQ==";
+
+
+            /*  
+             *  Type script matching code
+             *  var deviceDetails =  Buffer.from("CP3+57ACELqtra0GGB4gACgA", 'base64');
+             *  var signedIdentityKeypublic =  Buffer.from("EJHw6gOAb0JnlmiC+UzEIlZEeNFBwb6Tjukb3qjPZS4=", 'base64');
+             *  var accountSignatureKey =  Buffer.from("vLor8AqiLTwALyLbB3SkcItDrNlKf88nqhMPHsO8sGI=", 'base64');
+             *  var accountSignature =  Buffer.from("rXS7h0kpENziw/rStkiNf3De3lI8/pNhnztmC3hcVBDr4SgjvrPzfxHhcVsqVe1TJ4QqzdpMtOzD6Og8xGoBCQ==", 'base64');
+             *  const accountMsg = Buffer.concat([ Buffer.from([6, 0]), deviceDetails, signedIdentityKeypublic ])
+             *  var valid= Curve.verify(accountSignatureKey, accountMsg, accountSignature);
+            */
+
+
+            var accountMsg = new byte[] {6,0 }
+            .Concat(Convert.FromBase64String(deviceDetails))
+            .Concat(Convert.FromBase64String(signedIdentityKeypublic))
+            .ToArray();
+
+            var valid = EncryptionHelper.Verify(Convert.FromBase64String(accountSignatureKey), accountMsg, Convert.FromBase64String(accountSignature));
+        }
+
         private static void TestSign()
         {
-            var signature = EncryptionHelper.Sign(Convert.FromBase64String("cP8xTjRQa+HsaIalLAd0w0oiIUWjfzdWhINgd/uwIGc="), Convert.FromBase64String("BWNOGybEazgfAVgDD69E4+TWAZsBRTRPDCB9Faq/JC8/"));
-        
-            var signB64 = Convert.ToBase64String(signature);
+            /*  
+             *  Type script matching code
+             *  var a =  Buffer.from("IDCDtVD++rJolLsVvMBmamuh55HDuoLumCOurRPk9G4=", 'base64');
+	         *  var b =  Buffer.from("Bd9bnwurvCcsEHAQl6EX3NnKBezsyX+ecp1vuGHCxmoC", 'base64');
+	         *  var c = Curve.sign(a,b);//c = m5xXDNaJF/QmcrrQblztk/0QNmVwZket5PNSbdI+CGD7rC9KfIGKPwa3gI9ZW6kAXViZto9/4faaTm0rKsUwgg==
+	         *  console.log(c.toString('base64')) 
+            */
 
-            Debug.Assert(signB64 == "f1wuqbrGH09sqT14gBIO6Ea2KVjWE+MwOxzkxJ5JsYlbDIJkEYXL9YFQlog0jPlNXVClHGQr/W16QqsTso3eCw==");
+
+            var result = Curve25519.Sign(Convert.FromBase64String("IDCDtVD++rJolLsVvMBmamuh55HDuoLumCOurRPk9G4="), Convert.FromBase64String("Bd9bnwurvCcsEHAQl6EX3NnKBezsyX+ecp1vuGHCxmoC"));
+            var signB64 = Convert.ToBase64String(result);
+            Debug.Assert(signB64 == "m5xXDNaJF/QmcrrQblztk/0QNmVwZket5PNSbdI+CGD7rC9KfIGKPwa3gI9ZW6kAXViZto9/4faaTm0rKsUwgg==");
         }
 
         private static void TestDecodeQRNode()
