@@ -70,7 +70,7 @@ namespace WhatsSocket.Core.Helper
         public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
         {
             publicKey = AuthenticationUtils.GenerateSignalPubKey(publicKey);
-            return Curve25519.Verify(publicKey, message, signature);
+            return Curve25519.VerifySignature(publicKey, message, signature);
         }
 
 

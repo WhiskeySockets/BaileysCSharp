@@ -385,6 +385,9 @@ namespace WhatsSocket.Core
 
         private Task<bool> OnPairSuccess(BinaryNode node)
         {
+
+            var signedIdentityKey = Creds.SignedIdentityKey;
+
             var msgId = node.attrs["id"].ToString();
             var pairSuccessNode = GetBinaryNodeChild(node, "pair-success");
 
@@ -413,11 +416,20 @@ namespace WhatsSocket.Core
 
             var accountMsg = new byte[] { 6, 0 }
             .Concat(account.Details.ToByteArray())
-            .Concat(Creds.SignedIdentityKey.Public).ToArray();
+            .Concat(signedIdentityKey.Public).ToArray();
             if (!EncryptionHelper.Verify(account.AccountSignatureKey.ToByteArray(), accountMsg, account.AccountSignature.ToByteArray()))
             {
-                End("Failed to verify Signature", DisconnectReason.BadSession);
+                End("Failed to verify account Signature", DisconnectReason.BadSession);
             }
+
+            // sign the details with our identity key
+            var deviceMsg = new byte[] { 6, 1 }
+            .Concat(account.Details.ToByteArray())
+            .Concat(signedIdentityKey.Public)
+            .Concat(account.AccountSignatureKey).ToArray();
+            account.DeviceSignature = EncryptionHelper.Sign(signedIdentityKey.Private, deviceMsg).ToByteString();
+
+            //TODO: Finish 
 
 
 

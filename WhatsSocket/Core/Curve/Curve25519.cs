@@ -1,8 +1,10 @@
 ﻿using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Security.Certificates;
+using Proto;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
 using System.Threading.Tasks;
@@ -28,28 +30,171 @@ namespace WhatsSocket.Core.Curve
           0x1f,0x83,0xd9,0xab,0xfb,0x41,0xbd,0x6b,
           0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
         };
-        private static UInt64[] K = new UInt64[80]
+
+
+
+        private static long[] K = new long[]
 {
-          0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
-          0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
-          0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
-          0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
-          0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
-          0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
-          0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
-          0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
-          0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
-          0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
-          0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
-          0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
-          0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
-          0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
-          0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
-          0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
-          0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
-          0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
-          0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
-          0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
+    1116352408,
+  3609767458,
+  1899447441,
+  602891725,
+  3049323471,
+  3964484399,
+  3921009573,
+  2173295548,
+  961987163,
+  4081628472,
+  1508970993,
+  3053834265,
+  2453635748,
+  2937671579,
+  2870763221,
+  3664609560,
+  3624381080,
+  2734883394,
+  310598401,
+  1164996542,
+  607225278,
+  1323610764,
+  1426881987,
+  3590304994,
+  1925078388,
+  4068182383,
+  2162078206,
+  991336113,
+  2614888103,
+  633803317,
+  3248222580,
+  3479774868,
+  3835390401,
+  2666613458,
+  4022224774,
+  944711139,
+  264347078,
+  2341262773,
+  604807628,
+  2007800933,
+  770255983,
+  1495990901,
+  1249150122,
+  1856431235,
+  1555081692,
+  3175218132,
+  1996064986,
+  2198950837,
+  2554220882,
+  3999719339,
+  2821834349,
+  766784016,
+  2952996808,
+  2566594879,
+  3210313671,
+  3203337956,
+  3336571891,
+  1034457026,
+  3584528711,
+  2466948901,
+  113926993,
+  3758326383,
+  338241895,
+  168717936,
+  666307205,
+  1188179964,
+  773529912,
+  1546045734,
+  1294757372,
+  1522805485,
+  1396182291,
+  2643833823,
+  1695183700,
+  2343527390,
+  1986661051,
+  1014477480,
+  2177026350,
+  1206759142,
+  2456956037,
+  344077627,
+  2730485921,
+  1290863460,
+  2820302411,
+  3158454273,
+  3259730800,
+  3505952657,
+  3345764771,
+  106217008,
+  3516065817,
+  3606008344,
+  3600352804,
+  1432725776,
+  4094571909,
+  1467031594,
+  275423344,
+  851169720,
+  430227734,
+  3100823752,
+  506948616,
+  1363258195,
+  659060556,
+  3750685593,
+  883997877,
+  3785050280,
+  958139571,
+  3318307427,
+  1322822218,
+  3812723403,
+  1537002063,
+  2003034995,
+  1747873779,
+  3602036899,
+  1955562222,
+  1575990012,
+  2024104815,
+  1125592928,
+  2227730452,
+  2716904306,
+  2361852424,
+  442776044,
+  2428436474,
+  593698344,
+  2756734187,
+  3733110249,
+  3204031479,
+  2999351573,
+  3329325298,
+  3815920427,
+  3391569614,
+  3928383900,
+  3515267271,
+  566280711,
+  3940187606,
+  3454069534,
+  4118630271,
+  4000239992,
+  116418474,
+  1914138554,
+  174292421,
+  2731055270,
+  289380356,
+  3203993006,
+  460393269,
+  320620315,
+  685471733,
+  587496836,
+  852142971,
+  1086792851,
+  1017036298,
+  365543100,
+  1126000580,
+  2618297676,
+  1288033470,
+  3409855158,
+  1501505948,
+  4234509866,
+  1607167915,
+  987167468,
+  1816402316,
+  1246189591,
 };
         private static Int64[] L = new Int64[32]
         {
@@ -63,8 +208,7 @@ namespace WhatsSocket.Core.Curve
 
 
 
-
-        internal static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
+        internal static bool VerifySignature(byte[] publicKey, byte[] message, byte[] signature)
         {
             if (publicKey.Length == 33)
             {
@@ -78,6 +222,12 @@ namespace WhatsSocket.Core.Curve
             {
                 return false;
             }
+
+            return Verify(publicKey, message, signature);
+        }
+
+        internal static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
+        {
             var sm = new byte[64 + message.Length];
             var m = new byte[64 + message.Length];
             for (var i = 0; i < 64; i++)
@@ -86,10 +236,10 @@ namespace WhatsSocket.Core.Curve
                 sm[i + 64] = message[i];
 
 
-            return curve25519_sign_open(m, sm, sm.Length, publicKey) >= 0;
+            return curve25519_sign_open(m, sm, publicKey) >= 0;
         }
 
-        private static int curve25519_sign_open(byte[] m, byte[] sm, int n, byte[] pk)
+        private static int curve25519_sign_open(byte[] m, byte[] sm, byte[] pk)
         {
             // Convert Curve25519 public key into Ed25519 public key.
             var edpk = convertPublicKey(pk);
@@ -99,7 +249,7 @@ namespace WhatsSocket.Core.Curve
             sm[63] &= 127;
             // Verify signed message.
 
-            return crypto_sign_open(m, sm, n, edpk);
+            return crypto_sign_open(m, sm, edpk);
         }
 
         private static byte[] convertPublicKey(byte[] pk)
@@ -144,54 +294,58 @@ namespace WhatsSocket.Core.Curve
 
 
 
-        private static int crypto_sign_open(byte[] m, byte[] sm, int n, byte[] pk)
+        private static int crypto_sign_open(byte[] m, byte[] sm, byte[] pk)
         {
-            var mlen = -1;
+
             Byte[] t = new Byte[32];
             Byte[] h = new Byte[64];
             var p = new long[][] { GF(), GF(), GF(), GF() };
             var q = new long[][] { GF(), GF(), GF(), GF() };
-            if (n < 64)
+
+            Int32 messageSize = sm.Length;
+            if (messageSize < 64)
                 return -1;
             if (Unpackneg(q, pk) != 0)
                 return -1;
-            for (var i = 0; i < n; i++)
+            for (var i = 0; i < sm.Length; i++)
                 m[i] = sm[i];
             for (var i = 0; i < 32; i++)
                 m[i + 32] = pk[i];
-            CryptoHash(h, m, n);
+
+            CryptoHash(h, m, sm.Length);
             Reduce(h);
             Scalarmult(p, q, h);
-            var subArray = sm.Take(32).ToArray();
-            Scalarbase(p, subArray);
+
+            var b64 = string.Join(",", sm);
+
+            var subArray = sm.Skip(32).ToArray();
+            Scalarbase(q, subArray);
             Add(p, q);
             Pack(t, p);
-            n -= 64;
-
-            if (CryptoVerify32(sm, 0, t, 0) != 0)
+            messageSize -= 64;
+            if (CryptoVerify32(sm, t) != 0)
             {
-                for (var i = 0; i < n; i++)
+                for (var i = 0; i < sm.Length; i++)
                     m[i] = 0;
                 return -1;
             }
 
-            for (var i = 0; i < n; i++)
+            for (var i = 0; i < messageSize; i++)
                 m[i] = sm[i + 64];
-            mlen = n;
-            return mlen;
+
+            return 0;
         }
 
-        private static int CryptoVerify32(byte[] x, int xi, byte[] y, int yi)
+        private static int CryptoVerify32(byte[] x, byte[] y)
         {
-            return Vn(x, xi, y, yi, 32);
+            return Vn(x, y, 32);
         }
 
-        private static int Vn(byte[] x, int xi, byte[] y, int yi, int n)
+        private static Int32 Vn(Byte[] x, Byte[] y, Int32 n, Int32 xOffset = 0)
         {
-            int i, d = 0;
-            for (i = 0; i < n; i++)
-                d |= x[xi + i] ^ y[yi + i];
-            return (1 & ((d - 1) >>> 8)) - 1;
+            Int32 d = 0;
+            for (var i = 0; i < n; ++i) d |= x[i + xOffset] ^ y[i];
+            return (1 & ((d - 1) >> 8)) - 1;
         }
 
         private static int Unpackneg(long[][] r, byte[] p)
@@ -241,7 +395,7 @@ namespace WhatsSocket.Core.Curve
             Byte[] c = new Byte[32], d = new Byte[32];
             Pack25519(c, a);
             Pack25519(d, b);
-            return CryptoVerify32(c, 0, d, 0);
+            return CryptoVerify32(c, d);
         }
 
         private static void Pow2523(Int64[] /*gf*/ o, Int64[] /*gf*/ i)
@@ -394,151 +548,278 @@ namespace WhatsSocket.Core.Curve
             }
         }
 
-        public static Int32 CryptoHash(Byte[] hash, Byte[] message, Int32 n)
+        public static Int32 CryptoHash(byte[] hash, byte[] message, Int32 n)
         {
-            Byte[] h = new Byte[64];
-            Byte[] x = new Byte[256];
-            Int32 b = n;
-
-            for (var i = 0; i < 64; i++)
+            Int64[] @in = new Int64[message.Length];
+            for (int i = 0; i < message.Length; i++)
             {
-                h[i] = iv[i];
+                @in[i] = message[i];
             }
+            return CryptoHash(hash, @in, n);
+        }
 
-            CryptoHashBlocks(h, message, n);
-
-            for (var i = 0; i < 64; i++)
-            {
-                for (var j = 0; j < message.Length; j++)
-                {
-                    message[j] += (Byte)n;
-                }
-
-                n &= 127;
-
-                for (var j = 0; j < message.Length; j++)
-                {
-                    message[j] -= (Byte)n;
-                }
-            }
-
-            for (var i = 0; i < 256; i++)
-            {
-                x[i] = 0;
-            }
-
+        public static Int32 CryptoHash(byte[] hash, Int64[] message, Int32 n)
+        {
+            Int64[] @out = new Int64[hash.Length];
+            int[] hh = new int[] { 1779033703, -1150833019, 1013904242, -1521486534, 1359893119, -1694144372, 528734635, 1541459225 };
+            int[] hl = new int[] { -205731576, -2067093701, -23791573, 1595750129, -1377402159, 725511199, -79577749, 327033209 };
+            long[] x = new long[256];
+            var b = n;
+            CryptoHashBlocksHl(hh, hl, message, n);
+            n %= 128;
             for (var i = 0; i < n; i++)
-            {
-                x[i] = message[i];
-            }
-
+                x[i] = message[b - n + i];
             x[n] = 128;
+            n = 256 - 128 * (n < 112 ? 1 : 0);
+            x[n - 9] = 0;
+            Ts64(x, n - 8, (b / 0x20000000) | 0, b << 3);
+            CryptoHashBlocksHl(hh, hl, x, n);
+            for (var i = 0; i < 8; i++)
+                Ts64(@out, 8 * i, hh[i], hl[i]);
 
-            n = ((n < 112) ? 256 - 128 * 1 : 256 - 128 * 0);
-            x[n - 9] = (Byte)(b >> 61);
-
-            Ts64(x, (UInt64)b << 3, n - 8);
-
-            CryptoHashBlocks(h, x, n);
-
-            for (var i = 0; i < 64; i++)
+            for (int i = 0; i < @out.Length; i++)
             {
-                hash[i] = h[i];
+                hash[i] = (byte)@out[i];
             }
 
             return 0;
+
+
+
+
         }
 
-
-        private static void Ts64(Byte[] x, UInt64 u, Int32 offset = 0)
+        private static int CryptoHashBlocksHl(int[] hh, int[] hl, Int64[] m, int n)
         {
-            for (var i = 7; i >= 0; --i)
-            {
-                x[i + offset] = (Byte)u; u >>= 8;
-            }
-        }
+            var wh = new int[16];
+            var wl = new int[16];
 
-        private static UInt64 Dl64(Byte[] x, Int64 offset)
-        {
-            UInt64 u = 0;
-            for (var i = 0; i < 8; ++i) u = (u << 8) | x[i + offset];
-            return u;
-        }
-
-        private static UInt64 R(UInt64 x, int c) { return (x >> c) | (x << (64 - c)); }
-        private static UInt64 Ch(UInt64 x, UInt64 y, UInt64 z) { return (x & y) ^ (~x & z); }
-
-        private static UInt64 Maj(UInt64 x, UInt64 y, UInt64 z) { return (x & y) ^ (x & z) ^ (y & z); }
-        private static UInt64 Sigma0(UInt64 x) { return R(x, 28) ^ R(x, 34) ^ R(x, 39); }
-
-        private static UInt64 Sigma1(UInt64 x) { return R(x, 14) ^ R(x, 18) ^ R(x, 41); }
-
-        private static UInt64 sigma0(UInt64 x) { return R(x, 1) ^ R(x, 8) ^ (x >> 7); }
-
-        private static UInt64 sigma1(UInt64 x) { return R(x, 19) ^ R(x, 61) ^ (x >> 6); }
-
-        private static Int32 CryptoHashBlocks(Byte[] x, Byte[] m, Int32 n)
-        {
-            UInt64[] z = new UInt64[8];
-            UInt64[] b = new UInt64[8];
-            UInt64[] a = new UInt64[8];
-            UInt64[] w = new UInt64[16];
-            UInt64 t = 0;
-
-            for (var i = 0; i < 8; i++)
-            {
-                z[i] = a[i] = Dl64(x, 8 * i);
-            }
+            var ah = new int[8];
+            Array.Copy(hh, ah, ah.Length);
+            var al = new int[8];
+            Array.Copy(hl, al, al.Length);
+            var bh = new int[8];
+            var bl = new int[8];
+            int pos = 0;
+            long h, l, a, b, c, d, th, tl;
 
             while (n >= 128)
             {
                 for (var i = 0; i < 16; i++)
                 {
-                    w[i] = Dl64(m, 8 * i);
+                    int j = 8 * i + pos;
+                    wh[i] = unchecked((int)((m[j + 0] << 24) | (m[j + 1] << 16) | (m[j + 2] << 8) | m[j + 3]));
+                    wl[i] = unchecked((int)((m[j + 4] << 24) | (m[j + 5] << 16) | (m[j + 6] << 8) | m[j + 7]));
                 }
 
+                //Working
                 for (var i = 0; i < 80; i++)
                 {
-                    for (var j = 0; j < 8; j++)
-                    {
-                        b[j] = a[j];
-                    }
+                    Array.Copy(ah, bh, bh.Length);
+                    Array.Copy(al, bl, bl.Length);
 
-                    t = a[7] + Sigma1(a[4]) + Ch(a[4], a[5], a[6]) + K[i] + w[i % 16];
-                    b[7] = t + Sigma0(a[0]) + Maj(a[0], a[1], a[2]);
-                    b[3] += t;
-                    for (var j = 0; j < 8; j++)
+                    // Add - Working
+                    h = ah[7];
+                    l = al[7];
+                    a = l & 0xffff;
+                    b = ShiftR16(l);
+                    c = h & 0xffff;
+                    d = ShiftR16(h);
+
+                    // Sigma1 - Working
+                    h = ((ah[4] >>> 14) | (al[4] << (32 - 14))) ^ ((ah[4] >>> 18) | (al[4] << (32 - 18))) ^ ((al[4] >>> (41 - 32)) | (ah[4] << (32 - (41 - 32))));
+                    l = ((al[4] >>> 14) | (ah[4] << (32 - 14))) ^ ((al[4] >>> 18) | (ah[4] << (32 - 18))) ^ ((ah[4] >>> (41 - 32)) | (al[4] << (32 - (41 - 32))));
+
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+
+                    // Ch - Working
+                    h = (ah[4] & ah[5]) ^ (~ah[4] & ah[6]);
+                    l = (al[4] & al[5]) ^ (~al[4] & al[6]);
+
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+
+                    // K - Working
+                    h = (int)K[i * 2];
+                    l = (int)K[i * 2 + 1];
+
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+
+                    // w - Working
+                    h = wh[i % 16];
+                    l = wl[i % 16];
+
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+
+                    b += ShiftR16(a);
+                    c += ShiftR16(b);
+                    d += ShiftR16(c);
+                    th = ((int)c & 0xffff) | ((int)d << 16);
+                    tl = ((int)a & 0xffff) | ((int)b << 16);
+
+
+                    // add - Working
+                    h = th;
+                    l = tl;
+                    a = l & 0xffff;
+                    b = ShiftR16(l);
+                    c = h & 0xffff;
+                    d = ShiftR16(h);
+
+                    // Sigma0 - Working
+                    h = ((ah[0] >>> 28) | (al[0] << (32 - 28))) ^ ((al[0] >>> (34 - 32)) | (ah[0] << (32 - (34 - 32)))) ^ ((al[0] >>> (39 - 32)) | (ah[0] << (32 - (39 - 32))));
+                    l = ((al[0] >>> 28) | (ah[0] << (32 - 28))) ^ ((ah[0] >>> (34 - 32)) | (al[0] << (32 - (34 - 32)))) ^ ((ah[0] >>> (39 - 32)) | (al[0] << (32 - (39 - 32))));
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+
+                    // Maj - Working
+                    h = (ah[0] & ah[1]) ^ (ah[0] & ah[2]) ^ (ah[1] & ah[2]);
+                    l = (al[0] & al[1]) ^ (al[0] & al[2]) ^ (al[1] & al[2]);
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+                    b += ShiftR16(a);
+                    c += ShiftR16(b);
+                    d += ShiftR16(c);
+                    bh[7] = ((int)c & 0xffff) | ((int)d << 16);
+                    bl[7] = ((int)a & 0xffff) | ((int)b << 16);
+
+                    // add - Working
+                    h = bh[3];
+                    l = bl[3];
+                    a = l & 0xffff;
+                    b = ShiftR16(l);
+                    c = h & 0xffff;
+                    d = ShiftR16(h);
+                    h = th;
+                    l = tl;
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+                    b += ShiftR16(a);
+                    c += ShiftR16(b);
+                    d += ShiftR16(c);
+                    bh[3] = ((int)c & 0xffff) | ((int)d << 16);
+                    bl[3] = ((int)a & 0xffff) | ((int)b << 16);
+
+                    //Copy Back - Working
+                    for (int j = 1; j <= 7; j++)
                     {
-                        a[(j + 1) % 8] = b[j];
+                        ah[j] = bh[j - 1];
+                        al[j] = bl[j - 1];
                     }
+                    ah[0] = bh[7];
+                    al[0] = bl[7];
 
                     if (i % 16 == 15)
-                        for (var j = 0; j < 16; j++)
+                    {
+                        for (int j = 0; j < 16; j++)
                         {
-                            w[j] += w[(j + 9) % 16] + sigma0(w[(j + 1) % 16]) + sigma1(w[(j + 14) % 16]);
+                            // add - Working
+                            h = wh[j];
+                            l = wl[j];
+                            a = l & 0xffff;
+                            b = ShiftR16(l);
+                            c = h & 0xffff;
+                            d = ShiftR16(h);
+                            h = wh[(j + 9) % 16];
+                            l = wl[(j + 9) % 16];
+                            a += l & 0xffff;
+                            b += ShiftR16(l);
+                            c += h & 0xffff;
+                            d += ShiftR16(h);
+
+                            // sigma0 - Working
+                            th = wh[(j + 1) % 16];
+                            tl = wl[(j + 1) % 16];
+                            h = (((int)th >>> 1) | ((int)tl << (32 - 1))) ^ (((int)th >>> 8) | ((int)tl << (32 - 8))) ^ ((int)th >>> 7);
+                            l = (((int)tl >>> 1) | ((int)th << (32 - 1))) ^ (((int)tl >>> 8) | ((int)th << (32 - 8))) ^ (((int)tl >>> 7) | ((int)th << (32 - 7)));
+                            a += l & 0xffff;
+                            b += ShiftR16(l);
+                            c += h & 0xffff;
+                            d += ShiftR16(h);
+
+                            // sigma1 - Working
+                            th = wh[(j + 14) % 16];
+                            tl = wl[(j + 14) % 16];
+                            h = (((int)th >>> 19) | ((int)tl << (32 - 19))) ^ (((int)tl >>> (61 - 32)) | ((int)th << (32 - (61 - 32)))) ^ ((int)th >>> 6);
+                            l = (((int)tl >>> 19) | ((int)th << (32 - 19))) ^ (((int)th >>> (61 - 32)) | ((int)tl << (32 - (61 - 32)))) ^ (((int)tl >>> 6) | ((int)th << (32 - 6)));
+                            a += l & 0xffff;
+                            b += ShiftR16(l);
+                            c += h & 0xffff;
+                            d += ShiftR16(h);
+                            b += ShiftR16(a);
+                            c += ShiftR16(b);
+                            d += ShiftR16(c);
+                            wh[j] = ((int)c & 0xffff) | ((int)d << 16);
+                            wl[j] = ((int)a & 0xffff) | ((int)b << 16);
+
                         }
+                    }
                 }
 
-                for (var i = 0; i < 8; i++)
+                for (int i = 0; i < 8; i++)
                 {
-                    a[i] += z[i]; z[i] = a[i];
+                    h = ah[i];
+                    l = al[i];
+                    a = l & 0xffff;
+                    b = ShiftR16(l);
+                    c = h & 0xffff;
+                    d = ShiftR16(h);
+                    h = hh[i];
+                    l = hl[i];
+                    a += l & 0xffff;
+                    b += ShiftR16(l);
+                    c += h & 0xffff;
+                    d += ShiftR16(h);
+                    b += ShiftR16(a);
+                    c += ShiftR16(b);
+                    d += ShiftR16(c);
+                    hh[i] = ah[i] = ((int)c & 0xffff) | ((int)d << 16);
+                    hl[i] = al[i] = ((int)a & 0xffff) | ((int)b << 16);
                 }
-
-                for (var i = 0; i < m.Length; i++)
-                {
-                    m[i] += 128;
-                }
-
+                pos += 128;
                 n -= 128;
             }
-
-            for (var i = 0; i < 8; i++)
-            {
-                Ts64(x, z[i], 8 * i);
-            }
-
             return n;
         }
+
+        public static long ShiftR16(long value)
+        {
+            return ShiftN(value, 16);
+        }
+        public static long ShiftN(long value, int n)
+        {
+            return (value >>> n) & 0xFFFF;
+        }
+
+        private static void Ts64(Int64[] x, int i, int h, Int32 l)
+        {
+            x[i] = (h >> 24) & 0xff;
+            x[i + 1] = ((h >> 16) & 0xff);
+            x[i + 2] = ((h >> 8) & 0xff);
+            x[i + 3] = (h & 0xff);
+            x[i + 4] = ((l >> 24) & 0xff);
+            x[i + 5] = ((l >> 16) & 0xff);
+            x[i + 6] = ((l >> 8) & 0xff);
+            x[i + 7] = (l & 0xff);
+        }
+
 
         private static void Pack(byte[] r, long[][] p)
         {
@@ -747,6 +1028,7 @@ namespace WhatsSocket.Core.Curve
             }
             return buffer;
         }
+
 
         #endregion
     }

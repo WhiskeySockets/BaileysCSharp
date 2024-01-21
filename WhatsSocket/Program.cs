@@ -19,7 +19,7 @@ namespace WhatsSocket
         static void Main(string[] args)
         {
 
-            var v = 15313511022L * 38;
+            var vv = unchecked((int)0xbb67ae85);
 
             //StartServer();
 
@@ -29,8 +29,8 @@ namespace WhatsSocket
             TestHKDIF();
             TestEncoder();
             TestDecodeQRNode();
-            TestSign();
             TestVerifyCurve();
+            TestSign();
 
 
             //This creds file comes from the nodejs sample    
