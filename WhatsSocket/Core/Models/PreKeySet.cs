@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Credentials
+﻿namespace WhatsSocket.Core.Models
 {
     public class PreKeySet
     {

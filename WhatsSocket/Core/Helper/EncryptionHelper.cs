@@ -7,7 +7,7 @@ using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
 using WhatsSocket.Core.Curve;
-using WhatsSocket.Core.Credentials;
+using WhatsSocket.Core.Models;
 //using Sodium;
 
 namespace WhatsSocket.Core.Helper

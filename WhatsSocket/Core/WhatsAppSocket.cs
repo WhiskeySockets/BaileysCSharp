@@ -1,14 +1,14 @@
-﻿using WhatsSocket.Core.Models;
-using Proto;
+﻿using Proto;
 using Google.Protobuf;
 using static Proto.ClientPayload.Types;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Sockets;
-using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Events;
 using QRCoder;
 using System.Text;
+using WhatsSocket.Core.Models;
+using WhatsSocket.Exceptions;
 
 namespace WhatsSocket.Core
 {

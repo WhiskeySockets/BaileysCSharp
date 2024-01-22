@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Xml.Linq;
 using WhatsSocket.Core;
-using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;

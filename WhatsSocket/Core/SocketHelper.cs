@@ -5,27 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Proto.ClientPayload.Types;
-using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Helper;
 using Google.Protobuf;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Exceptions;
 
 namespace WhatsSocket.Core
 {
-
-    [Serializable]
-    public class Boom : Exception
-    {
-        public Boom() { }
-        public Boom(string message, DisconnectReason reason) : base(message)
-        {
-            Reason = reason;
-        }
-
-        public DisconnectReason Reason { get; }
-    }
 
     public class SocketHelper
     {

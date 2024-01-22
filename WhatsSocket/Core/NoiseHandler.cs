@@ -8,7 +8,6 @@ using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using Google.Protobuf;
-using WhatsSocket.Core.Credentials;
 
 namespace WhatsSocket.Core
 {

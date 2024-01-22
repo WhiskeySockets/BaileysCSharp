@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using WhatsSocket.Core.Models;
 
-namespace WhatsSocket.Core.Credentials
+namespace WhatsSocket.Core.Models
 {
     public partial class AuthenticationCreds
     {
