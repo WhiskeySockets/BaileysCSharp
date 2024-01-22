@@ -8,6 +8,8 @@ namespace WhatsSocket.Core.Models
         public string ID { get; set; }
         [JsonProperty("lid")]
         public string LID { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
 
         [JsonProperty("notify")]
         public string Notify { get; set; }
@@ -21,6 +23,23 @@ namespace WhatsSocket.Core.Models
         [JsonProperty("status")]
         public string Status { get; set; }
     }
+    
 
+    public class ProtocolAddress
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("deviceId")]
+        public long DeviceID { get; set; }
+    }
+
+    public class SignalIdentity
+    {
+        [JsonProperty("identifier")]
+        public ProtocolAddress Identifier { get; set; }
+        [JsonProperty("identifierKey")]
+        public byte[] IdentifierKey { get; set; }
+    }
 
 }

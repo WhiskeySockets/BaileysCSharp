@@ -25,14 +25,20 @@ using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Events;
 using System.Security.Cryptography;
 using QRCoder;
+using System.Security.Principal;
+using Org.BouncyCastle.Asn1.X9;
 
 namespace WhatsSocket.Core
 {
-
+    public delegate void CredentialsChangeArgs(WhatsAppSocket sender, AuthenticationCreds authenticationCreds);
+    public delegate void Disconnected(WhatsAppSocket sender, DisconnectReason disconnectReason);
 
 
     public class WhatsAppSocket
     {
+        public event CredentialsChangeArgs OnCredentialsChange;
+        public event Disconnected OnDisconnected;
+
         Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
         Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
 
@@ -64,11 +70,65 @@ namespace WhatsSocket.Core
             events["CB:iq,type:set,pair-device"] = OnPairDevice;
             events["CB:xmlstreamend"] = StreamEnd;
             events["CB:iq,,pair-success"] = OnPairSuccess;
+            events["CB:success"] = OnSuccess;
 
             //events["CB:iq,,pair-success"] = OnPairSuccess;
-            //events["CB:success"] = OnSuccess;
             //events["CB:failure"] = OnFailure;
 
+        }
+
+        private async Task<bool> OnSuccess(BinaryNode node)
+        {
+            await UploadPreKeysToServerIfRequired();
+            await SendPassiveIq("active");
+
+
+            return true;
+        }
+
+        private Task SendPassiveIq(string v)
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task UploadPreKeysToServerIfRequired()
+        {
+            var preKeyCount = await GetAvailablePreKeysOnServer();
+            Logger.Info($"{preKeyCount} pre-keys found on server");
+            if (preKeyCount <= 5)
+            {
+                await UploadPreKeys();
+            }
+        }
+
+        private Task UploadPreKeys()
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task<int> GetAvailablePreKeysOnServer()
+        {
+            var iq = new BinaryNode()
+            {
+                tag = "iq",
+                attrs = new Dictionary<string, string>()
+                {
+                    {"id", GenerateMessageTag() },
+                    {"type","get" },
+                    {"xmlns" ,"encrypt" },
+                    {"to",Constants.S_WHATSAPP_NET }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "count"
+                    }
+                }
+            };
+            var result = await Query(iq);
+            var countChild = GetBinaryNodeChild(result, "count");
+            return +(Convert.ToInt32(countChild?.attrs["value"]));
         }
 
         private async Task<bool> StreamEnd(BinaryNode node)
@@ -109,10 +169,13 @@ namespace WhatsSocket.Core
         {
             Client.Opened -= Client_Opened;
             Client.Disconnected -= Client_Disconnected;
-            if (reason == DisconnectReason.TimedOut)
-            {
-                MakeSocket();
-            }
+
+            OnDisconnected?.Invoke(this, reason);
+
+            //if (reason == DisconnectReason.TimedOut)
+            //{
+            //    MakeSocket();
+            //}
         }
 
         private NoiseHandler MakeNoiseHandler()
@@ -245,6 +308,46 @@ namespace WhatsSocket.Core
             }
             else
             {
+                var jid = Creds.Me.ID.Split("@")[0];
+                var userDevice = jid.Split(":");
+
+                var user = Convert.ToUInt64(userDevice[0]);
+                var device = Convert.ToUInt32(userDevice[1]);
+                var node = new ClientPayload()
+                {
+                    ConnectReason = ConnectReason.UserActivated,
+                    ConnectType = ConnectType.WifiUnknown,
+                    UserAgent = new UserAgent()
+                    {
+                        AppVersion = new UserAgent.Types.AppVersion()
+                        {
+                            Primary = 2,
+                            Secondary = 2329,
+                            Tertiary = 9,
+                        },
+                        Platform = UserAgent.Types.Platform.Macos,
+                        ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
+                        Mcc = "000",
+                        Mnc = "000",
+                        OsVersion = "0.1",
+                        Manufacturer = "",
+                        Device = "Dekstop",
+                        OsBuildNumber = "0.1",
+                        LocaleLanguageIso6391 = "en",
+                        LocaleCountryIso31661Alpha2 = "us",
+                    },
+                    Passive = true,
+                    Username = user,
+                    Device = device,
+
+                };
+                var buffer = node.ToByteArray();
+                var payloadEnc = noise.Encrypt(buffer);
+                clientFinish.ClientFinish = new HandshakeMessage.Types.ClientFinish()
+                {
+                    Static = KeyEnc.ToByteString(),
+                    Payload = payloadEnc.ToByteString()
+                };
                 //TODO : generateLoginNode
                 Logger.Info(new { }, "logging in");
             }
@@ -386,6 +489,19 @@ namespace WhatsSocket.Core
         private Task<bool> OnPairSuccess(BinaryNode node)
         {
 
+
+            var reply = ConfigureSuccessfulPairing(node);
+
+
+            Console.Clear();
+            SendNode(reply);
+
+            return Task.FromResult(true);
+        }
+
+        private BinaryNode ConfigureSuccessfulPairing(BinaryNode node)
+        {
+
             var signedIdentityKey = Creds.SignedIdentityKey;
 
             var msgId = node.attrs["id"].ToString();
@@ -430,10 +546,74 @@ namespace WhatsSocket.Core
             account.DeviceSignature = EncryptionHelper.Sign(signedIdentityKey.Private, deviceMsg).ToByteString();
 
             //TODO: Finish 
+            var identity = CreateSignalIdentity(jid, account.AccountSignatureKey);
+            var accountEnc = EncodeSignedDeviceIdentity(account, false);
 
 
+            var deviceIdentity = ADVDeviceIdentity.Parser.ParseFrom(account.Details);
 
-            return Task.FromResult(true);
+            var reply = new BinaryNode()
+            {
+                tag = "iq",
+                attrs = new Dictionary<string, string>()
+                    {
+                        {"to",Constants.S_WHATSAPP_NET },
+                        {"type","result" },
+                        {"id", msgId }
+                    },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "pair-device-sign",
+                        content = new BinaryNode[]
+                        {
+                            new BinaryNode()
+                            {
+                                tag = "device-identity",
+                                attrs = new Dictionary<string, string>()
+                                {
+                                    {"key-index",deviceIdentity.KeyIndex.ToString() }
+
+                                },
+                                content = accountEnc
+                            }
+                        },
+                    }
+                }
+            };
+
+            Creds.SignalIdentities = new SignalIdentity[] { identity };
+            Creds.Platform = platformNode.attrs["name"];
+            Creds.Me = new Contact()
+            {
+                ID = jid,
+                Name = bizName
+            };
+
+            OnCredentialsChange?.Invoke(this, Creds);
+
+            return reply;
+        }
+
+        private byte[] EncodeSignedDeviceIdentity(ADVSignedDeviceIdentity account, bool includeSignatureKey)
+        {
+            var clone = ADVSignedDeviceIdentity.Parser.ParseFrom(account.ToByteArray());
+
+            if (!includeSignatureKey)
+            {
+                clone.ClearAccountSignatureKey();
+            }
+            return clone.ToByteArray();
+        }
+
+        private SignalIdentity CreateSignalIdentity(string jid, ByteString accountSignatureKey)
+        {
+            return new SignalIdentity()
+            {
+                Identifier = new ProtocolAddress { Name = jid },
+                IdentifierKey = AuthenticationUtils.GenerateSignalPubKey(accountSignatureKey.ToByteArray())
+            };
         }
 
         private BinaryNode[] GetBinaryNodeChildren(BinaryNode? message, string tag)
@@ -538,7 +718,7 @@ namespace WhatsSocket.Core
             var companion = new DeviceProps()
             {
                 Os = "Baileys",
-                PlatformType = DeviceProps.Types.PlatformType.Desktop,
+                PlatformType = DeviceProps.Types.PlatformType.Chrome,
                 RequireFullSync = false,
             };
             var payload = new ClientPayload

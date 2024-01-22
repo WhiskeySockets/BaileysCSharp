@@ -31,10 +31,11 @@ namespace WhatsSocket
             TestDecodeQRNode();
             TestVerifyCurve();
             TestSign();
+            TestSuccessSign();
 
 
             //This creds file comes from the nodejs sample    
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds.json");
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds_saved.json");
 
 
             AuthenticationCreds? authentication = null;
@@ -47,11 +48,49 @@ namespace WhatsSocket
 
 
             socket = new WhatsAppSocket(authentication, new Logger());
+            socket.OnCredentialsChange += Socket_OnCredentialsChangeArgs;
+            socket.OnDisconnected += Socket_OnDisconnected;
 
 
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void Socket_OnDisconnected(WhatsAppSocket sender, Core.Events.DisconnectReason disconnectReason)
+        {
+            if (disconnectReason != Core.Events.DisconnectReason.LoggedOut)
+            {
+                sender.MakeSocket();
+            }
+        }
+
+        private static void Socket_OnCredentialsChangeArgs(WhatsAppSocket sender, AuthenticationCreds authenticationCreds)
+        {
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds_saved.json");
+            var json = AuthenticationCreds.Serialize(authenticationCreds);
+            File.WriteAllText(credsFile, json);
+        }
+
+        private static void TestSuccessSign()
+        {
+            var @private = "KOwFT3vxL5IcJp+wKvIv2gmeHwlQY2V0ZkkmApQZ5GI=";
+            var deviceMsg = "BgEI/f7nsAIQoP+3rQYYKCAAKACrRV5Gg5U97GP9ty08k+6gNVYvFnSceP9fsqNiYoGMbLy6K/AKoi08AC8i2wd0pHCLQ6zZSn/PJ6oTDx7DvLBi";
+            var deviceSignature = "zqAkA3s+PMr9YV+nKGT8gOojEH4P/Cp0VruJwBJlrH2JJ/nrSmqQ7zhSt1q0qcBvDMqXVItiSyDT3eKBelzkhQ==";
+
+            var newSig = Curve25519.Sign(Convert.FromBase64String(@private), Convert.FromBase64String(deviceMsg));
+            var base64 = Convert.ToBase64String(newSig);
+            Debug.Assert(deviceSignature == base64);
+
+
+            var reply = "APgIHg76AAMEFAj/hTCIKJVv+AH4AvwQcGFpci1kZXZpY2Utc2lnbvgB+AT8D2RldmljZS1pZGVudGl0efwJa2V5LWluZGV4/wFB/JgKEgj9/uewAhD4h7itBhgpIAAoABpApzrqAU8tQpwaIFVQeg5azu2ZEbAtsNiJlJzEi7MDq1A61gTkVWy6MRrKbiiw6JCG1F0t/PP6BI6kM8hqzQD5BSJAtHkqkFvLxlN78cHNCqZ8UYHC9ZS4xol5fyU5srBbmaPxHULG/MDtyRueqZYel6VN1uCf19HZvkYER2TUlPxUgw==";
+            var data = BufferReader.DecodeDecompressedBinaryNode(Convert.FromBase64String(reply));
+
+
+            var encoded = BufferWriter.EncodeBinaryNode(data).ToByteArray();
+            base64 = Convert.ToBase64String(encoded);
+
+            Debug.Assert(base64 == reply);
         }
 
         private static void TestVerifyCurve()

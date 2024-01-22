@@ -67,7 +67,11 @@ namespace WhatsSocket.Core.Credentials
         [JsonProperty("registration")]
         public Registration Registration { get; set; }
 
+        [JsonProperty("signalIdentities")]
+        public SignalIdentity[] SignalIdentities { get; set; }
 
+        [JsonProperty("platform")]
+        public string Platform { get; set; }
 
 
         public static string Serialize(AuthenticationCreds? creds)
@@ -145,49 +149,6 @@ namespace WhatsSocket.Core.Credentials
         public bool UnarchiveChats { get; set; }
     }
 
-    //public class Buffer
-    //{
-    //    [JsonProperty("type")]
-    //    public string Type
-    //    {
-    //        get
-    //        {
-    //            return "Buffer";
-    //        }
-    //    }
-
-    //    [JsonProperty("data")]
-    //    public string Data { get; set; }
-
-
-    //    public Buffer()
-    //    {
-
-    //    }
-
-    //    public Buffer(byte[] buffer)
-    //    {
-    //        Data = Convert.ToBase64String(buffer);
-    //    }
-
-
-    //    public static implicit operator byte[](Buffer buffer) => buffer.ToByteArray();
-    //    public static explicit operator Buffer(byte[] buffer) => new Buffer(buffer);    
-
-
-    //    public static implicit operator ByteString(Buffer buffer) => buffer.ToByteString();
-    //    public static explicit operator Buffer(ByteString bytes)=> bu
-
-    //    private byte[] ToByteArray()
-    //    {
-    //        return Convert.FromBase64String(Data);
-    //    }
-
-    //    public ByteString ToByteString()
-    //    {
-    //        return ByteString.FromBase64(Data);
-    //    }
-    //}
 
     public class KeyPair
     {
@@ -210,6 +171,19 @@ namespace WhatsSocket.Core.Credentials
         public int KeyId { get; set; }
     }
 
+
+    //public class SignalIdentity
+    //{
+    //    [JsonProperty("details")]
+    //    public byte[] Details { get; set; }
+    //    [JsonProperty("accountSignatureKey")]
+    //    public byte[] AccountSignatureKey { get; set; }
+    //    [JsonProperty("accountSignature")]
+    //    public byte[] AccountSignature { get; set; }
+    //    [JsonProperty("deviceSignature")]
+    //    public byte[] DeviceSignature { get; set; }
+
+    //}
 
 
     public class Registration

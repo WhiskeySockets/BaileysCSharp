@@ -90,6 +90,22 @@ namespace WhatsSocket.Core.Helper
             }
         }
 
+        internal void Info(string message)
+        {
+            if (Level >= LogLevel.Info)
+            {
+                var logEntry = new
+                {
+                    level = 30,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    message
+                };
+
+                Write(logEntry);
+            }
+        }
+
         internal void Info(object? obj, string message)
         {
             if (Level >= LogLevel.Info)
