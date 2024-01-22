@@ -5,7 +5,6 @@ using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Sockets;
 using WhatsSocket.Core.Events;
-using QRCoder;
 using System.Text;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Exceptions;
@@ -14,6 +13,7 @@ namespace WhatsSocket.Core
 {
     public delegate void CredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds);
     public delegate void Disconnected(BaseSocket sender, DisconnectReason disconnectReason);
+    public delegate void QRCodeArgs(BaseSocket sender, string qr_data);
 
 
     public class BaseSocket
@@ -22,6 +22,7 @@ namespace WhatsSocket.Core
 
         public event CredentialsChangeArgs OnCredentialsChange;
         public event Disconnected OnDisconnected;
+        public event QRCodeArgs OnQRReceived;
 
         Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
         Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
@@ -257,18 +258,13 @@ namespace WhatsSocket.Core
                     var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
 
 
-
-                    QRCodeGenerator QrGenerator = new QRCodeGenerator();
-                    QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(qr, QRCodeGenerator.ECCLevel.L);
-                    AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
-                    var data = qrCode.GetGraphic(1);
                     //File.WriteAllBytes("qr.png", data);
 
+                    OnQRReceived?.Invoke(this, qr);
 
 
-
-                    await Console.Out.WriteLineAsync(qr);
-                    await Console.Out.WriteLineAsync(data);
+                    //await Console.Out.WriteLineAsync(qr);
+                    //await Console.Out.WriteLineAsync(data);
                 }
                 else
                 {
@@ -408,7 +404,6 @@ namespace WhatsSocket.Core
         }
 
         #endregion
-
 
         #region Login Successfull
 
@@ -613,7 +608,7 @@ namespace WhatsSocket.Core
             Console.WriteLine($"{reason} - {connectionLost}");
         }
 
-        internal void LoadStore(KeyStore? storeObj)
+        public void LoadStore(KeyStore? storeObj)
         {
             this.Keys = storeObj ?? new KeyStore();
         }

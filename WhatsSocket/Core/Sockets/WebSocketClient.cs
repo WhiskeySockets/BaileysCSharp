@@ -11,24 +11,6 @@ namespace WhatsSocket.Core.Sockets
             socket.Options.SetRequestHeader("Host", "web.whatsapp.com");
             socket.Options.SetRequestHeader("Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bits");
         }
-
-        private void Socket_OnError(object? sender, WebSocketSharp.ErrorEventArgs e)
-        {
-            OnError(e.Message);
-        }
-
-        //private void Socket_OnClose(object? sender, CloseEventArgs e)
-        //{
-        //    IsConnected = false;
-        //    OnDisconnected();
-        //}
-
-        //private void Socket_OnOpen(object? sender, EventArgs e)
-        //{
-        //    IsConnected=true;
-        //    OnOpened();
-        //}
-
         public override void Connect()
         {
             IsConnected = false;

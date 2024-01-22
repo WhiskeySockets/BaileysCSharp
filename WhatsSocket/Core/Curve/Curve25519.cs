@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
 using System.Threading.Tasks;
-using WebSocketSharp;
+using WhatsSocket.Core.Helper;
 
 namespace WhatsSocket.Core.Curve
 {

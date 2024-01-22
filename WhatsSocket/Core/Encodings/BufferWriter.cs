@@ -376,7 +376,7 @@ namespace WhatsSocket.Core.Encodings
             return result;
         }
 
-        internal byte[] ToByteArray()
+        public byte[] ToByteArray()
         {
             return Buffer.ToArray();
         }

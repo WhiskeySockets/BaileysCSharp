@@ -11,7 +11,7 @@ using Google.Protobuf;
 
 namespace WhatsSocket.Core
 {
-    internal class NoiseHandler
+    public class NoiseHandler
     {
 
         public event EventHandler<BinaryNode> OnFrame;

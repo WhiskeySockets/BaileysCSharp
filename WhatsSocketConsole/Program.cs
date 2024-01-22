@@ -1,20 +1,20 @@
 ﻿using Newtonsoft.Json;
-using Proto;
+using QRCoder;
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using System.Xml.Linq;
 using WhatsSocket.Core;
 using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Encodings;
+using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
-using Logger = WhatsSocket.Core.Helper.Logger;
 
-namespace WhatsSocket
+namespace WhatsSocketConsole
 {
-
     internal class Program
     {
+
         static BaseSocket socket;
         static void Main(string[] args)
         {
@@ -53,18 +53,30 @@ namespace WhatsSocket
             var store = Path.Join(Directory.GetCurrentDirectory(), "store.json");
             if (File.Exists(store))
             {
-                var storeObj = JsonConvert.DeserializeObject<KeyStore>(File.ReadAllText(store));
+                var storeObj = Newtonsoft.Json.JsonConvert.DeserializeObject<KeyStore>(File.ReadAllText(store));
                 socket.LoadStore(storeObj);
             }
 
             socket.OnCredentialsChange += Socket_OnCredentialsChangeArgs;
             socket.OnDisconnected += Socket_OnDisconnected;
             socket.OnStoreChange += Socket_OnStoreChange;
+            socket.OnQRReceived += Socket_OnQRReceived;
 
 
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void Socket_OnQRReceived(BaseSocket sender, string qr_data)
+        {
+
+            QRCodeGenerator QrGenerator = new QRCodeGenerator();
+            QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(qr_data, QRCodeGenerator.ECCLevel.L);
+            AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
+            var data = qrCode.GetGraphic(1);
+
+            Console.WriteLine(data);
         }
 
         private static void Socket_OnStoreChange(KeyStore store)
@@ -74,9 +86,9 @@ namespace WhatsSocket
             File.WriteAllText(credsFile, data);
         }
 
-        private static void Socket_OnDisconnected(BaseSocket sender, Core.Events.DisconnectReason disconnectReason)
+        private static void Socket_OnDisconnected(BaseSocket sender, DisconnectReason disconnectReason)
         {
-            if (disconnectReason != Core.Events.DisconnectReason.LoggedOut)
+            if (disconnectReason != DisconnectReason.LoggedOut)
             {
                 sender.MakeSocket();
             }
@@ -311,6 +323,4 @@ namespace WhatsSocket
         //    }
         //}
     }
-
-
 }
