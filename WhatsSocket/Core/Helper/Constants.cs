@@ -4,6 +4,9 @@ namespace WhatsSocket.Core.Helper
 {
     public static class Constants
     {
+        public const int MIN_PREKEY_COUNT = 5;
+        public const int INITIAL_PREKEY_COUNT = 30;
+
         public static class TAGS
         {
             public const int LIST_EMPTY = 0;

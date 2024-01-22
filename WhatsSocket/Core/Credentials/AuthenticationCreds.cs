@@ -1,17 +1,9 @@
-﻿using Google.Protobuf;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Newtonsoft.Json;
 using WhatsSocket.Core.Models;
 
 namespace WhatsSocket.Core.Credentials
 {
-
-    public class AuthenticationCreds
+    public partial class AuthenticationCreds
     {
         [JsonProperty("me")]
         public Contact Me { get; set; }
@@ -141,53 +133,8 @@ namespace WhatsSocket.Core.Credentials
                 //writer.WriteEndObject();
             }
         }
-    }
-
-    public class AccountSettings
-    {
-        [JsonProperty("unarchiveChats")]
-        public bool UnarchiveChats { get; set; }
-    }
 
 
-    public class KeyPair
-    {
-        [JsonProperty("private")]
-        public byte[] Private { get; set; }
-
-        [JsonProperty("public")]
-        public byte[] Public { get; set; }
-    }
-
-    public class SignedPreKey
-    {
-        [JsonProperty("keyPair")]
-        public KeyPair KeyPair { get; set; }
-
-        [JsonProperty("signature")]
-        public byte[] Signature { get; set; }
-
-        [JsonProperty("keyId")]
-        public int KeyId { get; set; }
-    }
-
-
-    //public class SignalIdentity
-    //{
-    //    [JsonProperty("details")]
-    //    public byte[] Details { get; set; }
-    //    [JsonProperty("accountSignatureKey")]
-    //    public byte[] AccountSignatureKey { get; set; }
-    //    [JsonProperty("accountSignature")]
-    //    public byte[] AccountSignature { get; set; }
-    //    [JsonProperty("deviceSignature")]
-    //    public byte[] DeviceSignature { get; set; }
-
-    //}
-
-
-    public class Registration
-    {
     }
 
 

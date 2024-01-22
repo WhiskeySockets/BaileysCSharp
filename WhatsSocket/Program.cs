@@ -1,4 +1,5 @@
-﻿using Proto;
+﻿using Newtonsoft.Json;
+using Proto;
 using System.Diagnostics;
 using System.Text;
 using System.Xml.Linq;
@@ -48,13 +49,30 @@ namespace WhatsSocket
 
 
             socket = new WhatsAppSocket(authentication, new Logger());
+
+
+            var store = Path.Join(Directory.GetCurrentDirectory(), "store.json");
+            if (File.Exists(store))
+            {
+                var storeObj = JsonConvert.DeserializeObject<KeyStore>(File.ReadAllText(store));
+                socket.LoadStore(storeObj);
+            }
+
             socket.OnCredentialsChange += Socket_OnCredentialsChangeArgs;
             socket.OnDisconnected += Socket_OnDisconnected;
+            socket.OnStoreChange += Socket_OnStoreChange;
 
 
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void Socket_OnStoreChange(KeyStore store)
+        {
+            var data = JsonConvert.SerializeObject(store);
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "store.json");
+            File.WriteAllText(credsFile, data);
         }
 
         private static void Socket_OnDisconnected(WhatsAppSocket sender, Core.Events.DisconnectReason disconnectReason)
@@ -113,7 +131,7 @@ namespace WhatsSocket
             */
 
 
-            var accountMsg = new byte[] {6,0 }
+            var accountMsg = new byte[] { 6, 0 }
             .Concat(Convert.FromBase64String(deviceDetails))
             .Concat(Convert.FromBase64String(signedIdentityKeypublic))
             .ToArray();

@@ -27,6 +27,8 @@ using System.Security.Cryptography;
 using QRCoder;
 using System.Security.Principal;
 using Org.BouncyCastle.Asn1.X9;
+using static Proto.GroupParticipant.Types;
+using Google.Protobuf.WellKnownTypes;
 
 namespace WhatsSocket.Core
 {
@@ -36,6 +38,8 @@ namespace WhatsSocket.Core
 
     public class WhatsAppSocket
     {
+        public event KeyStoreChangeArgs OnStoreChange;
+
         public event CredentialsChangeArgs OnCredentialsChange;
         public event Disconnected OnDisconnected;
 
@@ -52,6 +56,7 @@ namespace WhatsSocket.Core
         public long Epoch { get; set; }
         public AuthenticationCreds Creds { get; }
         public Logger Logger { get; }
+        private KeyStore Keys { get; set; }
 
         public string GenerateMessageTag()
         {
@@ -61,6 +66,7 @@ namespace WhatsSocket.Core
 
         public WhatsAppSocket(AuthenticationCreds creds, Logger logger, bool isMobile = false)
         {
+            Keys = new KeyStore();
             Creds = creds;
             Logger = logger;
             Logger.Level = LogLevel.Verbose;
@@ -71,10 +77,16 @@ namespace WhatsSocket.Core
             events["CB:xmlstreamend"] = StreamEnd;
             events["CB:iq,,pair-success"] = OnPairSuccess;
             events["CB:success"] = OnSuccess;
+            Keys.OnStoreChange += Keys_OnStoreChange;
 
             //events["CB:iq,,pair-success"] = OnPairSuccess;
             //events["CB:failure"] = OnFailure;
 
+        }
+
+        private void Keys_OnStoreChange(KeyStore store)
+        {
+            OnStoreChange?.Invoke(store);
         }
 
         private async Task<bool> OnSuccess(BinaryNode node)
@@ -82,35 +94,147 @@ namespace WhatsSocket.Core
             await UploadPreKeysToServerIfRequired();
             await SendPassiveIq("active");
 
+            Logger.Info("opened connection to WA");
 
             return true;
         }
 
-        private Task SendPassiveIq(string v)
+        private async Task SendPassiveIq(string tag)
         {
-            return Task.CompletedTask;
+            var iq = new BinaryNode("iq")
+            {
+                attrs = new Dictionary<string, string>()
+                {
+                    {"to",Constants.S_WHATSAPP_NET },
+                    {"xmlns" ,"passive" },
+                    {"type","set" },
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode(tag)
+                }
+            };
+            var result = await Query(iq);
+
         }
 
         private async Task UploadPreKeysToServerIfRequired()
         {
             var preKeyCount = await GetAvailablePreKeysOnServer();
             Logger.Info($"{preKeyCount} pre-keys found on server");
-            if (preKeyCount <= 5)
+            if (preKeyCount <= Constants.MIN_PREKEY_COUNT)
             {
                 await UploadPreKeys();
             }
         }
 
-        private Task UploadPreKeys()
+        private async Task UploadPreKeys()
         {
-            return Task.CompletedTask;
+            var node = GetNextPreKeysNode(Constants.INITIAL_PREKEY_COUNT);
+            var result = await Query(node);
+            OnCredentialsChange?.Invoke(this, Creds);
+        }
+
+        private BinaryNode GetNextPreKeysNode(int count)
+        {
+            var preKeys = GetNextPreKeys(count);
+
+
+            var registration = new BinaryNode("registration", EndodingHelper.EncodeBigEndian(Creds.RegistrationId));
+            var type = new BinaryNode("type", Constants.KEY_BUNDLE_TYPE);
+            var identity = new BinaryNode("identity", Creds.SignedIdentityKey.Public);
+
+            var list = new BinaryNode("list", preKeys.Select(x => XmppPreKey(x.Value, x.Key)).ToArray());
+            var signed = XmppSignedPreKey(Creds.SignedPreKey);
+
+            var iq = new BinaryNode("iq", registration, type, identity, list, signed)
+            {
+                attrs = new Dictionary<string, string>()
+                {
+                    {"xmlns" ,"encrypt" },
+                    {"type","set" },
+                    {"to",Constants.S_WHATSAPP_NET }
+                },
+            };
+
+            return iq;
+        }
+
+        private BinaryNode XmppSignedPreKey(SignedPreKey signedPreKey)
+        {
+            return new BinaryNode("skey")
+            {
+                content = new BinaryNode[]
+                {
+                    new BinaryNode("id", EndodingHelper.EncodeBigEndian(signedPreKey.KeyId,3)),
+                    new BinaryNode("value", signedPreKey.KeyPair.Public),
+                    new BinaryNode("signature", signedPreKey.Signature),
+                }
+            };
+        }
+
+        private BinaryNode XmppPreKey(KeyPair value, int key)
+        {
+            return new BinaryNode("key")
+            {
+                content = new BinaryNode[]
+                {
+                    new BinaryNode("id", EndodingHelper.EncodeBigEndian(key,3)),
+                    new BinaryNode("value", value.Public),
+                }
+            };
+        }
+
+        private Dictionary<int, KeyPair> GetNextPreKeys(int count)
+        {
+            var keySet = GenerateOrGetPreKeys(count);
+
+            Creds.NextPreKeyId = Math.Max(keySet.LastPreKeyId + 1, Creds.NextPreKeyId);
+            Creds.FirstUnuploadedPreKeyId = Math.Max(Creds.FirstUnuploadedPreKeyId, keySet.LastPreKeyId + 1);
+            Keys.Set(keySet.NewPreKeys);
+
+            var preKeys = GetPreKeys(keySet.PreKeyRange[0], keySet.PreKeyRange[0] + keySet.PreKeyRange[1]);
+
+
+            return preKeys;
+        }
+
+        private Dictionary<int, KeyPair> GetPreKeys(int min, int max)
+        {
+            List<int> keys = new List<int>();
+            for (int i = min; i < max; i++)
+            {
+                keys.Add(i);
+            }
+            return Keys.Range(keys);
+        }
+
+        private PreKeySet GenerateOrGetPreKeys(int range)
+        {
+            var avaliable = Creds.NextPreKeyId - Creds.FirstUnuploadedPreKeyId;
+            var remaining = range - avaliable;
+            var lastPreKeyId = Creds.NextPreKeyId + remaining - 1;
+            Dictionary<int, KeyPair> newPreKeys = new Dictionary<int, KeyPair>();
+            if (remaining > 0)
+            {
+                for (int i = Creds.NextPreKeyId; i <= lastPreKeyId; i++)
+                {
+                    newPreKeys[i] = EncryptionHelper.GenerateKeyPair();
+                }
+            }
+
+            return new PreKeySet()
+            {
+                NewPreKeys = newPreKeys,
+                LastPreKeyId = lastPreKeyId,
+                PreKeyRange = new int[] { Creds.FirstUnuploadedPreKeyId, range }
+            };
         }
 
         private async Task<int> GetAvailablePreKeysOnServer()
         {
-            var iq = new BinaryNode()
+            var iq = new BinaryNode("iq")
             {
-                tag = "iq",
                 attrs = new Dictionary<string, string>()
                 {
                     {"id", GenerateMessageTag() },
@@ -120,10 +244,7 @@ namespace WhatsSocket.Core
                 },
                 content = new BinaryNode[]
                 {
-                    new BinaryNode()
-                    {
-                        tag = "count"
-                    }
+                    new BinaryNode("count")
                 }
             };
             var result = await Query(iq);
@@ -421,9 +542,8 @@ namespace WhatsSocket.Core
 
         private async Task<bool> OnPairDevice(BinaryNode message)
         {
-            var iq = new BinaryNode()
+            var iq = new BinaryNode("iq")
             {
-                tag = "iq",
                 attrs = new Dictionary<string, string>()
                 {
                     {"to",Constants.S_WHATSAPP_NET },
@@ -552,9 +672,8 @@ namespace WhatsSocket.Core
 
             var deviceIdentity = ADVDeviceIdentity.Parser.ParseFrom(account.Details);
 
-            var reply = new BinaryNode()
+            var reply = new BinaryNode("iq")
             {
-                tag = "iq",
                 attrs = new Dictionary<string, string>()
                     {
                         {"to",Constants.S_WHATSAPP_NET },
@@ -563,9 +682,8 @@ namespace WhatsSocket.Core
                     },
                 content = new BinaryNode[]
                 {
-                    new BinaryNode()
+                    new BinaryNode("pair-device-sign")
                     {
-                        tag = "pair-device-sign",
                         content = new BinaryNode[]
                         {
                             new BinaryNode()
@@ -662,9 +780,8 @@ namespace WhatsSocket.Core
                     continue;
                 }
 
-                var iq = new BinaryNode()
+                var iq = new BinaryNode("iq")
                 {
-                    tag = "iq",
                     attrs = new Dictionary<string, string>()
                     {
                         {"id", GenerateMessageTag() },
@@ -775,5 +892,9 @@ namespace WhatsSocket.Core
             return message.ToByteArray();
         }
 
+        internal void LoadStore(KeyStore? storeObj)
+        {
+            this.Keys = storeObj ?? new KeyStore();
+        }
     }
 }
