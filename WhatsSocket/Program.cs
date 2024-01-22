@@ -35,7 +35,7 @@ namespace WhatsSocket
 
 
             //This creds file comes from the nodejs sample    
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds_saved.json");
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds.json");
 
 
             AuthenticationCreds? authentication = null;
@@ -67,7 +67,7 @@ namespace WhatsSocket
 
         private static void Socket_OnCredentialsChangeArgs(WhatsAppSocket sender, AuthenticationCreds authenticationCreds)
         {
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds_saved.json");
+            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds.json");
             var json = AuthenticationCreds.Serialize(authenticationCreds);
             File.WriteAllText(credsFile, json);
         }

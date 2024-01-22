@@ -29,10 +29,4 @@
     <Protobuf Include="Proto\WAProto.3.proto" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="creds.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
