@@ -1,22 +1,13 @@
-﻿
-using Org.BouncyCastle.Crypto.Parameters;
+﻿using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
-using WhatsSocket.Core.Models;
-using Org.BouncyCastle.Math;
-using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Crypto.Agreement;
-using System.Security.Cryptography.X509Certificates;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
-using WhatsSocket.Core.Credentials;
-using System.Text;
-using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 using WhatsSocket.Core.Curve;
-using System.Linq;
+using WhatsSocket.Core.Credentials;
 //using Sodium;
 
 namespace WhatsSocket.Core.Helper

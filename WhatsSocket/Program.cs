@@ -8,7 +8,7 @@ using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.TestModels;
+using WhatsSocket.Core.Models;
 using Logger = WhatsSocket.Core.Helper.Logger;
 
 namespace WhatsSocket
@@ -16,7 +16,7 @@ namespace WhatsSocket
 
     internal class Program
     {
-        static WhatsAppSocket socket;
+        static BaseSocket socket;
         static void Main(string[] args)
         {
 
@@ -48,7 +48,7 @@ namespace WhatsSocket
 
 
 
-            socket = new WhatsAppSocket(authentication, new Logger());
+            socket = new BaseSocket(authentication, new Logger());
 
 
             var store = Path.Join(Directory.GetCurrentDirectory(), "store.json");
@@ -75,7 +75,7 @@ namespace WhatsSocket
             File.WriteAllText(credsFile, data);
         }
 
-        private static void Socket_OnDisconnected(WhatsAppSocket sender, Core.Events.DisconnectReason disconnectReason)
+        private static void Socket_OnDisconnected(BaseSocket sender, Core.Events.DisconnectReason disconnectReason)
         {
             if (disconnectReason != Core.Events.DisconnectReason.LoggedOut)
             {
@@ -83,7 +83,7 @@ namespace WhatsSocket
             }
         }
 
-        private static void Socket_OnCredentialsChangeArgs(WhatsAppSocket sender, AuthenticationCreds authenticationCreds)
+        private static void Socket_OnCredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds)
         {
             var credsFile = Path.Join(Directory.GetCurrentDirectory(), "creds.json");
             var json = AuthenticationCreds.Serialize(authenticationCreds);

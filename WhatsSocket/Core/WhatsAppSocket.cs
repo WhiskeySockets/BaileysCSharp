@@ -1,42 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
-using Org.BouncyCastle.Tls;
+﻿using WhatsSocket.Core.Models;
 using Proto;
 using Google.Protobuf;
-using Org.BouncyCastle.X509;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using System.Security.Cryptography.X509Certificates;
-using System.Net.Sockets;
 using static Proto.ClientPayload.Types;
-using Newtonsoft.Json.Linq;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
-using System.Diagnostics;
 using WhatsSocket.Core.Sockets;
-using System.Xml.Linq;
 using WhatsSocket.Core.Credentials;
 using WhatsSocket.Core.Events;
-using System.Security.Cryptography;
 using QRCoder;
-using System.Security.Principal;
-using Org.BouncyCastle.Asn1.X9;
-using static Proto.GroupParticipant.Types;
-using Google.Protobuf.WellKnownTypes;
+using System.Text;
 
 namespace WhatsSocket.Core
 {
-    public delegate void CredentialsChangeArgs(WhatsAppSocket sender, AuthenticationCreds authenticationCreds);
-    public delegate void Disconnected(WhatsAppSocket sender, DisconnectReason disconnectReason);
+    public delegate void CredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds);
+    public delegate void Disconnected(BaseSocket sender, DisconnectReason disconnectReason);
 
 
-    public class WhatsAppSocket
+    public class BaseSocket
     {
         public event KeyStoreChangeArgs OnStoreChange;
 
@@ -50,282 +30,100 @@ namespace WhatsSocket.Core
 
         AbstractSocketClient Client;
         NoiseHandler noise;
-        KeyPair EphemeralKeyPair { get; set; }
-        public string UniqueTagId { get; set; }
         public bool IsMobile { get; }
         public long Epoch { get; set; }
-        public AuthenticationCreds Creds { get; }
         public Logger Logger { get; }
         private KeyStore Keys { get; set; }
+
+        Thread keepAliveThread;
+        CancellationTokenSource keepAliveToken;
+        DateTime lastReceived;
+
+        KeyPair EphemeralKeyPair { get; set; }
+        public string UniqueTagId { get; set; }
+        CancellationTokenSource qrTimerToken;
+        public AuthenticationCreds Creds { get; }
 
         public string GenerateMessageTag()
         {
             return $"{UniqueTagId}{Epoch++}";
         }
-
-
-        public WhatsAppSocket(AuthenticationCreds creds, Logger logger, bool isMobile = false)
-        {
-            Keys = new KeyStore();
-            Creds = creds;
-            Logger = logger;
-            Logger.Level = LogLevel.Verbose;
-            IsMobile = isMobile;
-            events["CB:stream:error"] = OnStreamError;
-            events["frame"] = OnFrame;
-            events["CB:iq,type:set,pair-device"] = OnPairDevice;
-            events["CB:xmlstreamend"] = StreamEnd;
-            events["CB:iq,,pair-success"] = OnPairSuccess;
-            events["CB:success"] = OnSuccess;
-            Keys.OnStoreChange += Keys_OnStoreChange;
-
-            //events["CB:iq,,pair-success"] = OnPairSuccess;
-            //events["CB:failure"] = OnFailure;
-
-        }
-
-        private void Keys_OnStoreChange(KeyStore store)
-        {
-            OnStoreChange?.Invoke(store);
-        }
-
-        private async Task<bool> OnSuccess(BinaryNode node)
-        {
-            await UploadPreKeysToServerIfRequired();
-            await SendPassiveIq("active");
-
-            Logger.Info("opened connection to WA");
-
-            return true;
-        }
-
-        private async Task SendPassiveIq(string tag)
-        {
-            var iq = new BinaryNode("iq")
-            {
-                attrs = new Dictionary<string, string>()
-                {
-                    {"to",Constants.S_WHATSAPP_NET },
-                    {"xmlns" ,"passive" },
-                    {"type","set" },
-                },
-                content = new BinaryNode[]
-                {
-                    new BinaryNode(tag)
-                }
-            };
-            var result = await Query(iq);
-
-        }
-
-        private async Task UploadPreKeysToServerIfRequired()
-        {
-            var preKeyCount = await GetAvailablePreKeysOnServer();
-            Logger.Info($"{preKeyCount} pre-keys found on server");
-            if (preKeyCount <= Constants.MIN_PREKEY_COUNT)
-            {
-                await UploadPreKeys();
-            }
-        }
-
-        private async Task UploadPreKeys()
-        {
-            var node = GetNextPreKeysNode(Constants.INITIAL_PREKEY_COUNT);
-            var result = await Query(node);
-            OnCredentialsChange?.Invoke(this, Creds);
-        }
-
-        private BinaryNode GetNextPreKeysNode(int count)
-        {
-            var preKeys = GetNextPreKeys(count);
-
-
-            var registration = new BinaryNode("registration", EndodingHelper.EncodeBigEndian(Creds.RegistrationId));
-            var type = new BinaryNode("type", Constants.KEY_BUNDLE_TYPE);
-            var identity = new BinaryNode("identity", Creds.SignedIdentityKey.Public);
-
-            var list = new BinaryNode("list", preKeys.Select(x => XmppPreKey(x.Value, x.Key)).ToArray());
-            var signed = XmppSignedPreKey(Creds.SignedPreKey);
-
-            var iq = new BinaryNode("iq", registration, type, identity, list, signed)
-            {
-                attrs = new Dictionary<string, string>()
-                {
-                    {"xmlns" ,"encrypt" },
-                    {"type","set" },
-                    {"to",Constants.S_WHATSAPP_NET }
-                },
-            };
-
-            return iq;
-        }
-
-        private BinaryNode XmppSignedPreKey(SignedPreKey signedPreKey)
-        {
-            return new BinaryNode("skey")
-            {
-                content = new BinaryNode[]
-                {
-                    new BinaryNode("id", EndodingHelper.EncodeBigEndian(signedPreKey.KeyId,3)),
-                    new BinaryNode("value", signedPreKey.KeyPair.Public),
-                    new BinaryNode("signature", signedPreKey.Signature),
-                }
-            };
-        }
-
-        private BinaryNode XmppPreKey(KeyPair value, int key)
-        {
-            return new BinaryNode("key")
-            {
-                content = new BinaryNode[]
-                {
-                    new BinaryNode("id", EndodingHelper.EncodeBigEndian(key,3)),
-                    new BinaryNode("value", value.Public),
-                }
-            };
-        }
-
-        private Dictionary<int, KeyPair> GetNextPreKeys(int count)
-        {
-            var keySet = GenerateOrGetPreKeys(count);
-
-            Creds.NextPreKeyId = Math.Max(keySet.LastPreKeyId + 1, Creds.NextPreKeyId);
-            Creds.FirstUnuploadedPreKeyId = Math.Max(Creds.FirstUnuploadedPreKeyId, keySet.LastPreKeyId + 1);
-            Keys.Set(keySet.NewPreKeys);
-
-            var preKeys = GetPreKeys(keySet.PreKeyRange[0], keySet.PreKeyRange[0] + keySet.PreKeyRange[1]);
-
-
-            return preKeys;
-        }
-
-        private Dictionary<int, KeyPair> GetPreKeys(int min, int max)
-        {
-            List<int> keys = new List<int>();
-            for (int i = min; i < max; i++)
-            {
-                keys.Add(i);
-            }
-            return Keys.Range(keys);
-        }
-
-        private PreKeySet GenerateOrGetPreKeys(int range)
-        {
-            var avaliable = Creds.NextPreKeyId - Creds.FirstUnuploadedPreKeyId;
-            var remaining = range - avaliable;
-            var lastPreKeyId = Creds.NextPreKeyId + remaining - 1;
-            Dictionary<int, KeyPair> newPreKeys = new Dictionary<int, KeyPair>();
-            if (remaining > 0)
-            {
-                for (int i = Creds.NextPreKeyId; i <= lastPreKeyId; i++)
-                {
-                    newPreKeys[i] = EncryptionHelper.GenerateKeyPair();
-                }
-            }
-
-            return new PreKeySet()
-            {
-                NewPreKeys = newPreKeys,
-                LastPreKeyId = lastPreKeyId,
-                PreKeyRange = new int[] { Creds.FirstUnuploadedPreKeyId, range }
-            };
-        }
-
-        private async Task<int> GetAvailablePreKeysOnServer()
-        {
-            var iq = new BinaryNode("iq")
-            {
-                attrs = new Dictionary<string, string>()
-                {
-                    {"id", GenerateMessageTag() },
-                    {"type","get" },
-                    {"xmlns" ,"encrypt" },
-                    {"to",Constants.S_WHATSAPP_NET }
-                },
-                content = new BinaryNode[]
-                {
-                    new BinaryNode("count")
-                }
-            };
-            var result = await Query(iq);
-            var countChild = GetBinaryNodeChild(result, "count");
-            return +(Convert.ToInt32(countChild?.attrs["value"]));
-        }
-
-        private async Task<bool> StreamEnd(BinaryNode node)
-        {
-            await Task.Yield();
-            End("Connection Terminated by Server", DisconnectReason.ConnectionClosed);
-            return true;
-        }
-
-
-        /**
-         * Connects to WA servers and performs:
-         * - simple queries (no retry mechanism, wait for connection establishment)
-         * - listen to messages and emit events
-         * - query phone connection
-         */
-        public void MakeSocket()
-        {
-            Client = new WebSocketClient();
-            Client.Opened += Client_Opened;
-            Client.Disconnected += Client_Disconnected;
-            Client.MessageRecieved += Client_MessageRecieved;
-
-            /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
-            EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
-
-            /** WA noise protocol wrapper */
-            noise = MakeNoiseHandler();
-
-
-            UniqueTagId = GenerateMdTagPrefix();
-            Epoch = 1;
-
-            Client.Connect();
-        }
-
-        private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
-        {
-            Client.Opened -= Client_Opened;
-            Client.Disconnected -= Client_Disconnected;
-
-            OnDisconnected?.Invoke(this, reason);
-
-            //if (reason == DisconnectReason.TimedOut)
-            //{
-            //    MakeSocket();
-            //}
-        }
-
-        private NoiseHandler MakeNoiseHandler()
-        {
-            return new NoiseHandler(EphemeralKeyPair, Logger);
-        }
-
         private string GenerateMdTagPrefix()
         {
             var bytes = AuthenticationUtils.RandomBytes(4);
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
-
-        private void SendRawMessage(byte[] bytes)
+        public BaseSocket(AuthenticationCreds creds, Logger logger, bool isMobile = false)
         {
-            var toSend = noise.EncodeFrame(bytes);
-            Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
-            Client.Send(toSend);
+            Keys = new KeyStore();
+            Creds = creds;
+            Logger = logger;
+            Logger.Level = LogLevel.Verbose;
+            IsMobile = isMobile;
+            events["frame"] = OnFrame;
+            events["CB:stream:error"] = OnStreamError;
+            events["CB:iq,type:set,pair-device"] = OnPairDevice;
+            events["CB:xmlstreamend"] = StreamEnd;
+            events["CB:iq,,pair-success"] = OnPairSuccess;
+            events["CB:success"] = OnSuccess;
+            events["CB:failure"] = OnFailure;
+            events["CB:ib,,downgrade_webclient"] = DowngradeWebClient;
+            Keys.OnStoreChange += Keys_OnStoreChange;
         }
+
 
         #region Receiving
 
-        //Data Received from WA
 
-        private void Client_MessageRecieved(AbstractSocketClient sender, DataFrame frame)
+        private void StartKeepAliveRequest()
         {
-            noise.DecodeFrame(frame.Buffer, OnFrameDeecoded);
+            keepAliveToken = new CancellationTokenSource();
+            keepAliveThread = new Thread(() => KeepAliveHandler());
+            keepAliveThread.Start();
         }
+
+
+        private async void KeepAliveHandler()
+        {
+            lastReceived = DateTime.Now;
+            var keepAliveIntervalMs = 30000;
+            Thread.Sleep(keepAliveIntervalMs);
+            while (!keepAliveToken.IsCancellationRequested)
+            {
+                var diff = DateTime.Now - lastReceived;
+                if (diff.TotalMilliseconds > keepAliveIntervalMs + 5000)
+                {
+                    End("Connection was lost", DisconnectReason.ConnectionLost);
+                    continue;
+                }
+
+                var iq = new BinaryNode("iq")
+                {
+                    attrs = new Dictionary<string, string>()
+                    {
+                        {"id", GenerateMessageTag() },
+                        {"to",Constants.S_WHATSAPP_NET },
+                        {"type","get" },
+                        {"xmlns" ,"w:p" }
+                    },
+                    content = new BinaryNode[]
+                    {
+                        new BinaryNode()
+                        {
+                            tag = "ping"
+                        }
+                    }
+                };
+
+
+
+                var result = await Query(iq);
+
+                Thread.Sleep(keepAliveIntervalMs);
+            }
+        }
+
 
         //Binary Node Received from WA
         private async void OnFrameDeecoded(BinaryNode message)
@@ -371,7 +169,217 @@ namespace WhatsSocket.Core
 
         #endregion
 
+        #region Frame Events
 
+        private async Task<bool> OnFrame(BinaryNode message)
+        {
+            await Task.Yield();
+
+            //For a Query
+            if (message.attrs.ContainsKey("id"))
+            {
+                if (waits.ContainsKey(message.attrs["id"]))
+                {
+                    waits[message.attrs["id"]].SetResult(message);
+                    waits.Remove(message.attrs["id"]);
+                    return true;
+                }
+            }
+
+            //For the Handshake
+            if (message.tag == "handshake")
+            {
+                if (waits.ContainsKey(message.tag))
+                {
+                    waits[message.tag].SetResult(message);
+                    waits.Remove(message.tag);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task<bool> OnStreamError(BinaryNode node)
+        {
+            await Task.Yield();
+
+            if (node.content is BinaryNode[] nodes)
+            {
+                node = nodes[0];
+            }
+
+            Logger.Error("stream errored out - " + node.tag);
+
+            return true;
+        }
+
+        private Task<bool> DowngradeWebClient(BinaryNode node)
+        {
+            return Task.FromResult(true);
+        }
+
+        private Task<bool> OnFailure(BinaryNode node)
+        {
+            return Task.FromResult(true);
+        }
+
+        private async Task<bool> OnPairDevice(BinaryNode message)
+        {
+            var iq = new BinaryNode("iq")
+            {
+                attrs = new Dictionary<string, string>()
+                {
+                    {"to",Constants.S_WHATSAPP_NET },
+                    {"type","result" },
+                    {"id", message.attrs["id"] }
+                },
+            };
+
+            SendNode(iq);
+
+            var pairDeviceNode = SocketHelper.GetBinaryNodeChild(message, "pair-device");
+            var refNodes = new Queue<BinaryNode>(SocketHelper.GetBinaryNodeChildren(pairDeviceNode, "ref"));
+            var noiseKeyB64 = Creds.NoiseKey.Public.ToBase64();
+            var identityKeyB64 = Creds.SignedIdentityKey.Public.ToBase64();
+            var advB64 = Creds.AdvSecretKey;
+
+            var qrTimeout = 60000;
+            qrTimerToken = new CancellationTokenSource();
+            while (!qrTimerToken.IsCancellationRequested)
+            {
+                if (!Client.IsConnected)
+                    return true;
+
+                if (refNodes.TryDequeue(out var refNode))
+                {
+                    var @ref = Encoding.UTF8.GetString(refNode.ToByteArray());
+                    var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
+
+
+
+                    QRCodeGenerator QrGenerator = new QRCodeGenerator();
+                    QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(qr, QRCodeGenerator.ECCLevel.L);
+                    AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
+                    var data = qrCode.GetGraphic(1);
+                    //File.WriteAllBytes("qr.png", data);
+
+
+
+
+                    await Console.Out.WriteLineAsync(qr);
+                    await Console.Out.WriteLineAsync(data);
+                }
+                else
+                {
+                    End("QR refs attempts ended", DisconnectReason.TimedOut);
+                    return true;
+                }
+                try
+                {
+                    await Task.Delay(qrTimeout, qrTimerToken.Token);
+                    qrTimeout = 20000;
+                }
+                catch (TaskCanceledException)
+                {
+                    //Ignore
+                }
+            }
+            return true;
+        }
+
+        private Task<bool> OnPairSuccess(BinaryNode node)
+        {
+            try
+            {
+
+                var reply = SocketHelper.ConfigureSuccessfulPairing(Creds, node);
+
+                OnCredentialsChange?.Invoke(this, Creds);
+
+                Console.Clear();
+                SendNode(reply);
+            }
+            catch (Boom ex)
+            {
+                End(ex.Message, ex.Reason);
+            }
+            return Task.FromResult(true);
+
+        }
+
+        private async Task<bool> OnSuccess(BinaryNode node)
+        {
+            await UploadPreKeysToServerIfRequired();
+            await SendPassiveIq("active");
+
+            Logger.Info("opened connection to WA");
+
+            return true;
+        }
+        private async Task<bool> StreamEnd(BinaryNode node)
+        {
+            await Task.Yield();
+            End("Connection Terminated by Server", DisconnectReason.ConnectionClosed);
+            return true;
+        }
+
+        #endregion
+
+        #region Sending
+
+        /** send a binary node */
+        private void SendNode(BinaryNode iq)
+        {
+            var buffer = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
+            SendRawMessage(buffer);
+        }
+
+        private void SendRawMessage(byte[] bytes)
+        {
+            var toSend = noise.EncodeFrame(bytes);
+            Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
+            Client.Send(toSend);
+        }
+
+        private Task<BinaryNode> Query(BinaryNode iq)
+        {
+            if (!iq.attrs.ContainsKey("id"))
+            {
+                iq.attrs["id"] = GenerateMessageTag();
+            }
+            waits[iq.attrs["id"]] = new TaskCompletionSource<BinaryNode>();
+            SendNode(iq);
+            return waits[iq.attrs["id"]].Task;
+        }
+
+
+        public async Task<byte[]> NextMessage(byte[] bytes)
+        {
+            if (!Client.IsConnected)
+            {
+                throw new Exception("Connection Closed");
+            }
+            waits["handshake"] = new TaskCompletionSource<BinaryNode>();
+            SendRawMessage(bytes);
+            var message = await waits["handshake"].Task;
+            return message.ToByteArray();
+        }
+
+
+        #endregion
+
+        #region Events
+
+        private void Client_MessageRecieved(AbstractSocketClient sender, DataFrame frame)
+        {
+            noise.DecodeFrame(frame.Buffer, OnFrameDeecoded);
+        }
+
+        private void Keys_OnStoreChange(KeyStore store)
+        {
+            OnStoreChange?.Invoke(store);
+        }
 
         private void Client_Opened(AbstractSocketClient sender)
         {
@@ -384,7 +392,86 @@ namespace WhatsSocket.Core
                 Logger.Error(ex, "error in validating connection");
             }
         }
+        private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
+        {
+            Client.Opened -= Client_Opened;
+            Client.Disconnected -= Client_Disconnected;
+            OnDisconnected?.Invoke(this, reason);
+        }
+        private async Task<bool> Emit(string key, BinaryNode e)
+        {
+            if (events.ContainsKey(key))
+            {
+                return await events[key](e);
+            }
+            return false;
+        }
 
+        #endregion
+
+
+        #region Login Successfull
+
+        private async Task SendPassiveIq(string tag)
+        {
+            var iq = new BinaryNode("iq")
+            {
+                attrs = new Dictionary<string, string>()
+                {
+                    {"to",Constants.S_WHATSAPP_NET },
+                    {"xmlns" ,"passive" },
+                    {"type","set" },
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode(tag)
+                }
+            };
+            var result = await Query(iq);
+
+        }
+
+        private async Task UploadPreKeysToServerIfRequired()
+        {
+            var preKeyCount = await GetAvailablePreKeysOnServer();
+            Logger.Info($"{preKeyCount} pre-keys found on server");
+            if (preKeyCount <= Constants.MIN_PREKEY_COUNT)
+            {
+                await UploadPreKeys();
+            }
+        }
+
+        private async Task UploadPreKeys()
+        {
+            var node = SocketHelper.GetNextPreKeysNode(Creds, Keys, Constants.INITIAL_PREKEY_COUNT);
+            var result = await Query(node);
+            OnCredentialsChange?.Invoke(this, Creds);
+        }
+
+        private async Task<int> GetAvailablePreKeysOnServer()
+        {
+            var iq = new BinaryNode("iq")
+            {
+                attrs = new Dictionary<string, string>()
+                {
+                    {"id", GenerateMessageTag() },
+                    {"type","get" },
+                    {"xmlns" ,"encrypt" },
+                    {"to",Constants.S_WHATSAPP_NET }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode("count")
+                }
+            };
+            var result = await Query(iq);
+            var countChild = SocketHelper.GetBinaryNodeChild(result, "count");
+            return +(Convert.ToInt32(countChild?.attrs["value"]));
+        }
+
+        #endregion
+
+        #region Pairing
 
         /** connection handshake */
         public async void ValidateConnection()
@@ -417,7 +504,7 @@ namespace WhatsSocket.Core
             }
             else if (Creds.Me == null)
             {
-                var node = GenerateRegistrationNode(Creds);
+                var node = SocketHelper.GenerateRegistrationNode(Creds);
                 var buffer = node.ToByteArray();
                 var payloadEnc = noise.Encrypt(buffer);
                 clientFinish.ClientFinish = new HandshakeMessage.Types.ClientFinish()
@@ -480,341 +567,38 @@ namespace WhatsSocket.Core
             StartKeepAliveRequest();
         }
 
-        private void StartKeepAliveRequest()
+        #endregion
+
+        /**
+         * Connects to WA servers and performs:
+         * - simple queries (no retry mechanism, wait for connection establishment)
+         * - listen to messages and emit events
+         * - query phone connection
+         */
+        public void MakeSocket()
         {
-            keepAliveToken = new CancellationTokenSource();
-            keepAliveThread = new Thread(() => KeepAliveHandler());
-            keepAliveThread.Start();
-        }
+            Client = new WebSocketClient();
+            Client.Opened += Client_Opened;
+            Client.Disconnected += Client_Disconnected;
+            Client.MessageRecieved += Client_MessageRecieved;
 
-        private async Task<bool> Emit(string key, BinaryNode e)
-        {
-            if (events.ContainsKey(key))
-            {
-                return await events[key](e);
-            }
-            return false;
-        }
+            /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
+            EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
 
-        private async Task<bool> OnStreamError(BinaryNode node)
-        {
-            await Task.Yield();
-
-            if (node.content is BinaryNode[] nodes)
-            {
-                node = nodes[0];
-            }
-
-            Logger.Error("stream errored out - " + node.tag);
-
-            return true;
-        }
+            /** WA noise protocol wrapper */
+            noise = MakeNoiseHandler();
 
 
-        private async Task<bool> OnFrame(BinaryNode message)
-        {
-            await Task.Yield();
+            UniqueTagId = GenerateMdTagPrefix();
+            Epoch = 1;
 
-            //For a Query
-            if (message.attrs.ContainsKey("id"))
-            {
-                if (waits.ContainsKey(message.attrs["id"]))
-                {
-                    waits[message.attrs["id"]].SetResult(message);
-                    waits.Remove(message.attrs["id"]);
-                    return true;
-                }
-            }
-
-            //For the Handshake
-            if (message.tag == "handshake")
-            {
-                if (waits.ContainsKey(message.tag))
-                {
-                    waits[message.tag].SetResult(message);
-                    waits.Remove(message.tag);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private async Task<bool> OnPairDevice(BinaryNode message)
-        {
-            var iq = new BinaryNode("iq")
-            {
-                attrs = new Dictionary<string, string>()
-                {
-                    {"to",Constants.S_WHATSAPP_NET },
-                    {"type","result" },
-                    {"id", message.attrs["id"] }
-                },
-            };
-
-            SendNode(iq);
-
-            var pairDeviceNode = GetBinaryNodeChild(message, "pair-device");
-            var refNodes = new Queue<BinaryNode>(GetBinaryNodeChildren(pairDeviceNode, "ref"));
-            var noiseKeyB64 = Creds.NoiseKey.Public.ToBase64();
-            var identityKeyB64 = Creds.SignedIdentityKey.Public.ToBase64();
-            var advB64 = Creds.AdvSecretKey;
-
-            var qrTimeout = 60000;
-            qrTimerToken = new CancellationTokenSource();
-            while (!qrTimerToken.IsCancellationRequested)
-            {
-                if (!Client.IsConnected)
-                    return true;
-
-                if (refNodes.TryDequeue(out var refNode))
-                {
-                    var @ref = Encoding.UTF8.GetString(refNode.ToByteArray());
-                    var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
-
-
-
-                    QRCodeGenerator QrGenerator = new QRCodeGenerator();
-                    QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(qr, QRCodeGenerator.ECCLevel.L);
-                    AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
-                    var data = qrCode.GetGraphic(1);
-                    //File.WriteAllBytes("qr.png", data);
-
-
-
-
-                    await Console.Out.WriteLineAsync(qr);
-                    await Console.Out.WriteLineAsync(data);
-                }
-                else
-                {
-                    End("QR refs attempts ended", DisconnectReason.TimedOut);
-                    return true;
-                }
-                try
-                {
-                    await Task.Delay(qrTimeout, qrTimerToken.Token);
-                    qrTimeout = 20000;
-                }
-                catch (TaskCanceledException)
-                {
-                    //Ignore
-                }
-            }
-            return true;
+            Client.Connect();
         }
 
 
-
-        private Task<bool> OnPairSuccess(BinaryNode node)
+        private NoiseHandler MakeNoiseHandler()
         {
-
-
-            var reply = ConfigureSuccessfulPairing(node);
-
-
-            Console.Clear();
-            SendNode(reply);
-
-            return Task.FromResult(true);
-        }
-
-        private BinaryNode ConfigureSuccessfulPairing(BinaryNode node)
-        {
-
-            var signedIdentityKey = Creds.SignedIdentityKey;
-
-            var msgId = node.attrs["id"].ToString();
-            var pairSuccessNode = GetBinaryNodeChild(node, "pair-success");
-
-
-            var deviceIdentityNode = GetBinaryNodeChild(pairSuccessNode, "device-identity");
-            var platformNode = GetBinaryNodeChild(pairSuccessNode, "platform");
-            var deviceNode = GetBinaryNodeChild(pairSuccessNode, "device");
-            var businessNode = GetBinaryNodeChild(pairSuccessNode, "biz");
-
-            var bizName = businessNode?.attrs["name"];
-            var jid = deviceNode.attrs["jid"];
-
-            var detailsHmac = ADVSignedDeviceIdentityHMAC.Parser.ParseFrom(deviceIdentityNode.ToByteArray());
-
-
-            var advSign = EncryptionHelper.HmacSign(detailsHmac.Details.ToByteArray(), Convert.FromBase64String(Creds.AdvSecretKey));
-
-            // check HMAC matches
-            var hmac = detailsHmac.Hmac.ToBase64();
-            if (hmac != advSign)
-            {
-                End("Invalid Account Signature", DisconnectReason.BadSession);
-            }
-
-            var account = ADVSignedDeviceIdentity.Parser.ParseFrom(detailsHmac.Details);
-
-            var accountMsg = new byte[] { 6, 0 }
-            .Concat(account.Details.ToByteArray())
-            .Concat(signedIdentityKey.Public).ToArray();
-            if (!EncryptionHelper.Verify(account.AccountSignatureKey.ToByteArray(), accountMsg, account.AccountSignature.ToByteArray()))
-            {
-                End("Failed to verify account Signature", DisconnectReason.BadSession);
-            }
-
-            // sign the details with our identity key
-            var deviceMsg = new byte[] { 6, 1 }
-            .Concat(account.Details.ToByteArray())
-            .Concat(signedIdentityKey.Public)
-            .Concat(account.AccountSignatureKey).ToArray();
-            account.DeviceSignature = EncryptionHelper.Sign(signedIdentityKey.Private, deviceMsg).ToByteString();
-
-            //TODO: Finish 
-            var identity = CreateSignalIdentity(jid, account.AccountSignatureKey);
-            var accountEnc = EncodeSignedDeviceIdentity(account, false);
-
-
-            var deviceIdentity = ADVDeviceIdentity.Parser.ParseFrom(account.Details);
-
-            var reply = new BinaryNode("iq")
-            {
-                attrs = new Dictionary<string, string>()
-                    {
-                        {"to",Constants.S_WHATSAPP_NET },
-                        {"type","result" },
-                        {"id", msgId }
-                    },
-                content = new BinaryNode[]
-                {
-                    new BinaryNode("pair-device-sign")
-                    {
-                        content = new BinaryNode[]
-                        {
-                            new BinaryNode()
-                            {
-                                tag = "device-identity",
-                                attrs = new Dictionary<string, string>()
-                                {
-                                    {"key-index",deviceIdentity.KeyIndex.ToString() }
-
-                                },
-                                content = accountEnc
-                            }
-                        },
-                    }
-                }
-            };
-
-            Creds.SignalIdentities = new SignalIdentity[] { identity };
-            Creds.Platform = platformNode.attrs["name"];
-            Creds.Me = new Contact()
-            {
-                ID = jid,
-                Name = bizName
-            };
-
-            OnCredentialsChange?.Invoke(this, Creds);
-
-            return reply;
-        }
-
-        private byte[] EncodeSignedDeviceIdentity(ADVSignedDeviceIdentity account, bool includeSignatureKey)
-        {
-            var clone = ADVSignedDeviceIdentity.Parser.ParseFrom(account.ToByteArray());
-
-            if (!includeSignatureKey)
-            {
-                clone.ClearAccountSignatureKey();
-            }
-            return clone.ToByteArray();
-        }
-
-        private SignalIdentity CreateSignalIdentity(string jid, ByteString accountSignatureKey)
-        {
-            return new SignalIdentity()
-            {
-                Identifier = new ProtocolAddress { Name = jid },
-                IdentifierKey = AuthenticationUtils.GenerateSignalPubKey(accountSignatureKey.ToByteArray())
-            };
-        }
-
-        private BinaryNode[] GetBinaryNodeChildren(BinaryNode? message, string tag)
-        {
-            if (message?.content is BinaryNode[] messages)
-            {
-                return messages.Where(x => x.tag == tag).ToArray();
-            }
-            return new BinaryNode[0];
-        }
-
-        private BinaryNode? GetBinaryNodeChild(BinaryNode? message, string tag)
-        {
-            if (message?.content is BinaryNode[] messages)
-            {
-                return messages.FirstOrDefault(x => x.tag == tag);
-            }
-            return null;
-        }
-
-        /** send a binary node */
-        private void SendNode(BinaryNode iq)
-        {
-            var buffer = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
-            SendRawMessage(buffer);
-        }
-
-
-        Thread keepAliveThread;
-        CancellationTokenSource keepAliveToken;
-        DateTime lastReceived;
-
-        CancellationTokenSource qrTimerToken;
-
-        private async void KeepAliveHandler()
-        {
-            lastReceived = DateTime.Now;
-            var keepAliveIntervalMs = 30000;
-            Thread.Sleep(keepAliveIntervalMs);
-            while (!keepAliveToken.IsCancellationRequested)
-            {
-                var diff = DateTime.Now - lastReceived;
-                if (diff.TotalMilliseconds > keepAliveIntervalMs + 5000)
-                {
-                    End("Connection was lost", DisconnectReason.ConnectionLost);
-                    continue;
-                }
-
-                var iq = new BinaryNode("iq")
-                {
-                    attrs = new Dictionary<string, string>()
-                    {
-                        {"id", GenerateMessageTag() },
-                        {"to",Constants.S_WHATSAPP_NET },
-                        {"type","get" },
-                        {"xmlns" ,"w:p" }
-                    },
-                    content = new BinaryNode[]
-                    {
-                        new BinaryNode()
-                        {
-                            tag = "ping"
-                        }
-                    }
-                };
-
-
-
-                var result = await Query(iq);
-
-                Thread.Sleep(keepAliveIntervalMs);
-            }
-        }
-
-        private Task<BinaryNode> Query(BinaryNode iq)
-        {
-            if (!iq.attrs.ContainsKey("id"))
-            {
-                iq.attrs["id"] = GenerateMessageTag();
-            }
-            waits[iq.attrs["id"]] = new TaskCompletionSource<BinaryNode>();
-            SendNode(iq);
-            return waits[iq.attrs["id"]].Task;
+            return new NoiseHandler(EphemeralKeyPair, Logger);
         }
 
         private void End(string reason, DisconnectReason connectionLost)
@@ -827,69 +611,6 @@ namespace WhatsSocket.Core
 
 
             Console.WriteLine($"{reason} - {connectionLost}");
-        }
-
-        private ClientPayload GenerateRegistrationNode(AuthenticationCreds creds)
-        {
-            var appVersion = EncryptionHelper.Md5("2.2329.9");
-            var companion = new DeviceProps()
-            {
-                Os = "Baileys",
-                PlatformType = DeviceProps.Types.PlatformType.Chrome,
-                RequireFullSync = false,
-            };
-            var payload = new ClientPayload
-            {
-                Passive = false,
-                ConnectReason = ConnectReason.UserActivated,
-                ConnectType = ConnectType.WifiUnknown,
-                UserAgent = new UserAgent()
-                {
-                    AppVersion = new UserAgent.Types.AppVersion()
-                    {
-                        Primary = 2,
-                        Secondary = 2329,
-                        Tertiary = 9,
-                    },
-                    Platform = UserAgent.Types.Platform.Macos,
-                    ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
-                    Mcc = "000",
-                    Mnc = "000",
-                    OsVersion = "0.1",
-                    Manufacturer = "",
-                    Device = "Dekstop",
-                    OsBuildNumber = "0.1",
-                    LocaleLanguageIso6391 = "en",
-                    LocaleCountryIso31661Alpha2 = "us",
-                    //PhoneId = creds.PhoneId
-                },
-                DevicePairingData = new DevicePairingRegistrationData()
-                {
-                    BuildHash = appVersion.ToByteString(),
-                    DeviceProps = companion.ToByteArray().ToByteString(),
-                    ERegid = creds.RegistrationId.EncodeBigEndian().ToByteString(),
-                    EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
-                    EIdent = creds.SignedIdentityKey.Public.ToByteString(),
-                    ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
-                    ESkeyVal = creds.SignedPreKey.KeyPair.Public.ToByteString(),
-                    ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
-                }
-            };
-
-            return payload;
-        }
-
-
-        public async Task<byte[]> NextMessage(byte[] bytes)
-        {
-            if (!Client.IsConnected)
-            {
-                throw new Exception("Connection Closed");
-            }
-            waits["handshake"] = new TaskCompletionSource<BinaryNode>();
-            SendRawMessage(bytes);
-            var message = await waits["handshake"].Task;
-            return message.ToByteArray();
         }
 
         internal void LoadStore(KeyStore? storeObj)
