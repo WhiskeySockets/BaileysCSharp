@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -10,6 +10,7 @@
   <ItemGroup>
     <None Remove="Core\HandshakeMessage.proto" />
     <None Remove="Proto\WAProto.3.proto" />
+    <None Remove="Proto\WhisperTextProtocol.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +26,11 @@
   <ItemGroup>
     <Protobuf Include="Proto\WAProto.2.proto" />
     <Protobuf Include="Proto\WAProto.3.proto" />
+    <Protobuf Include="Proto\WhisperTextProtocol.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Core\Session\" />
   </ItemGroup>
 
 </Project>

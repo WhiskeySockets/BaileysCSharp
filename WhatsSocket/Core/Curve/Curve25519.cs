@@ -1,12 +1,14 @@
 ﻿using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Security.Certificates;
+using Org.BouncyCastle.Utilities;
 using Proto;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
 
@@ -1028,7 +1030,457 @@ namespace WhatsSocket.Core.Curve
             }
             return buffer;
         }
+        private static long[] GFN(int size,params long[] init)
+        {
+            var buffer = new long[size];
+            for (int i = 0; i < init?.Length; i++)
+            {
+                buffer[i] = init[i];
+            }
+            return buffer;
+        }
+        
 
+        #endregion
+
+
+
+        #region Calculate Agreement
+
+        /// <summary>
+        /// Key agreement
+        /// </summary>
+        /// <param name="privateKey">[in] your private key for key agreement</param>
+        /// <param name="peerPublicKey">[in] peer's public key</param>
+        /// <returns>shared secret (needs hashing before use)</returns>
+        public static byte[] GetSharedSecret(byte[] privateKey, byte[] peerPublicKey)
+        {
+            var sharedSecret = new byte[32];
+
+            var dx = Unpack(peerPublicKey);
+
+
+            var t1 = GFN(10);
+            var t2 = GFN(10);
+            var t3 = GFN(10);
+            var t4 = GFN(10);
+
+            /* 0G = point-at-infinity */
+            var x = new long[][] { GFN(10, 1), GFN(10) };
+            var z = new long[][] { GFN(10), GFN(10) };
+
+
+            /* 1G = G */
+            for (int i = 0; i < x[1].Length; i++)
+            {
+                x[1][i] = dx[i];
+            }
+            z[1][0] = 1;
+
+            for (var i = 32; i-- != 0;)
+            {
+                for (var j = 8; j-- != 0;)
+                {
+                    /* swap arguments depending on bit */
+                    var bit1 = (privateKey[i] & 0xFF) >> j & 1;
+                    var bit0 = ~(privateKey[i] & 0xFF) >> j & 1;
+                    var ax = x[bit0];
+                    var az = z[bit0];
+                    var bx = x[bit1];
+                    var bz = z[bit1];
+
+                    /* a' = a + b	*/
+                    /* b' = 2 b	*/
+                    MontyPrepare(t1, t2, ax, az);
+                    MontyPrepare(t3, t4, bx, bz);
+                    MontyAdd(t1, t2, t3, t4, ax, az, dx);
+                    MontyDouble(t1, t2, t3, t4, bx, bz);
+                }
+            }
+            Reciprocal(t1, z[0], false);
+            Multiply(dx, x[0], t1);
+            Pack(dx, sharedSecret);
+
+            return sharedSecret;
+        }
+
+        /********************* radix 2^25.5 GF(2^255-19) math *********************/
+
+        private const int P25 = 33554431; /* (1 << 25) - 1 */
+        private const int P26 = 67108863; /* (1 << 26) - 1 */
+        /// <summary>
+        /// Check if reduced-form input >= 2^255-19
+        /// </summary>
+        private static bool IsOverflow(long[] x)
+        {
+            return (
+                ((x[0] > P26 - 19)) &
+                ((x[1] & x[3] & x[5] & x[7] & x[9]) == P25) &
+                ((x[2] & x[4] & x[6] & x[8]) == P26)
+                ) || (x[9] > P25);
+        }
+
+        private static void Pack(long[] x, byte[] m)
+        {
+            var ld = (IsOverflow(x) ? 1 : 0) - ((x[9] < 0) ? 1 : 0);
+            var ud = ld * -(P25 + 1);
+            ld *= 19;
+            var t = ld + x[0] + (x[1] << 26);
+            m[0] = (byte)t;
+            m[1] = (byte)(t >> 8);
+            m[2] = (byte)(t >> 16);
+            m[3] = (byte)(t >> 24);
+            t = (t >> 32) + (x[2] << 19);
+            m[4] = (byte)t;
+            m[5] = (byte)(t >> 8);
+            m[6] = (byte)(t >> 16);
+            m[7] = (byte)(t >> 24);
+            t = (t >> 32) + (x[3] << 13);
+            m[8] = (byte)t;
+            m[9] = (byte)(t >> 8);
+            m[10] = (byte)(t >> 16);
+            m[11] = (byte)(t >> 24);
+            t = (t >> 32) + (x[4] << 6);
+            m[12] = (byte)t;
+            m[13] = (byte)(t >> 8);
+            m[14] = (byte)(t >> 16);
+            m[15] = (byte)(t >> 24);
+            t = (t >> 32) + x[5] + (x[6] << 25);
+            m[16] = (byte)t;
+            m[17] = (byte)(t >> 8);
+            m[18] = (byte)(t >> 16);
+            m[19] = (byte)(t >> 24);
+            t = (t >> 32) + (x[7] << 19);
+            m[20] = (byte)t;
+            m[21] = (byte)(t >> 8);
+            m[22] = (byte)(t >> 16);
+            m[23] = (byte)(t >> 24);
+            t = (t >> 32) + (x[8] << 12);
+            m[24] = (byte)t;
+            m[25] = (byte)(t >> 8);
+            m[26] = (byte)(t >> 16);
+            m[27] = (byte)(t >> 24);
+            t = (t >> 32) + ((x[9] + ud) << 6);
+            m[28] = (byte)t;
+            m[29] = (byte)(t >> 8);
+            m[30] = (byte)(t >> 16);
+            m[31] = (byte)(t >> 24);
+        }
+
+        private static void Reciprocal(long[] y, long[] x, bool sqrtAssist)
+        {
+            var t0 = GFN(10);
+            var t1 = GFN(10);
+            var t2 = GFN(10);
+            var t3 = GFN(10);
+            var t4 = GFN(10);
+            int i;
+            /* the chain for x^(2^255-21) is straight from djb's implementation */
+            Square(t1, x); /*  2 == 2 * 1	*/
+            Square(t2, t1); /*  4 == 2 * 2	*/
+            Square(t0, t2); /*  8 == 2 * 4	*/
+            Multiply(t2, t0, x); /*  9 == 8 + 1	*/
+            Multiply(t0, t2, t1); /* 11 == 9 + 2	*/
+            Square(t1, t0); /* 22 == 2 * 11	*/
+            Multiply(t3, t1, t2); /* 31 == 22 + 9
+					== 2^5   - 2^0	*/
+            Square(t1, t3); /* 2^6   - 2^1	*/
+            Square(t2, t1); /* 2^7   - 2^2	*/
+            Square(t1, t2); /* 2^8   - 2^3	*/
+            Square(t2, t1); /* 2^9   - 2^4	*/
+            Square(t1, t2); /* 2^10  - 2^5	*/
+            Multiply(t2, t1, t3); /* 2^10  - 2^0	*/
+            Square(t1, t2); /* 2^11  - 2^1	*/
+            Square(t3, t1); /* 2^12  - 2^2	*/
+            for (i = 1; i < 5; i++)
+            {
+                Square(t1, t3);
+                Square(t3, t1);
+            } /* t3 */ /* 2^20  - 2^10	*/
+            Multiply(t1, t3, t2); /* 2^20  - 2^0	*/
+            Square(t3, t1); /* 2^21  - 2^1	*/
+            Square(t4, t3); /* 2^22  - 2^2	*/
+            for (i = 1; i < 10; i++)
+            {
+                Square(t3, t4);
+                Square(t4, t3);
+            } /* t4 */ /* 2^40  - 2^20	*/
+            Multiply(t3, t4, t1); /* 2^40  - 2^0	*/
+            for (i = 0; i < 5; i++)
+            {
+                Square(t1, t3);
+                Square(t3, t1);
+            } /* t3 */ /* 2^50  - 2^10	*/
+            Multiply(t1, t3, t2); /* 2^50  - 2^0	*/
+            Square(t2, t1); /* 2^51  - 2^1	*/
+            Square(t3, t2); /* 2^52  - 2^2	*/
+            for (i = 1; i < 25; i++)
+            {
+                Square(t2, t3);
+                Square(t3, t2);
+            } /* t3 */ /* 2^100 - 2^50 */
+            Multiply(t2, t3, t1); /* 2^100 - 2^0	*/
+            Square(t3, t2); /* 2^101 - 2^1	*/
+            Square(t4, t3); /* 2^102 - 2^2	*/
+            for (i = 1; i < 50; i++)
+            {
+                Square(t3, t4);
+                Square(t4, t3);
+            } /* t4 */ /* 2^200 - 2^100 */
+            Multiply(t3, t4, t2); /* 2^200 - 2^0	*/
+            for (i = 0; i < 25; i++)
+            {
+                Square(t4, t3);
+                Square(t3, t4);
+            } /* t3 */ /* 2^250 - 2^50	*/
+            Multiply(t2, t3, t1); /* 2^250 - 2^0	*/
+            Square(t1, t2); /* 2^251 - 2^1	*/
+            Square(t2, t1); /* 2^252 - 2^2	*/
+            if (sqrtAssist)
+            {
+                Multiply(y, x, t2); /* 2^252 - 3 */
+            }
+            else
+            {
+                Square(t1, t2); /* 2^253 - 2^3	*/
+                Square(t2, t1); /* 2^254 - 2^4	*/
+                Square(t1, t2); /* 2^255 - 2^5	*/
+                Multiply(y, t1, t0); /* 2^255 - 21	*/
+            }
+        }
+
+        private static void MontyDouble(long[] t1, long[] t2, long[] t3, long[] t4, long[] bx, long[] bz)
+        {
+            Square(t1, t3);
+            Square(t2, t4);
+            Multiply(bx, t1, t2);
+            Sub(t2, t1, t2);
+            MulSmall(bz, t2, 121665);
+            Add(t1, t1, bz);
+            Multiply(bz, t1, t2);
+        }
+
+        private static void MulSmall(long[] xy, long[] x, int y)
+        {
+            var temp = (x[8] * y);
+            xy[8] = (temp & ((1 << 26) - 1));
+            temp = (temp >> 26) + (x[9] * y);
+            xy[9] = (temp & ((1 << 25) - 1));
+            temp = 19 * (temp >> 25) + (x[0] * y);
+            xy[0] = (temp & ((1 << 26) - 1));
+            temp = (temp >> 26) + (x[1] * y);
+            xy[1] = (temp & ((1 << 25) - 1));
+            temp = (temp >> 25) + (x[2] * y);
+            xy[2] = (temp & ((1 << 26) - 1));
+            temp = (temp >> 26) + (x[3] * y);
+            xy[3] = (temp & ((1 << 25) - 1));
+            temp = (temp >> 25) + (x[4] * y);
+            xy[4] = (temp & ((1 << 26) - 1));
+            temp = (temp >> 26) + (x[5] * y);
+            xy[5] = (temp & ((1 << 25) - 1));
+            temp = (temp >> 25) + (x[6] * y);
+            xy[6] = (temp & ((1 << 26) - 1));
+            temp = (temp >> 26) + (x[7] * y);
+            xy[7] = (temp & ((1 << 25) - 1));
+            temp = (temp >> 25) + xy[8];
+            xy[8] = (temp & ((1 << 26) - 1));
+            xy[9] += (temp >> 26);
+        }
+
+        private static void MontyAdd(long[] t1, long[] t2, long[] t3, long[] t4, long[] ax, long[] az, long[] dx)
+        {
+            Multiply(ax, t2, t3);
+            Multiply(az, t1, t4);
+            Add(t1, ax, az);
+            Sub(t2, ax, az);
+            Square(ax, t1);
+            Square(t1, t2);
+            Multiply(az, t1, dx);
+        }
+
+        private static void Square(long[] xsqr, long[] x)
+        {
+            long
+                x0 = x[0],
+                x1 = x[1],
+                x2 = x[2],
+                x3 = x[3],
+                x4 = x[4],
+                x5 = x[5],
+                x6 = x[6],
+                x7 = x[7],
+                x8 = x[8],
+                x9 = x[9];
+
+            var t = (x4 * x4) + 2 * ((x0 * x8) + (x2 * x6)) + 38 *
+                     (x9 * x9) + 4 * ((x1 * x7) + (x3 * x5));
+
+            xsqr[8] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + 2 * ((x0 * x9) + (x1 * x8) + (x2 * x7) +
+                               (x3 * x6) + (x4 * x5));
+            xsqr[9] = (t & ((1 << 25) - 1));
+            t = 19 * (t >> 25) + (x0 * x0) + 38 * ((x2 * x8) +
+                                               (x4 * x6) + (x5 * x5)) + 76 * ((x1 * x9)
+                                                                            + (x3 * x7));
+            xsqr[0] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + 2 * (x0 * x1) + 38 * ((x2 * x9) +
+                                              (x3 * x8) + (x4 * x7) + (x5 * x6));
+            xsqr[1] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + 19 * (x6 * x6) + 2 * ((x0 * x2) +
+                                              (x1 * x1)) + 38 * (x4 * x8) + 76 *
+                ((x3 * x9) + (x5 * x7));
+            xsqr[2] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + 2 * ((x0 * x3) + (x1 * x2)) + 38 *
+                ((x4 * x9) + (x5 * x8) + (x6 * x7));
+            xsqr[3] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + (x2 * x2) + 2 * (x0 * x4) + 38 *
+                ((x6 * x8) + (x7 * x7)) + 4 * (x1 * x3) + 76 *
+                (x5 * x9);
+            xsqr[4] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + 2 * ((x0 * x5) + (x1 * x4) + (x2 * x3))
+                + 38 * ((x6 * x9) + (x7 * x8));
+            xsqr[5] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + 19 * (x8 * x8) + 2 * ((x0 * x6) +
+                                              (x2 * x4) + (x3 * x3)) + 4 * (x1 * x5) +
+                76 * (x7 * x9);
+            xsqr[6] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + 2 * ((x0 * x7) + (x1 * x6) + (x2 * x5) +
+                               (x3 * x4)) + 38 * (x8 * x9);
+            xsqr[7] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + xsqr[8];
+            xsqr[8] = (t & ((1 << 26) - 1));
+            xsqr[9] += (t >> 26);
+        }
+
+        private static void Multiply(long[] xy, long[] x, long[] y)
+        {
+            /* sahn0:
+  * Using local variables to avoid class access.
+  * This seem to improve performance a bit...
+  */
+            long
+                x0 = x[0],
+                x1 = x[1],
+                x2 = x[2],
+                x3 = x[3],
+                x4 = x[4],
+                x5 = x[5],
+                x6 = x[6],
+                x7 = x[7],
+                x8 = x[8],
+                x9 = x[9];
+            long
+                y0 = y[0],
+                y1 = y[1],
+                y2 = y[2],
+                y3 = y[3],
+                y4 = y[4],
+                y5 = y[5],
+                y6 = y[6],
+                y7 = y[7],
+                y8 = y[8],
+                y9 = y[9];
+            var
+                t = (x0 * y8) + (x2 * y6) + (x4 * y4) + (x6 * y2) +
+                    (x8 * y0) + 2 * ((x1 * y7) + (x3 * y5) +
+                                 (x5 * y3) + (x7 * y1)) + 38 *
+                    (x9 * y9);
+            xy[8] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + (x0 * y9) + (x1 * y8) + (x2 * y7) +
+                (x3 * y6) + (x4 * y5) + (x5 * y4) +
+                (x6 * y3) + (x7 * y2) + (x8 * y1) +
+                (x9 * y0);
+            xy[9] = (t & ((1 << 25) - 1));
+            t = (x0 * y0) + 19 * ((t >> 25) + (x2 * y8) + (x4 * y6)
+                                + (x6 * y4) + (x8 * y2)) + 38 *
+                ((x1 * y9) + (x3 * y7) + (x5 * y5) +
+                 (x7 * y3) + (x9 * y1));
+            xy[0] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + (x0 * y1) + (x1 * y0) + 19 * ((x2 * y9)
+                                                        + (x3 * y8) + (x4 * y7) + (x5 * y6) +
+                                                        (x6 * y5) + (x7 * y4) + (x8 * y3) +
+                                                        (x9 * y2));
+            xy[1] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + (x0 * y2) + (x2 * y0) + 19 * ((x4 * y8)
+                                                        + (x6 * y6) + (x8 * y4)) + 2 * (x1 * y1)
+                + 38 * ((x3 * y9) + (x5 * y7) +
+                      (x7 * y5) + (x9 * y3));
+            xy[2] = (t & ((1 << 26) - 1));
+
+            t = (t >> 26) + (x0 * y3) + (x1 * y2) + (x2 * y1) +
+                (x3 * y0) + 19 * ((x4 * y9) + (x5 * y8) +
+                                (x6 * y7) + (x7 * y6) +
+                                (x8 * y5) + (x9 * y4));
+
+            xy[3] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + (x0 * y4) + (x2 * y2) + (x4 * y0) + 19 *
+                ((x6 * y8) + (x8 * y6)) + 2 * ((x1 * y3) +
+                                             (x3 * y1)) + 38 *
+                ((x5 * y9) + (x7 * y7) + (x9 * y5));
+            xy[4] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + (x0 * y5) + (x1 * y4) + (x2 * y3) +
+                (x3 * y2) + (x4 * y1) + (x5 * y0) + 19 *
+                ((x6 * y9) + (x7 * y8) + (x8 * y7) +
+                 (x9 * y6));
+            xy[5] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + (x0 * y6) + (x2 * y4) + (x4 * y2) +
+                (x6 * y0) + 19 * (x8 * y8) + 2 * ((x1 * y5) +
+                                              (x3 * y3) + (x5 * y1)) + 38 *
+                ((x7 * y9) + (x9 * y7));
+            xy[6] = (t & ((1 << 26) - 1));
+            t = (t >> 26) + (x0 * y7) + (x1 * y6) + (x2 * y5) +
+                (x3 * y4) + (x4 * y3) + (x5 * y2) +
+                (x6 * y1) + (x7 * y0) + 19 * ((x8 * y9) +
+                                            (x9 * y8));
+            xy[7] = (t & ((1 << 25) - 1));
+            t = (t >> 25) + xy[8];
+            xy[8] = (t & ((1 << 26) - 1));
+            xy[9] += (t >> 26);
+        }
+
+        private static void MontyPrepare(long[] t1, long[] t2, long[] ax, long[] az)
+        {
+            Add(t1, ax, az);
+            Sub(t2, ax, az);
+
+        }
+
+        private static void Add(long[] t1, long[] ax, long[] az)
+        {
+            for (var i = 0; i < t1.Length; i++)
+                t1[i] = ax[i] + az[i];
+        }
+        private static void Sub(long[] t1, long[] ax, long[] az)
+        {
+            for (var i = 0; i < t1.Length; i++)
+                t1[i] = ax[i] - az[i];
+        }
+
+        private static long[] Unpack(byte[] m)
+        {
+            return new long[] {
+            ((m[0] & 0xFF)) | ((m[1] & 0xFF)) << 8 |
+            (m[2] & 0xFF) << 16 | ((m[3] & 0xFF) & 3) << 24,
+            ((m[3] & 0xFF) & ~3) >> 2 | (m[4] & 0xFF) << 6 |
+            (m[5] & 0xFF) << 14 | ((m[6] & 0xFF) & 7) << 22,
+            ((m[6] & 0xFF) & ~7) >> 3 | (m[7] & 0xFF) << 5 |
+            (m[8] & 0xFF) << 13 | ((m[9] & 0xFF) & 31) << 21,
+            ((m[9] & 0xFF) & ~31) >> 5 | (m[10] & 0xFF) << 3 |
+            (m[11] & 0xFF) << 11 | ((m[12] & 0xFF) & 63) << 19,
+            ((m[12] & 0xFF) & ~63) >> 6 | (m[13] & 0xFF) << 2 |
+            (m[14] & 0xFF) << 10 | (m[15] & 0xFF) << 18,
+            (m[16] & 0xFF) | (m[17] & 0xFF) << 8 |
+            (m[18] & 0xFF) << 16 | ((m[19] & 0xFF) & 1) << 24,
+            ((m[19] & 0xFF) & ~1) >> 1 | (m[20] & 0xFF) << 7 |
+            (m[21] & 0xFF) << 15 | ((m[22] & 0xFF) & 7) << 23,
+            ((m[22] & 0xFF) & ~7) >> 3 | (m[23] & 0xFF) << 5 |
+            (m[24] & 0xFF) << 13 | ((m[25] & 0xFF) & 15) << 21,
+            ((m[25] & 0xFF) & ~15) >> 4 | (m[26] & 0xFF) << 4 |
+            (m[27] & 0xFF) << 12 | ((m[28] & 0xFF) & 63) << 20,
+            ((m[28] & 0xFF) & ~63) >> 6 | (m[29] & 0xFF) << 2 |
+                   (m[30] & 0xFF) << 10 | (m[31] & 0xFF) << 18,
+        };
+        }
 
         #endregion
     }

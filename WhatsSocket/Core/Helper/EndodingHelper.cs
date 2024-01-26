@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Encodings;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocket.Core.Helper
 {
@@ -51,6 +52,28 @@ namespace WhatsSocket.Core.Helper
             .ToArray();
         }
 
+
+        public static byte[] UnpadRandomMax16(this byte[] data)
+        {
+            if (data.Length == 0)
+            {
+                throw new Exception("UnpadPkcs7 given empty bytes");
+            }
+
+            byte padValue = data[data.Length - 1];
+
+            if (padValue > data.Length)
+            {
+                throw new Exception($"Unpad given {data.Length} bytes, but pad is {padValue}");
+            }
+
+            int unpaddedLength = data.Length - padValue;
+            byte[] unpaddedData = new byte[unpaddedLength];
+
+            Array.Copy(data, unpaddedData, unpaddedLength);
+
+            return unpaddedData;
+        }
 
     }
 }

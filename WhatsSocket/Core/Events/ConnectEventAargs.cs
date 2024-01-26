@@ -21,7 +21,8 @@ namespace WhatsSocket.Core.Events
         LoggedOut = 401,
         BadSession = 500,
         RestartRequired = 515,
-        MultideviceMismatch = 411
+        MultideviceMismatch = 411,
+        MissMatch = 901
     }
 
     public delegate void DisconnectEventArgs(AbstractSocketClient sender, DisconnectReason reason);

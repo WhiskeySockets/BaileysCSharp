@@ -8,6 +8,9 @@ using WhatsSocket.Core.Events;
 using System.Text;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Exceptions;
+using System.Threading;
+using System.Diagnostics;
+using WhatsSocket.Core.Models.Sessions;
 
 namespace WhatsSocket.Core
 {
@@ -18,7 +21,16 @@ namespace WhatsSocket.Core
 
     public class BaseSocket
     {
-        public event KeyStoreChangeArgs OnStoreChange;
+        public static string Root
+        {
+            get
+            {
+                return Path.GetDirectoryName(typeof(BaseSocket).Assembly.Location);
+            }
+        }
+
+        public event KeyStoreChangeArgs OnKeyStoreChange;
+        public event SessionStoreChangeArgs OnSessionStoreChange;
 
         public event CredentialsChangeArgs OnCredentialsChange;
         public event Disconnected OnDisconnected;
@@ -35,6 +47,8 @@ namespace WhatsSocket.Core
         public long Epoch { get; set; }
         public Logger Logger { get; }
         private KeyStore Keys { get; set; }
+        private SessionStore SessionStore { get; set; }
+        private SignalRepository Repository { get; set; }
 
         Thread keepAliveThread;
         CancellationTokenSource keepAliveToken;
@@ -55,9 +69,14 @@ namespace WhatsSocket.Core
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
-        public BaseSocket(AuthenticationCreds creds, Logger logger, bool isMobile = false)
+        public BaseSocket(string session,AuthenticationCreds creds, Logger logger, bool isMobile = false)
         {
-            Keys = new KeyStore();
+            Creds = creds;
+            Keys = new KeyStore(Path.Combine(Root, session, "data"));
+            SessionStore = new SessionStore(Path.Combine(Root, session, "data"));
+            Repository = new SignalRepository(SessionStore);
+            SessionStore.LoadKeyandCreds(Keys, Creds);
+
             Creds = creds;
             Logger = logger;
             Logger.Level = LogLevel.Verbose;
@@ -70,9 +89,94 @@ namespace WhatsSocket.Core
             events["CB:success"] = OnSuccess;
             events["CB:failure"] = OnFailure;
             events["CB:ib,,downgrade_webclient"] = DowngradeWebClient;
+            events["CB:message"] = OnMessage; ;
+            events["CB:call"] = OnCall;
+            events["CB:receipt"] = OnReceipt;
+            events["CB:notification"] = OnNotification;
+            events["CB:ack,class:message"] = OnHandleAck;
             Keys.OnStoreChange += Keys_OnStoreChange;
+            SessionStore.OnStoreChange += SignalRepository_OnStoreChange;
         }
 
+        private void SignalRepository_OnStoreChange(SessionStore store)
+        {
+            OnSessionStoreChange?.Invoke(store);
+        }
+        private void Keys_OnStoreChange(KeyStore store)
+        {
+            OnKeyStoreChange?.Invoke(store);
+        }
+
+
+
+        #region messages-recv
+
+
+        private async Task<bool> OnHandleAck(BinaryNode node)
+        {
+            return await HandleAck(node);
+        }
+
+        private Task<bool> HandleAck(BinaryNode node)
+        {
+
+            return Task.FromResult(true);
+        }
+
+        private async Task<bool> OnNotification(BinaryNode node)
+        {
+            return await SocketHelper.ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
+        }
+
+        private Task HandleNotification(BinaryNode node)
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task<bool> OnReceipt(BinaryNode node)
+        {
+            return await SocketHelper.ProcessNodeWithBuffer(node, "handling receipt", HandleReceipt);
+        }
+
+        private Task HandleReceipt(BinaryNode node)
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task<bool> OnCall(BinaryNode node)
+        {
+            return await SocketHelper.ProcessNodeWithBuffer(node, "handling call", HandleCall);
+        }
+
+        private Task HandleCall(BinaryNode node)
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task<bool> OnMessage(BinaryNode node)
+        {
+            return await SocketHelper.ProcessNodeWithBuffer(node, "processing message", HandleMessage);
+        }
+
+        private Task HandleMessage(BinaryNode node)
+        {
+            var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
+            result.Decrypt();
+
+            if(result.WebMessage.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
+            {
+
+            }
+            else
+            {
+
+            }
+
+            return Task.CompletedTask;
+        }
+
+
+        #endregion
 
         #region Receiving
 
@@ -372,11 +476,6 @@ namespace WhatsSocket.Core
             noise.DecodeFrame(frame.Buffer, OnFrameDeecoded);
         }
 
-        private void Keys_OnStoreChange(KeyStore store)
-        {
-            OnStoreChange?.Invoke(store);
-        }
-
         private void Client_Opened(AbstractSocketClient sender)
         {
             try
@@ -608,9 +707,5 @@ namespace WhatsSocket.Core
             Console.WriteLine($"{reason} - {connectionLost}");
         }
 
-        public void LoadStore(KeyStore? storeObj)
-        {
-            this.Keys = storeObj ?? new KeyStore();
-        }
     }
 }

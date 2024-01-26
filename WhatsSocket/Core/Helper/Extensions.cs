@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Encodings;
 
 namespace WhatsSocket.Core.Helper
 {
@@ -30,5 +31,20 @@ namespace WhatsSocket.Core.Helper
             Array.Copy(array, startIndex, array2, 0, length);
             return array2;
         }
+
+
+        public static int AsEpoch(this DateTime date)
+        {
+            TimeSpan t = date - new DateTime(1970, 1, 1);
+            int secondsSinceEpoch = (int)t.TotalSeconds;
+            return secondsSinceEpoch;
+        }
+
+
+        public static void Set(this byte[] array, byte[] copy, int index = 0)
+        {
+            Array.Copy(copy, 0, array, index, copy.Length);
+        }
+
     }
 }

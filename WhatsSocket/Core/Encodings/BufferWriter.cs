@@ -1,5 +1,7 @@
 ﻿using System.Text;
+using WhatsSocket.Core.Helper;
 using static WhatsSocket.Core.Helper.Constants;
+using static WhatsSocket.Core.Encodings.JidUtils;
 
 namespace WhatsSocket.Core.Encodings
 {
@@ -348,33 +350,6 @@ namespace WhatsSocket.Core.Encodings
         //}
 
 
-
-        private FullJid? JidDecode(string jid)
-        {
-            var sepIndex = jid.IndexOf('@');
-            if (sepIndex < 0)
-                return null;
-
-            FullJid result = new FullJid();
-
-            result.Server = jid.Substring(sepIndex + 1);
-
-
-            var userCombined = jid.Substring(0, sepIndex);
-
-            var userAgentDevice = userCombined.Split(':');
-            result.User = userAgentDevice[0];
-
-
-            if (userAgentDevice.Length > 1)
-            {
-                result.Device = Convert.ToInt32(userAgentDevice[1]);
-            }
-
-            result.DomainType = result.Server == "lid" ? 1 : 0;
-
-            return result;
-        }
 
         public byte[] ToByteArray()
         {

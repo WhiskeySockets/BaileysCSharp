@@ -1,4 +1,6 @@
 ﻿
+using Newtonsoft.Json;
+
 namespace WhatsSocket.Core.Encodings
 {
     public class BinaryNode
@@ -27,17 +29,19 @@ namespace WhatsSocket.Core.Encodings
         {
             return content as byte[];
         }
-    }
 
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.Indented);
+        }
 
-    public class JidWidhDevice
-    {
-        public string User { get; set; }
-        public int? Device { get; set; }
-    }
-    public class FullJid : JidWidhDevice
-    {
-        public string Server { get; set; }
-        public int? DomainType { get; set; }
+        internal string? getattr(string attribute)
+        {
+            if (attrs.ContainsKey(attribute))
+            {
+                return attrs[attribute];
+            }
+            return default;
+        }
     }
 }
