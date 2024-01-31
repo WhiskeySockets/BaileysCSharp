@@ -11,6 +11,7 @@ using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Exceptions;
+using WhatsSocket.Core.Stores;
 
 namespace WhatsSocket.Core
 {

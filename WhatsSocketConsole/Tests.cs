@@ -30,6 +30,7 @@ namespace WhatsSocketConsole
             TestSign();
             TestSuccessSign();
             TestDeriveSecret();
+            
         }
 
 

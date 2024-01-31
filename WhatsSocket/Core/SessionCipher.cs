@@ -7,6 +7,7 @@ using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.Stores;
 using WhatsSocket.Exceptions;
 
 namespace WhatsSocket.Core
@@ -51,7 +52,6 @@ namespace WhatsSocket.Core
             }
 
             var preKeyProto = PreKeyWhisperMessage.Parser.ParseFrom(data.Skip(1).ToArray());
-            Debug.WriteLine("preKeyProto:" + preKeyProto.BaseKey.ToBase64());
 
             var builder = new SessionBuilder(Storage, Address);
             var preKeyId = builder.InitIncoming(record, preKeyProto);

@@ -1,10 +1,11 @@
 ﻿using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Models;
 
-namespace WhatsSocket.Core.Models
+namespace WhatsSocket.Core.Stores
 {
 
-    public delegate void KeyStoreChangeArgs(KeyStore store);
 
     public class KeyStore
     {
@@ -68,62 +69,14 @@ namespace WhatsSocket.Core.Models
             return pairs;
         }
 
-        internal KeyPair Get(int id)
+        internal KeyPair? Get(int id)
         {
-            return Keys[id];
+            if (Keys.ContainsKey(id))
+                return Keys[id];
+            return null;
         }
 
     }
 
 
-    public delegate void SenderKeyStoreChangeArgs(SenderKeyStore store);
-
-    public class SenderKeyStore
-    {
-        public event SenderKeyStoreChangeArgs OnSenderStoreChange;
-
-        public Dictionary<string, SenderKey> Keys { get; set; }
-
-        private string _keyStore;
-        public SenderKeyStore(string path)
-        {
-            _keyStore = path;
-            Directory.CreateDirectory(_keyStore);
-            Keys = new Dictionary<string, SenderKey>();
-            var files = Directory.GetFiles(_keyStore);
-            foreach (var item in files)
-            {
-                var fileInfo = new FileInfo(item);
-                if (fileInfo.Name.StartsWith("sender-key-"))
-                {
-                    var id = fileInfo.Name.Replace(".json", "");
-                    if (File.Exists(item))
-                    {
-                        Keys[id] = JsonConvert.DeserializeObject<SenderKey>(File.ReadAllText(item));
-                    }
-                }
-            }
-        }
-
-        public void Set(string id, SenderKey? key)
-        {
-            if (key == null)
-            {
-                Keys.Remove(id);
-                //File.Delete($"pre-key-{id}.json");
-            }
-            else
-            {
-                Keys[id] = key;
-            }
-            OnSenderStoreChange?.Invoke(this);
-        }
-
-
-        internal SenderKey Get(string id)
-        {
-            return Keys[id];
-        }
-
-    }
 }

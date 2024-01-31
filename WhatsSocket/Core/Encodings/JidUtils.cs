@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
+using WhatsSocket.Core.Models;
 
 namespace WhatsSocket.Core.Encodings
 {
@@ -38,6 +39,13 @@ namespace WhatsSocket.Core.Encodings
 
             return result;
         }
+
+        public static string JidToSignalSenderKeyName(string group, string user)
+        {
+            var addr = new ProtocolAddress(JidDecode(user));
+            return $"{group}::{addr}";
+        }
+
 
         public static bool AreJidsSameUser(string? id1, string? id2)
         {

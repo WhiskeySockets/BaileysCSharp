@@ -15,7 +15,8 @@ using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.Models.SenderKeys;
 
 namespace WhatsSocketConsole
 {
@@ -25,7 +26,9 @@ namespace WhatsSocketConsole
         static BaseSocket socket;
         static void Main(string[] args)
         {
-            Tests.RunTests();
+            //Tests.RunTests();
+
+    
 
             //This creds file comes from the nodejs sample    
             var credsFile = Path.Join(Directory.GetCurrentDirectory(), "test", "creds.json");
@@ -85,6 +88,13 @@ namespace WhatsSocketConsole
             {
                 sender.MakeSocket();
             }
+            else
+            {
+                Directory.Delete(Path.Join(Directory.GetCurrentDirectory(), "test"), true);
+                sender.NewAuth();
+                sender.MakeSocket();
+            }
+
         }
 
         private static void Socket_OnCredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds)

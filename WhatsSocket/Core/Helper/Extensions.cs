@@ -46,5 +46,20 @@ namespace WhatsSocket.Core.Helper
             Array.Copy(copy, 0, array, index, copy.Length);
         }
 
+
+        public static byte[] Slice(this byte[] bytes, int start, int end)
+        {
+            if (start < 0)
+            {
+                start = bytes.Length + start;
+            }
+            return bytes.Skip(start).Take(end).ToArray();
+        }
+
+        public static byte[] Slice(this byte[] bytes, int start)
+        {
+            return bytes.Slice(start, bytes.Length - start);
+        }
+
     }
 }

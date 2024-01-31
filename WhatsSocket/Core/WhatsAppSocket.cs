@@ -10,13 +10,13 @@ using WhatsSocket.Core.Models;
 using WhatsSocket.Exceptions;
 using System.Threading;
 using System.Diagnostics;
+using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
 
 namespace WhatsSocket.Core
 {
-    public delegate void CredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds);
-    public delegate void Disconnected(BaseSocket sender, DisconnectReason disconnectReason);
-    public delegate void QRCodeArgs(BaseSocket sender, string qr_data);
 
 
     public class BaseSocket
@@ -33,7 +33,7 @@ namespace WhatsSocket.Core
         public event SessionStoreChangeArgs OnSessionStoreChange;
 
         public event CredentialsChangeArgs OnCredentialsChange;
-        public event Disconnected OnDisconnected;
+        public event DisconnectedArgs OnDisconnected;
         public event QRCodeArgs OnQRReceived;
 
         Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
@@ -47,6 +47,7 @@ namespace WhatsSocket.Core
         public long Epoch { get; set; }
         public Logger Logger { get; }
         private KeyStore Keys { get; set; }
+        private SenderKeyStore SenderKeys { get; set; }
         private SessionStore SessionStore { get; set; }
         private SignalRepository Repository { get; set; }
 
@@ -57,7 +58,9 @@ namespace WhatsSocket.Core
         KeyPair EphemeralKeyPair { get; set; }
         public string UniqueTagId { get; set; }
         CancellationTokenSource qrTimerToken;
-        public AuthenticationCreds Creds { get; }
+
+        public string Session { get; }
+        public AuthenticationCreds Creds { get; set; }
 
         public string GenerateMessageTag()
         {
@@ -69,13 +72,14 @@ namespace WhatsSocket.Core
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
-        public BaseSocket(string session,AuthenticationCreds creds, Logger logger, bool isMobile = false)
+        public BaseSocket(string session, AuthenticationCreds creds, Logger logger, bool isMobile = false)
         {
+            Session = session;
             Creds = creds;
-            Keys = new KeyStore(Path.Combine(Root, session, "data"));
-            SessionStore = new SessionStore(Path.Combine(Root, session, "data"));
+            SenderKeys = new SenderKeyStore(Path.Combine(Root, session, "data", "sender-keys"));
+            Keys = new KeyStore(Path.Combine(Root, session, "data", "keys"));
+            SessionStore = new SessionStore(Path.Combine(Root, session, "data", "sessions"), Keys, SenderKeys, Creds);
             Repository = new SignalRepository(SessionStore);
-            SessionStore.LoadKeyandCreds(Keys, Creds);
 
             Creds = creds;
             Logger = logger;
@@ -163,7 +167,7 @@ namespace WhatsSocket.Core
             var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
             result.Decrypt();
 
-            if(result.WebMessage.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
+            if (result.WebMessage.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
             {
 
             }
@@ -326,6 +330,13 @@ namespace WhatsSocket.Core
 
         private Task<bool> OnFailure(BinaryNode node)
         {
+            if (node.attrs["reason"] == "401")
+            {
+                Client.Opened -= Client_Opened;
+                Client.Disconnected -= Client_Disconnected;
+                OnDisconnected?.Invoke(this, DisconnectReason.LoggedOut);                
+            }
+
             return Task.FromResult(true);
         }
 
@@ -707,5 +718,13 @@ namespace WhatsSocket.Core
             Console.WriteLine($"{reason} - {connectionLost}");
         }
 
+        public void NewAuth()
+        {
+            Creds = AuthenticationUtils.InitAuthCreds();
+            SenderKeys = new SenderKeyStore(Path.Combine(Root, Session, "data", "sender-keys"));
+            Keys = new KeyStore(Path.Combine(Root, Session, "data", "keys"));
+            SessionStore = new SessionStore(Path.Combine(Root, Session, "data", "sessions"), Keys, SenderKeys, Creds);
+            Repository = new SignalRepository(SessionStore);
+        }
     }
 }

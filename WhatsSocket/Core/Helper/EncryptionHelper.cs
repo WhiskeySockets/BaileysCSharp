@@ -250,6 +250,12 @@ namespace WhatsSocket.Core.Helper
             return Curve25519.GetSharedSecret(privateKey, publicKey);
         }
 
+        public static byte[] GetDerivative(byte[] seed, byte[] key)
+        {
+            var hash = CalculateMAC(key, seed);
+            return hash;
+        }
+
         //    public static ECCurve Curve25519 { get; } = new ECCurve()
         //    {
         //        CurveType = ECCurve.ECCurveType.PrimeMontgomery,

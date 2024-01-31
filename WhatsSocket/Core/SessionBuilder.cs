@@ -5,6 +5,7 @@ using Textsecure;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.Stores;
 
 namespace WhatsSocket.Core
 {
