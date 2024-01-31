@@ -50,7 +50,7 @@ namespace WhatsSocket.Core
             var plainText = GetPlainText(senderKey.IV, senderKey.CipherKey, senderKeyMessage.Ciphertext);
 
 
-            //Storage.StoreSenderKey(SenderName, record);
+            Storage.StoreSenderKey(SenderName, record);
 
             return plainText;
         }

@@ -14,6 +14,7 @@ using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.Types;
 
 namespace WhatsSocket.Core
 {
@@ -58,6 +59,10 @@ namespace WhatsSocket.Core
         KeyPair EphemeralKeyPair { get; set; }
         public string UniqueTagId { get; set; }
         CancellationTokenSource qrTimerToken;
+
+        Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
+
+        public bool SendActiveReceipts { get; set; }
 
         public string Session { get; }
         public AuthenticationCreds Creds { get; set; }
@@ -161,22 +166,125 @@ namespace WhatsSocket.Core
         {
             return await SocketHelper.ProcessNodeWithBuffer(node, "processing message", HandleMessage);
         }
-
-        private Task HandleMessage(BinaryNode node)
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+        private async Task HandleMessage(BinaryNode node)
         {
+            await semaphoreSlim.WaitAsync();
+
             var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
             result.Decrypt();
 
-            if (result.WebMessage.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
+            if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
             {
+                var encNode = SocketHelper.GetBinaryNodeChild(node, "enc");
+                if (encNode != null)
+                {
+                    SendRetryRequest(node, encNode != null);
+                }
 
             }
             else
             {
+                // no type in the receipt => message delivered
+                var type = MessageReceiptType.Undefined;
+                var participant = result.Msg.Key.Participant;
+                if (result.Category == "peer") // special peer message
+                {
+                    type = MessageReceiptType.PeerMsg;
+                }
+                else if (result.Msg.Key.FromMe) // message was sent by us from a different device
+                {
+                    type = MessageReceiptType.Sender;
+                    if (JidUtils.IsJidUser(result.Author))
+                    {
+                        participant = result.Author;
+                    }
+                    // need to specially handle this case
+                }
+                else if (!SendActiveReceipts)
+                {
+                    type = MessageReceiptType.Inactive;
+                }
+
+                SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
 
             }
 
-            return Task.CompletedTask;
+            semaphoreSlim.Release();
+        }
+
+        private void SendReceipt(string jid, string participant, string type, params string[] messageIds)
+        {
+
+            var node = new BinaryNode("receipt")
+            {
+                attrs = new Dictionary<string, string>()
+                    {
+                        {"id", messageIds[0] },
+                    },
+            };
+            if (type == MessageReceiptType.Read || type == MessageReceiptType.ReadSelf)
+            {
+                node.attrs["t"] = DateTime.Now.UnixTimestampSeconds().ToString();
+            }
+            if (type == MessageReceiptType.Sender && JidUtils.IsJidUser(jid))
+            {
+                node.attrs["recipient"] = jid;
+                if (!string.IsNullOrWhiteSpace(participant))
+                {
+                    node.attrs["to"] = participant;
+                }
+            }
+            else
+            {
+                node.attrs["to"] = jid;
+                if (!string.IsNullOrWhiteSpace(participant))
+                {
+                    node.attrs["recipient"] = participant;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                node.attrs["type"] = type;
+            }
+            var remaining = messageIds.Skip(1).ToArray();
+            if (remaining.Length > 0)
+            {
+                node.content = new BinaryNode("list")
+                {
+                    content = remaining.Select(x => new BinaryNode("item") 
+                    { 
+                        attrs = new Dictionary<string, string>() 
+                        { 
+                            { "id", x } 
+                        } 
+                    })
+                };
+            }
+            Logger.Info(new { node.attrs, messageIds }, "sending receipt for messages");
+            SendNode(node);
+        }
+
+        private void SendRetryRequest(BinaryNode node, bool forceIncludeKeys = false)
+        {
+            var msgId = node.attrs["id"];
+
+            //Check Retries
+            if (!MessageRetries.ContainsKey(msgId))
+            {
+                MessageRetries.Add(msgId, 0);
+            }
+            var retryCount = MessageRetries[msgId];
+            if (retryCount > 5)
+            {
+                MessageRetries.Remove(msgId);
+                return;
+            }
+            retryCount++;
+            MessageRetries[msgId] = retryCount;
+
+            //var deviceIdentity = SocketHelper.EncodeSignedDeviceIdentity(Creds, true);
         }
 
 
@@ -228,7 +336,7 @@ namespace WhatsSocket.Core
 
 
                 var result = await Query(iq);
-
+                lastReceived = DateTime.Now;
                 Thread.Sleep(keepAliveIntervalMs);
             }
         }
@@ -334,7 +442,7 @@ namespace WhatsSocket.Core
             {
                 Client.Opened -= Client_Opened;
                 Client.Disconnected -= Client_Disconnected;
-                OnDisconnected?.Invoke(this, DisconnectReason.LoggedOut);                
+                OnDisconnected?.Invoke(this, DisconnectReason.LoggedOut);
             }
 
             return Task.FromResult(true);

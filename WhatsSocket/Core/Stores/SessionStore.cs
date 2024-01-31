@@ -39,6 +39,9 @@ namespace WhatsSocket.Core.Stores
             var files = Directory.GetFiles(_sessions);
             foreach (var item in files)
             {
+                var file = new FileInfo(item);
+                var id = file.Name.Replace(".json", "");
+                Sessions[id] = JsonConvert.DeserializeObject<SessionRecord>(File.ReadAllText(item));
 
             }
         }
@@ -56,7 +59,7 @@ namespace WhatsSocket.Core.Stores
                 Sessions.Remove(id);
                 if (File.Exists(file))
                 {
-                    File.Copy(file, file + ".dlt");
+                    File.Copy(file, file + ".used");
                 }
             }
             else

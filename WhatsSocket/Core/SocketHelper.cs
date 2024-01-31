@@ -191,7 +191,7 @@ namespace WhatsSocket.Core
 
 
 
-        private static byte[] EncodeSignedDeviceIdentity(ADVSignedDeviceIdentity account, bool includeSignatureKey)
+        public static byte[] EncodeSignedDeviceIdentity(ADVSignedDeviceIdentity account, bool includeSignatureKey)
         {
             var clone = ADVSignedDeviceIdentity.Parser.ParseFrom(account.ToByteArray());
 

@@ -30,7 +30,7 @@ namespace WhatsSocket.Core
 
             if (IsJidUser(from))
             {
-                if (recipient != null)
+                if (!string.IsNullOrWhiteSpace(recipient))
                 {
                     if (!AreJidsSameUser(from, meId))
                     {
@@ -47,7 +47,7 @@ namespace WhatsSocket.Core
             }
             else if (IsLidUser(from))
             {
-                if (recipient != null)
+                if (!string.IsNullOrWhiteSpace(recipient))
                 {
                     if (!AreJidsSameUser(from, meLid))
                     {
@@ -125,7 +125,7 @@ namespace WhatsSocket.Core
             return new MessageDecryptor(repository)
             {
                 Stanza = stanza,
-                WebMessage = fullMessage,
+                Msg = fullMessage,
                 Author = author,
                 Category = stanza.getattr("category") ?? "",
                 Sender = msgType == "chat" ? author : chatId

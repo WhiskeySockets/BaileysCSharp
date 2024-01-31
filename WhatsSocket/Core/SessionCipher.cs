@@ -71,7 +71,7 @@ namespace WhatsSocket.Core
             Storage.Set(Address.ToString(), record);
         }
 
-        private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session session)
+        private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session? session)
         {
             var versions = this.decodeTupleByte(messageBuffer[0]);
 
@@ -104,7 +104,7 @@ namespace WhatsSocket.Core
             EncryptionHelper.VerifyMac(macInput, keys[1], messageBuffer.Skip(messageBuffer.Length - 8).ToArray(), 8);
 
             var plaintext = EncryptionHelper.DecryptAesCbc(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
-            //session.pendingPreKey = null;
+            session.PendingPreKey = null;
             return plaintext;
         }
 
@@ -117,7 +117,7 @@ namespace WhatsSocket.Core
             return (byte)((number1 << 4) | number2);
         }
 
-        private void MaybeStepRatchet(Session session, ByteString remoteKey, uint previousCounter)
+        private void MaybeStepRatchet(Session? session, ByteString remoteKey, uint previousCounter)
         {
             if (session.GetChain(remoteKey.ToByteArray()) != null)
             {
@@ -139,8 +139,6 @@ namespace WhatsSocket.Core
                 session.DeleteChain(ratchet.EphemeralKeyPair.Public);
             }
             ratchet.EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
-            ratchet.EphemeralKeyPair.Public = Convert.FromBase64String("Bagle7ITccc6cX6vmDsymyOKVXq+t78Jrr/nkr5awBg9");
-            ratchet.EphemeralKeyPair.Private = Convert.FromBase64String("WA2zV/xVI+JUoxg6z8CKDX4hoon7xNn7l+wBuEDzTm0=");
             CalculateRatchet(session, remoteKey, true);
             ratchet.LastRemoteEphemeralKey = remoteKey.ToByteArray();
         }

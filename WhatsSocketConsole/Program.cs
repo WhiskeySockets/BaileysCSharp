@@ -61,9 +61,9 @@ namespace WhatsSocketConsole
 
         private static void Socket_OnSessionStoreChange(SessionStore store)
         {
-            var file = Path.Join(Directory.GetCurrentDirectory(), "session.json");
-            var data = JsonConvert.SerializeObject(store);
-            File.WriteAllText(file, data);
+            //var file = Path.Join(Directory.GetCurrentDirectory(), "session.json");
+            //var data = JsonConvert.SerializeObject(store);
+            //File.WriteAllText(file, data);
         }
 
         private static void Socket_OnQRReceived(BaseSocket sender, string qr_data)

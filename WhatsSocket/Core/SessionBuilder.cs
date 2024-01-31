@@ -9,6 +9,18 @@ using WhatsSocket.Core.Stores;
 
 namespace WhatsSocket.Core
 {
+
+    [Serializable]
+    public class SessonException : Exception
+    {
+        public SessonException() { }
+        public SessonException(string message) : base(message) { }
+        public SessonException(string message, Exception inner) : base(message, inner) { }
+        protected SessonException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
+
     public class SessionBuilder
     {
         public SessionBuilder(SessionStore storage, ProtocolAddress address)
@@ -34,11 +46,10 @@ namespace WhatsSocket.Core
                 return 0;
             }
             var preKeyPair = Storage.LoadPreKey(message.PreKeyId);
-            Debug.WriteLine("preKeyPair:" + preKeyPair.Public.ToBase64());
 
             if (message.HasPreKeyId && preKeyPair == null)
             {
-                throw new Exception("Invalid PreKey ID");
+                throw new SessonException("Invalid PreKey ID");
             }
 
             var signedPreKeyPair = Storage.LoadSignedPreKey(message.SignedPreKeyId);
@@ -63,7 +74,7 @@ namespace WhatsSocket.Core
             {
                 if (ourSignedKey != null)
                 {
-                    throw new Exception("Invalid call to initSession");
+                    throw new SessonException("Invalid call to initSession");
                 }
                 ourSignedKey = ourEphemeralKey;
             }
@@ -71,7 +82,7 @@ namespace WhatsSocket.Core
             {
                 if (theirSignedPubKey != null)
                 {
-                    throw new Exception("Invalid call to initSession");
+                    throw new SessonException("Invalid call to initSession");
                 }
                 theirSignedPubKey = theirEphemeralPubKey; //1
             }

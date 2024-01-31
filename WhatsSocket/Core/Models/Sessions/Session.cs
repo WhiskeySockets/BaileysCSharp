@@ -6,6 +6,7 @@ namespace WhatsSocket.Core.Models.Sessions
 {
     public class Session
     {
+
         public Session()
         {
             Chains = new Dictionary<string, Chain>();
@@ -21,6 +22,9 @@ namespace WhatsSocket.Core.Models.Sessions
 
         [JsonProperty("_chains")]
         public Dictionary<string, Chain> Chains { get; set; }
+
+        [JsonProperty("pendingPreKey")]
+        public object PendingPreKey { get; set; }
 
         internal void DeleteChain(byte[] remoteKey)
         {

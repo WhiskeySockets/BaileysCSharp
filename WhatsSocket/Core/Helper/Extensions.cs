@@ -61,5 +61,16 @@ namespace WhatsSocket.Core.Helper
             return bytes.Slice(start, bytes.Length - start);
         }
 
+        public static long UnixTimestampSeconds(this DateTime now)
+        {
+            if (now.Kind == DateTimeKind.Local)
+            {
+                now = now.ToUniversalTime();
+            }
+            DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            long unixTimestamp = (long)(now - unixEpoch).TotalSeconds;
+            return unixTimestamp;
+        }
+
     }
 }

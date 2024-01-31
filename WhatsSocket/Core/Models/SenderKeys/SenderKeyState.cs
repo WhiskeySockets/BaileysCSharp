@@ -19,6 +19,11 @@ namespace WhatsSocket.Core.Models.SenderKeys
         [JsonProperty("senderMessage")]
         public List<SenderMessageKeyStructure> SenderMessages { get; set; }
 
+        public SenderKeyState()
+        {
+            SenderMessages = new List<SenderMessageKeyStructure>();
+        }
+
         internal void AddSenderMessageKey(SenderMessageKey senderMessageKey)
         {
             var senderMessageKeyStructure = new SenderMessageKeyStructure(senderMessageKey.Iteration, senderMessageKey.Seed);
