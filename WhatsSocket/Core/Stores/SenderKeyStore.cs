@@ -37,6 +37,7 @@ namespace WhatsSocket.Core.Stores
             if (key == null)
             {
                 Keys.Remove(id);
+                //File.Copy(Path.Combine(_keyStore, $"sender-key-{id}.json"), Path.Combine(_keyStore, $"sender-key-{id}.used"));
                 //File.Delete($"pre-key-{id}.json");
             }
             else

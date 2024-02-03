@@ -59,7 +59,7 @@ namespace WhatsSocket.Core.Stores
                 Sessions.Remove(id);
                 if (File.Exists(file))
                 {
-                    File.Copy(file, file + ".used");
+                    //File.Copy(file, file + ".used");
                 }
             }
             else
