@@ -1,9 +1,37 @@
 ﻿using WhatsSocket.Core.Models;
+using static Proto.Message.Types.HistorySyncNotification.Types;
+using static Proto.WebMessageInfo.Types;
 
 namespace WhatsSocket.Core.Helper
 {
+
+
+
     public static class Constants
     {
+
+        public static HistorySyncType[] PROCESSABLE_HISTORY_TYPES =
+        [
+            HistorySyncType.InitialBootstrap,
+            HistorySyncType.PushName,
+            HistorySyncType.Recent,
+            HistorySyncType.Full
+        ];
+        public static StubType[] REAL_MSG_STUB_TYPES =
+        [
+    StubType.CallMissedGroupVideo,
+            StubType.CallMissedGroupVoice,
+            StubType.CallMissedVoice,
+            StubType.CallMissedVideo
+        ];
+
+        public static StubType[] REAL_MSG_REQ_ME_STUB_TYPES =
+        [
+    StubType.GroupParticipantAdd,
+        ];
+
+
+
         public const int MIN_PREKEY_COUNT = 5;
         public const int INITIAL_PREKEY_COUNT = 30;
 
@@ -27,6 +55,7 @@ namespace WhatsSocket.Core.Helper
             public const int SINGLE_BYTE_MAX = 256;
             public const int STREAM_END = 2;
         }
+
 
         public static byte[] KEY_BUNDLE_TYPE = new byte[] { 5 };
         public const string DEF_CALLBACK_PREFIX = "CB:";

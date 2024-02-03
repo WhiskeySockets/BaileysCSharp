@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 
-namespace WhatsSocket.Core.Encodings
+namespace WhatsSocket.Core.Utils
 {
     public static class JidUtils
     {
@@ -39,6 +40,21 @@ namespace WhatsSocket.Core.Encodings
 
             return result;
         }
+
+
+        public static string JidNormalizedUser(string jid)
+        {
+            var result = JidDecode(jid);
+            if (result == null)
+                return "";
+            return JidEncode(result.User, result.Server);
+        }
+
+        public static string JidEncode(string user, string server, int? device = null, int? agent = null)
+        {
+            return $"{user ?? ""}{(agent != null ? $"_{agent}" : "")}{(device != null ? $":{device}" : "")}@{server}";
+        }
+
 
         public static string JidToSignalSenderKeyName(string group, string user)
         {

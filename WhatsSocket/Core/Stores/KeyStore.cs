@@ -21,7 +21,7 @@ namespace WhatsSocket.Core.Stores
             _keyStore = path;
             Directory.CreateDirectory(_keyStore);
             Keys = new Dictionary<int, KeyPair>();
-            var files = Directory.GetFiles(_keyStore);
+            var files = Directory.GetFiles(_keyStore, "*.json");
             foreach (var item in files)
             {
                 var fileInfo = new FileInfo(item);

@@ -3,7 +3,7 @@ using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using static WhatsSocket.Core.Encodings.JidUtils;
+using static WhatsSocket.Core.Utils.JidUtils;
 
 namespace WhatsSocket.Core
 {

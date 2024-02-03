@@ -9,7 +9,7 @@ using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Exceptions;
-using static WhatsSocket.Core.Encodings.JidUtils;
+using static WhatsSocket.Core.Utils.JidUtils;
 
 namespace WhatsSocket.Core
 {

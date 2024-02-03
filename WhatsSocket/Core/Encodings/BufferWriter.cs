@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using WhatsSocket.Core.Helper;
 using static WhatsSocket.Core.Helper.Constants;
-using static WhatsSocket.Core.Encodings.JidUtils;
+using static WhatsSocket.Core.Utils.JidUtils;
 
 namespace WhatsSocket.Core.Encodings
 {

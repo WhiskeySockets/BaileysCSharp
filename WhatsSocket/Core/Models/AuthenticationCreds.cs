@@ -3,6 +3,29 @@ using WhatsSocket.Core.Models;
 
 namespace WhatsSocket.Core.Models
 {
+    public class ProcessedHistoryMessageKey
+    {
+        [JsonProperty("remoteJid")]
+        public string RemoteJid { get; set; }
+
+        [JsonProperty("fromMe")]
+        public bool FromMe { get; set; }
+
+        [JsonProperty("id")]
+        public string Id { get; set; }
+    }
+
+    public class ProcessedHistoryMessage
+    {
+        [JsonProperty("key")]
+        public ProcessedHistoryMessageKey Key { get; set; }
+
+        [JsonProperty("messageTimestamp")]
+        public int MessageTimestamp { get; set; }
+    }
+
+
+
     public partial class AuthenticationCreds
     {
         [JsonProperty("me")]
@@ -27,7 +50,7 @@ namespace WhatsSocket.Core.Models
         public string AdvSecretKey { get; set; }
 
         [JsonProperty("processedHistoryMessages")]
-        public List<object> ProcessedHistoryMessages { get; set; }
+        public List<ProcessedHistoryMessage> ProcessedHistoryMessages { get; set; }
 
         [JsonProperty("nextPreKeyId")]
         public int NextPreKeyId { get; set; }
@@ -65,6 +88,9 @@ namespace WhatsSocket.Core.Models
         [JsonProperty("platform")]
         public string Platform { get; set; }
 
+
+        [JsonProperty("myAppStateKeyId")]
+        public nuint[] MyAppStateKeyId { get; set; }
 
         public static string Serialize(AuthenticationCreds? creds)
         {

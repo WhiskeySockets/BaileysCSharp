@@ -16,7 +16,8 @@ namespace WhatsSocket.Core.Helper
         Warn = 1,
         Error = 2,
         Fatal = 3,
-        Verbose = 4
+        Verbose = 4,
+        Debug = 5
     }
 
     public class Logger
@@ -29,7 +30,7 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 10,
+                    level = LogLevel.Info,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     message
@@ -46,7 +47,7 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 10,
+                    level = LogLevel.Info,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     traceobj = obj,
@@ -63,7 +64,7 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 40,
+                    level = LogLevel.Error,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     message
@@ -78,7 +79,7 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 40,
+                    level = LogLevel.Error,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     error = ex.Message,
@@ -96,9 +97,26 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 30,
+                    level = LogLevel.Info,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
+                    message
+                };
+
+                Write(logEntry);
+            }
+        }
+
+        internal void Debug(object? obj, string message)
+        {
+            if (Level >= LogLevel.Debug)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Debug,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
                     message
                 };
 
@@ -112,7 +130,7 @@ namespace WhatsSocket.Core.Helper
             {
                 var logEntry = new
                 {
-                    level = 30,
+                    level = LogLevel.Info,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     traceobj = obj,
@@ -130,10 +148,22 @@ namespace WhatsSocket.Core.Helper
             settings.ContractResolver = new ConditionalResolver();
             settings.NullValueHandling = NullValueHandling.Ignore;
             var json = JsonConvert.SerializeObject(logEntry, settings);
-            Debug.WriteLine(json);
+            System.Diagnostics.Debug.WriteLine(json);
             Console.WriteLine(json + "\n");
         }
 
+        internal void Warn(string message)
+        {
+            var logEntry = new
+            {
+                level = LogLevel.Warn,
+                time = DateTime.Now,
+                hostname = Dns.GetHostName(),
+                message
+            };
+
+            Write(logEntry);
+        }
     }
     public class ConditionalResolver : DefaultContractResolver
     {

@@ -1,10 +1,9 @@
 ﻿using Proto;
-using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Stores;
 using static Proto.Message.Types;
-using static WhatsSocket.Core.Encodings.JidUtils;
+using static WhatsSocket.Core.Utils.JidUtils;
 
 namespace WhatsSocket.Core
 {

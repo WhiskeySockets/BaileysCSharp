@@ -5,6 +5,7 @@ using System;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using WhatsSocket.Core.Utils;
 using static WhatsSocket.Core.Helper.Constants;
 
 namespace WhatsSocket.Core.Encodings
@@ -219,13 +220,9 @@ namespace WhatsSocket.Core.Encodings
             var device = ReadByte();
 
             var user = ReadString(ReadByte());
-            return JidEncode(user, agent == 0 ? "s.whatsapp.net" : "lid", device);
+            return JidUtils.JidEncode(user, agent == 0 ? "s.whatsapp.net" : "lid", device);
         }
 
-        public string JidEncode(string user, string server, int? device = null, int? agent = null)
-        {
-            return $"{user ?? ""}{(agent != null ? $"_{agent}" : "")}{(device != null ? $":{device}" : "")}@{server}";
-        }
 
         private string ReadJidPair()
         {

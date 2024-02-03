@@ -15,12 +15,14 @@ using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.Types;
+using WhatsSocket.Core.Utils;
+using System.Linq;
 
 namespace WhatsSocket.Core
 {
 
 
-    public class BaseSocket
+    public partial class BaseSocket
     {
         public static string Root
         {
@@ -118,177 +120,6 @@ namespace WhatsSocket.Core
 
 
 
-        #region messages-recv
-
-
-        private async Task<bool> OnHandleAck(BinaryNode node)
-        {
-            return await HandleAck(node);
-        }
-
-        private Task<bool> HandleAck(BinaryNode node)
-        {
-
-            return Task.FromResult(true);
-        }
-
-        private async Task<bool> OnNotification(BinaryNode node)
-        {
-            return await SocketHelper.ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
-        }
-
-        private Task HandleNotification(BinaryNode node)
-        {
-            return Task.CompletedTask;
-        }
-
-        private async Task<bool> OnReceipt(BinaryNode node)
-        {
-            return await SocketHelper.ProcessNodeWithBuffer(node, "handling receipt", HandleReceipt);
-        }
-
-        private Task HandleReceipt(BinaryNode node)
-        {
-            return Task.CompletedTask;
-        }
-
-        private async Task<bool> OnCall(BinaryNode node)
-        {
-            return await SocketHelper.ProcessNodeWithBuffer(node, "handling call", HandleCall);
-        }
-
-        private Task HandleCall(BinaryNode node)
-        {
-            return Task.CompletedTask;
-        }
-
-        private async Task<bool> OnMessage(BinaryNode node)
-        {
-            return await SocketHelper.ProcessNodeWithBuffer(node, "processing message", HandleMessage);
-        }
-        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-        private async Task HandleMessage(BinaryNode node)
-        {
-            await semaphoreSlim.WaitAsync();
-
-            var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
-            result.Decrypt();
-
-            if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
-            {
-                var encNode = SocketHelper.GetBinaryNodeChild(node, "enc");
-                if (encNode != null)
-                {
-                    SendRetryRequest(node, encNode != null);
-                }
-
-            }
-            else
-            {
-                // no type in the receipt => message delivered
-                var type = MessageReceiptType.Undefined;
-                var participant = result.Msg.Key.Participant;
-                if (result.Category == "peer") // special peer message
-                {
-                    type = MessageReceiptType.PeerMsg;
-                }
-                else if (result.Msg.Key.FromMe) // message was sent by us from a different device
-                {
-                    type = MessageReceiptType.Sender;
-                    if (JidUtils.IsJidUser(result.Author))
-                    {
-                        participant = result.Author;
-                    }
-                    // need to specially handle this case
-                }
-                else if (!SendActiveReceipts)
-                {
-                    type = MessageReceiptType.Inactive;
-                }
-
-                SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
-
-            }
-
-            semaphoreSlim.Release();
-        }
-
-        private void SendReceipt(string jid, string participant, string type, params string[] messageIds)
-        {
-
-            var node = new BinaryNode("receipt")
-            {
-                attrs = new Dictionary<string, string>()
-                    {
-                        {"id", messageIds[0] },
-                    },
-            };
-            if (type == MessageReceiptType.Read || type == MessageReceiptType.ReadSelf)
-            {
-                node.attrs["t"] = DateTime.Now.UnixTimestampSeconds().ToString();
-            }
-            if (type == MessageReceiptType.Sender && JidUtils.IsJidUser(jid))
-            {
-                node.attrs["recipient"] = jid;
-                if (!string.IsNullOrWhiteSpace(participant))
-                {
-                    node.attrs["to"] = participant;
-                }
-            }
-            else
-            {
-                node.attrs["to"] = jid;
-                if (!string.IsNullOrWhiteSpace(participant))
-                {
-                    node.attrs["recipient"] = participant;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(type))
-            {
-                node.attrs["type"] = type;
-            }
-            var remaining = messageIds.Skip(1).ToArray();
-            if (remaining.Length > 0)
-            {
-                node.content = new BinaryNode("list")
-                {
-                    content = remaining.Select(x => new BinaryNode("item") 
-                    { 
-                        attrs = new Dictionary<string, string>() 
-                        { 
-                            { "id", x } 
-                        } 
-                    })
-                };
-            }
-            Logger.Info(new { node.attrs, messageIds }, "sending receipt for messages");
-            SendNode(node);
-        }
-
-        private void SendRetryRequest(BinaryNode node, bool forceIncludeKeys = false)
-        {
-            var msgId = node.attrs["id"];
-
-            //Check Retries
-            if (!MessageRetries.ContainsKey(msgId))
-            {
-                MessageRetries.Add(msgId, 0);
-            }
-            var retryCount = MessageRetries[msgId];
-            if (retryCount > 5)
-            {
-                MessageRetries.Remove(msgId);
-                return;
-            }
-            retryCount++;
-            MessageRetries[msgId] = retryCount;
-
-            //var deviceIdentity = SocketHelper.EncodeSignedDeviceIdentity(Creds, true);
-        }
-
-
-        #endregion
 
         #region Receiving
 
