@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.Core.Encodings;
 
 namespace WhatsSocket.Core.Models
 {
@@ -23,40 +22,6 @@ namespace WhatsSocket.Core.Models
 
         [JsonProperty("status")]
         public string Status { get; set; }
-    }
-    
-
-    public class ProtocolAddress
-    {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("deviceId")]
-        public long DeviceID { get; set; }
-
-        public ProtocolAddress()
-        {
-            
-        }
-
-        public ProtocolAddress(FullJid jid)
-        {
-            Name = jid.User;
-            DeviceID = jid.Device ?? 0;
-        }
-
-        public override string ToString()
-        {
-            return $"{Name}.{DeviceID}";
-        }
-    }
-
-    public class SignalIdentity
-    {
-        [JsonProperty("identifier")]
-        public ProtocolAddress Identifier { get; set; }
-        [JsonProperty("identifierKey")]
-        public byte[] IdentifierKey { get; set; }
     }
 
 }

@@ -29,8 +29,4 @@
     <Protobuf Include="Proto\WhisperTextProtocol.proto" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Core\Session\" />
-  </ItemGroup>
-
 </Project>

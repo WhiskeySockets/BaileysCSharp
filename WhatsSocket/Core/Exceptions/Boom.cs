@@ -13,4 +13,5 @@ namespace WhatsSocket.Exceptions
 
         public DisconnectReason Reason { get; }
     }
+
 }

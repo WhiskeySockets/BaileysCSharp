@@ -6,9 +6,10 @@ using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.Signal;
 using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -38,7 +39,7 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        internal static void ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds creds, KeyStore keys)
+        internal static void ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds creds, SignalRepository repository, Delegates.EventEmitter ev)
         {
             var meId = creds.Me.ID;
             var chat = new Chat()
@@ -65,22 +66,53 @@ namespace WhatsSocket.Core.Utils
             }
 
             //TODO Impmlement below
-            if (content?.ProtocolMessage != null)
+            var protocolMsg = content?.ProtocolMessage;
+            if (protocolMsg != null)
             {
                 switch (content.ProtocolMessage.Type)
                 {
                     case Message.Types.ProtocolMessage.Types.Type.HistorySyncNotification:
-                        var histNotification = content.ProtocolMessage.HistorySyncNotification;
-                        var process = shouldProcessHistoryMsg;
-                        var isLatest = creds.ProcessedHistoryMessages.Count > 0;
+                        {
+                            var histNotification = content.ProtocolMessage.HistorySyncNotification;
+                            var process = shouldProcessHistoryMsg;
+                            var isLatest = creds.ProcessedHistoryMessages.Count > 0;
+
+                            if (process)
+                            {
+                                creds.ProcessedHistoryMessages.Add(new ProcessedHistoryMessage()
+                                {
+                                    Key = message.Key,
+                                    MessageTimestamp = message.MessageTimestamp
+                                });
+                                ev.Emit(creds);
+
+                                var data = HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
+                            }
+                        }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.AppStateSyncKeyShare:
+                        {
+                            var newAppStateSyncKeyId = creds.MyAppStateKeyId;
+                            var keys = protocolMsg.AppStateSyncKeyShare.Keys;
+                            foreach (var item in keys)
+                            {
+                                var id = item.KeyId.KeyId.ToBase64();
+                                var keyData = new AppStateSyncKeyStructure(item.KeyData);
+                                repository.Storage.AppStateSyncKeyStore.Set(id, keyData);
+                                newAppStateSyncKeyId = id;
+                            }
+                            creds.MyAppStateKeyId = newAppStateSyncKeyId;
+                            ev.Emit(creds);
+                        }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
+
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
+
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.PeerDataOperationRequestMessage:
+
                         break;
 
                 }

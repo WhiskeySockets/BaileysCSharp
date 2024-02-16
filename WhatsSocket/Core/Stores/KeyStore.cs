@@ -9,16 +9,16 @@ namespace WhatsSocket.Core.Stores
 
     public class KeyStore
     {
-        public event KeyStoreChangeArgs OnStoreChange;
-
 
         [JsonProperty("keys")]
         public Dictionary<int, KeyPair> Keys { get; set; }
+        public EventEmitter Ev { get; }
 
         private string _keyStore;
-        public KeyStore(string path)
+        public KeyStore(string path, EventEmitter ev)
         {
             _keyStore = path;
+            Ev = ev;
             Directory.CreateDirectory(_keyStore);
             Keys = new Dictionary<int, KeyPair>();
             var files = Directory.GetFiles(_keyStore, "*.json");
@@ -43,7 +43,7 @@ namespace WhatsSocket.Core.Stores
                 Keys[item.Key] = item.Value;
                 File.WriteAllText(Path.Combine(_keyStore, $"pre-key-{item.Key}.json"), JsonConvert.SerializeObject(item.Value));
             }
-            OnStoreChange?.Invoke(this);
+            Ev.Emit(this);
         }
         public void Set(int id, KeyPair? key)
         {
@@ -56,7 +56,7 @@ namespace WhatsSocket.Core.Stores
             {
                 Keys[id] = key;
             }
-            OnStoreChange?.Invoke(this);
+            Ev.Emit(this);
         }
 
         internal Dictionary<int, KeyPair> Range(List<int> keys)

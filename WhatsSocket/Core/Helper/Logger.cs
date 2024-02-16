@@ -107,6 +107,22 @@ namespace WhatsSocket.Core.Helper
             }
         }
 
+        internal void Debug(string message)
+        {
+            if (Level >= LogLevel.Debug)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Debug,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    message
+                };
+
+                Write(logEntry);
+            }
+        }
+
         internal void Debug(object? obj, string message)
         {
             if (Level >= LogLevel.Debug)

@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Curve;
-using WhatsSocket.Core.Encodings;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core;
 using System.Xml.Linq;
 using Newtonsoft.Json;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.WABinary;
+using WhatsSocket.Core.Utils;
 
 namespace WhatsSocketConsole
 {

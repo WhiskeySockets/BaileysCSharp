@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Encodings;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocket.Core.Helper

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Sockets;
+using WhatsSocket.Core.Sockets.Client;
 
 namespace WhatsSocket.Core.Events
 {

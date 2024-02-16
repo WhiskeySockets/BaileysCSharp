@@ -16,7 +16,7 @@ namespace WhatsSocket.Core.Helper
 
     public static class EncryptionHelper
     {
-        static public KeyPair GenerateKeyPair()
+        public static KeyPair GenerateKeyPair()
         {
             var x25519KeyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("X25519");
             x25519KeyPairGenerator.Init(new X25519KeyGenerationParameters(new SecureRandom()));
@@ -32,20 +32,22 @@ namespace WhatsSocket.Core.Helper
                 Private = privateKeyBytes,
             };
         }
+        
         public static byte[] SharedKey(ByteString privateKey, ByteString publicKey)
         {
             return SharedKey(privateKey.ToByteArray(), publicKey.ToByteArray());
         }
-
+        
         public static byte[] SharedKey(byte[] privateKey, ByteString publicKey)
         {
             return SharedKey(privateKey, publicKey.ToByteArray());
         }
+        
         public static byte[] SharedKey(ByteString privateKey, byte[] publicKey)
         {
             return SharedKey(privateKey.ToByteArray(), publicKey);
         }
-
+        
         public static byte[] SharedKey(byte[] privateKey, byte[] publicKey)
         {
             X25519PrivateKeyParameters privateParamenter = new X25519PrivateKeyParameters(privateKey, 0);
@@ -56,22 +58,19 @@ namespace WhatsSocket.Core.Helper
             agreement.CalculateAgreement(publicParamenter, buffer, 0);
             return buffer;
         }
-
+        
         public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
         {
             publicKey = AuthenticationUtils.GenerateSignalPubKey(publicKey);
             return Curve25519.VerifySignature(publicKey, message, signature);
         }
-
-
-
+        
         public static byte[] Sign(byte[] privateKey, byte[] data)
         {
             var signature = Curve25519.Sign(privateKey, data);
             return signature;
         }
-
-
+        
         public static byte[] Md5(string input)
         {
             using (MD5 md5 = MD5.Create())
@@ -81,33 +80,18 @@ namespace WhatsSocket.Core.Helper
                 return hashBytes;
             }
         }
+        
         public static string HmacSign(byte[] data, byte[] key)
         {
             return Convert.ToBase64String(CalculateMAC(key, data));
         }
+        
         public static byte[] CalculateMAC(byte[] key, byte[] data)
         {
             using (var hmacsha256 = new HMACSHA256(key))
             {
                 var hash = hmacsha256.ComputeHash(data);
                 return hash;
-            }
-        }
-
-        static string CalculateSHA256Hash(byte[] input)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashBytes = sha256.ComputeHash(input);
-
-                // Convert the byte array to a hexadecimal string
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < hashBytes.Length; i++)
-                {
-                    sb.Append(hashBytes[i].ToString("x2"));
-                }
-
-                return sb.ToString();
             }
         }
 
@@ -119,8 +103,6 @@ namespace WhatsSocket.Core.Helper
 
             return mac.ToBase64() == calculatedMac.ToBase64();
         }
-
-
 
         public static byte[] Sha256(IEnumerable<byte> data)
         {
@@ -135,7 +117,6 @@ namespace WhatsSocket.Core.Helper
             sha256.DoFinal(hash, 0);
             return hash;
         }
-
 
         public static byte[] EncryptAESGCM(byte[] plaintext, byte[] encKey, byte[] iv, byte[] hash)
         {
@@ -186,7 +167,6 @@ namespace WhatsSocket.Core.Helper
             }
         }
 
-
         public static byte[] HKDF(byte[] ikm, int length, byte[] salt, byte[] info)
         {
             HkdfBytesGenerator hkdfGenerator = new HkdfBytesGenerator(new Sha256Digest());
@@ -223,7 +203,6 @@ namespace WhatsSocket.Core.Helper
             return signed.ToArray();
         }
 
-
         // Decrypt a string into a string using a key and an IV 
         public static string DecryptCipherIV(byte[] key, byte[] data, byte[] iv)
         {
@@ -244,6 +223,7 @@ namespace WhatsSocket.Core.Helper
             }
             // You may want to catch more exceptions here...
         }
+        
         public static byte[] CalculateAgreement(byte[] publicKey, byte[] privateKey)
         {
             publicKey = publicKey.Skip(1).ToArray();
@@ -256,23 +236,5 @@ namespace WhatsSocket.Core.Helper
             return hash;
         }
 
-        //    public static ECCurve Curve25519 { get; } = new ECCurve()
-        //    {
-        //        CurveType = ECCurve.ECCurveType.PrimeMontgomery,
-        //        B = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        //        A = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 0x6d, 0x06 }, // 486662
-        //        G = new ECPoint()
-        //        {
-        //            X = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 },
-        //            Y = new byte[] { 0x20, 0xae, 0x19, 0xa1, 0xb8, 0xa0, 0x86, 0xb4, 0xe0, 0x1e, 0xdd, 0x2c, 0x77, 0x48, 0xd1, 0x4c,
-        //    0x92, 0x3d, 0x4d, 0x7e, 0x6d, 0x7c, 0x61, 0xb2, 0x29, 0xe9, 0xc5, 0xa2, 0x7e, 0xce, 0xd3, 0xd9 }
-        //        },
-        //        Prime = new byte[] { 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-        //0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xed },
-        //        //Prime = new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        //        Order = new byte[] { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        //0x14, 0xde, 0xf9, 0xde, 0xa2, 0xf7, 0x9c, 0xd6, 0x58, 0x12, 0x63, 0x1a, 0x5c, 0xf5, 0xd3, 0xed },
-        //        Cofactor = new byte[] { 8 }
-        //    };
     }
 }

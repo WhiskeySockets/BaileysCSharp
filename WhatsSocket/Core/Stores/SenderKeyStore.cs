@@ -7,14 +7,15 @@ namespace WhatsSocket.Core.Stores
 {
     public class SenderKeyStore
     {
-        public event SenderKeyStoreChangeArgs OnSenderStoreChange;
 
         public Dictionary<string, SenderKeyRecord> Keys { get; set; }
+        public EventEmitter Ev { get; }
 
         private string _keyStore;
-        public SenderKeyStore(string path)
+        public SenderKeyStore(string path, EventEmitter ev)
         {
             _keyStore = path;
+            Ev = ev;
             Directory.CreateDirectory(_keyStore);
             Keys = new Dictionary<string, SenderKeyRecord>();
             var files = Directory.GetFiles(_keyStore);
@@ -46,7 +47,7 @@ namespace WhatsSocket.Core.Stores
                 var filename = $"sender-key-{id.Replace(":", "-")}";
                 File.WriteAllText($"{_keyStore}/{filename}.json", key.Serialize()) ;
             }
-            OnSenderStoreChange?.Invoke(this);
+            Ev.Emit(this);
         }
 
 

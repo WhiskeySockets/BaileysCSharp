@@ -18,21 +18,27 @@ namespace WhatsSocket.Core.Stores
 
     public class SessionStore
     {
-        public event SessionStoreChangeArgs OnStoreChange;
-
         [JsonIgnore]
         public KeyStore Keys { get; set; }
         [JsonIgnore]
         public SenderKeyStore SenderKeys { get; }
         [JsonIgnore]
+        public AppStateSyncVersionStore AppStateSyncVersionStore { get; }
+
+        [JsonIgnore]
+
+        public AppStateSyncKeyStore AppStateSyncKeyStore { get; }
+        public EventEmitter Ev { get; }
+        [JsonIgnore]
         public AuthenticationCreds Creds { get; set; }
 
         private string _sessions;
-        public SessionStore(string path, KeyStore keys, SenderKeyStore senderKeys, AuthenticationCreds creds)
+        public SessionStore(string path, KeyStore keys, SenderKeyStore senderKeys, AppStateSyncVersionStore appStateSyncVersionStore, AuthenticationCreds creds, AppStateSyncKeyStore appStateSyncKeyStore, EventEmitter ev)
         {
             _sessions = path;
             Keys = keys;
             SenderKeys = senderKeys;
+            AppStateSyncVersionStore = appStateSyncVersionStore;
             Creds = creds;
             Directory.CreateDirectory(_sessions);
             Sessions = new Dictionary<string, SessionRecord>();
@@ -44,6 +50,8 @@ namespace WhatsSocket.Core.Stores
                 Sessions[id] = JsonConvert.DeserializeObject<SessionRecord>(File.ReadAllText(item));
 
             }
+            AppStateSyncKeyStore = appStateSyncKeyStore;
+            Ev = ev;
         }
 
 
@@ -67,7 +75,7 @@ namespace WhatsSocket.Core.Stores
                 Sessions[id] = key;
                 File.WriteAllText(file, JsonConvert.SerializeObject(key, Formatting.Indented));
             }
-            OnStoreChange?.Invoke(this);
+            Ev.Emit(this);
         }
 
 

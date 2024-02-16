@@ -1,33 +1,39 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.Core.Models;
+using Proto;
+using System.Diagnostics.CodeAnalysis;
 
 namespace WhatsSocket.Core.Models
 {
-    public class ProcessedHistoryMessageKey
-    {
-        [JsonProperty("remoteJid")]
-        public string RemoteJid { get; set; }
+    //public class ProcessedHistoryMessageKey
+    //{
+    //    [JsonProperty("remoteJid")]
+    //    public string RemoteJid { get; set; }
 
-        [JsonProperty("fromMe")]
-        public bool FromMe { get; set; }
+    //    [JsonProperty("fromMe")]
+    //    public bool FromMe { get; set; }
 
-        [JsonProperty("id")]
-        public string Id { get; set; }
-    }
+    //    [JsonProperty("id")]
+    //    public string Id { get; set; }
+    //}
 
     public class ProcessedHistoryMessage
     {
         [JsonProperty("key")]
-        public ProcessedHistoryMessageKey Key { get; set; }
+        public MessageKey Key { get; set; }
 
         [JsonProperty("messageTimestamp")]
-        public int MessageTimestamp { get; set; }
+        public ulong MessageTimestamp { get; set; }
     }
 
 
 
     public partial class AuthenticationCreds
     {
+        public AuthenticationCreds()
+        {
+            ProcessedHistoryMessages = new List<ProcessedHistoryMessage>();
+        }
+
         [JsonProperty("me")]
         public Contact Me { get; set; }
 
@@ -90,7 +96,7 @@ namespace WhatsSocket.Core.Models
 
 
         [JsonProperty("myAppStateKeyId")]
-        public nuint[] MyAppStateKeyId { get; set; }
+        public string MyAppStateKeyId { get; set; }
 
         public static string Serialize(AuthenticationCreds? creds)
         {
