@@ -95,7 +95,7 @@ namespace WhatsSocket.Core.Signal
 
             EncryptionHelper.VerifyMac(macInput, keys[1], messageBuffer.Skip(messageBuffer.Length - 8).ToArray(), 8);
 
-            var plaintext = EncryptionHelper.DecryptAesCbc(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
+            var plaintext = EncryptionHelper.DecryptAesCbcWithIV(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
             session.PendingPreKey = null;
             return plaintext;
         }

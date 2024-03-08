@@ -9,7 +9,7 @@ namespace WhatsSocket.Core.Stores
     public class AppStateSyncVersion
     {
         [JsonProperty("version")]
-        public int Version { get; set; }
+        public ulong Version { get; set; }
 
         [JsonProperty("hash")]
         public byte[] Hash { get; set; }

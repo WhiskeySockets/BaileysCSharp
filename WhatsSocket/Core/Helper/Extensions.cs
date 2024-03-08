@@ -40,22 +40,49 @@ namespace WhatsSocket.Core.Helper
         }
 
 
-        public static void Set(this byte[] array, byte[] copy, int index = 0)
+        public static void Set<T>(this T[] array, T[] copy, int index = 0)
         {
             Array.Copy(copy, 0, array, index, copy.Length);
         }
 
 
-        public static byte[] Slice(this byte[] bytes, int start, int end)
+        public static T[] Slice<T>(this T[] bytes, int start, int end)
         {
             if (start < 0)
             {
                 start = bytes.Length + start;
+                return bytes.Skip(start).Take(end).ToArray();
             }
-            return bytes.Skip(start).Take(end).ToArray();
+            if (end < 0)
+            {
+                end = bytes.Length + end;
+            }
+            return bytes.Skip(start).Take(end - start).ToArray();
         }
 
-        public static byte[] Slice(this byte[] bytes, int start)
+        public static TResult[] Map<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+        {
+            return source.SelectMany(selector).ToArray();
+        }
+
+        public static int Compare<T>(this T[] source, T[] target)
+        {
+            var total = 0;
+            if (source.Length != target.Length)
+            {
+                return -1;
+            }
+            for (int i = 0; i < source.Length; i++)
+            {
+                if (!source[i].Equals(target[i]))
+                {
+                    total++;
+                }
+            }
+            return total;
+        }
+
+        public static T[] Slice<T>(this T[] bytes, int start)
         {
             return bytes.Slice(start, bytes.Length - start);
         }
@@ -69,6 +96,18 @@ namespace WhatsSocket.Core.Helper
             DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             long unixTimestamp = (long)(now - unixEpoch).TotalSeconds;
             return unixTimestamp;
+        }
+
+
+        public static ushort GetUint16(this byte[] bytes, int offset)
+        {
+            return BitConverter.ToUInt16(bytes, offset);
+        }
+
+        public static void SetUint16(this byte[] bytes, int offset, ushort value)
+        {
+            var bit = BitConverter.GetBytes(value);
+            bit.CopyTo(bytes, offset);
         }
 
     }

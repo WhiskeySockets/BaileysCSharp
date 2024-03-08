@@ -25,7 +25,7 @@ namespace WhatsSocketConsole
         static BaseSocket socket;
         static void Main(string[] args)
         {
-            //Tests.RunTests();
+            Tests.RunTests();
 
     
 
@@ -42,7 +42,16 @@ namespace WhatsSocketConsole
 
 
 
-            socket = new BaseSocket("test", authentication, new Logger());
+            var config = new SocketConfig()
+            {
+                ID = "test",
+                Auth = new AuthenticationState()
+                {
+                    Creds    = authentication
+                }
+            };
+
+            socket = new BaseSocket(config);
 
 
             socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;

@@ -10,8 +10,17 @@ namespace WhatsSocket.Exceptions
         {
             Reason = reason;
         }
+        public Boom(string message, object data) : base(message)
+        {
+            Data = data;
+        }
+        public Boom(string message) : base(message)
+        {
+            Reason = DisconnectReason.None;
+        }
 
         public DisconnectReason Reason { get; }
+        public object Data { get; }
     }
 
 }

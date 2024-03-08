@@ -19,6 +19,7 @@ using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Sockets.Client;
 using WhatsSocket.Core.Signal;
 using static WhatsSocket.Core.Utils.GenericUtils;
+using System.Diagnostics.CodeAnalysis;
 
 namespace WhatsSocket.Core
 {
@@ -26,13 +27,6 @@ namespace WhatsSocket.Core
 
     public partial class BaseSocket
     {
-        public static string Root
-        {
-            get
-            {
-                return Path.GetDirectoryName(typeof(BaseSocket).Assembly.Location);
-            }
-        }
 
         public EventEmitter EV { get; set; }
 
@@ -40,19 +34,13 @@ namespace WhatsSocket.Core
         Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
         Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
 
-        private string[] Browser = { "Baileys", "Chrome", "4.0.0" };
+        private string[] Browser = { "Baileys 2.0", "Chrome", "4.0.0" };
 
         AbstractSocketClient Client;
         NoiseHandler noise;
-        public bool IsMobile { get; }
         public long Epoch { get; set; }
         public Logger Logger { get; }
-        private KeyStore Keys { get; set; }
-        private SenderKeyStore SenderKeysStore { get; set; }
-        private SessionStore SessionStore { get; set; }
-        private AppStateSyncVersionStore AppStateSyncVersionStore { get; set; }
         private SignalRepository Repository { get; set; }
-        private AppStateSyncKeyStore AppStateSyncKeyStore { get; set; }
 
         Thread keepAliveThread;
         CancellationTokenSource keepAliveToken;
@@ -66,8 +54,8 @@ namespace WhatsSocket.Core
 
         public bool SendActiveReceipts { get; set; }
 
-        public string Session { get; }
-        public AuthenticationCreds Creds { get; set; }
+        public AuthenticationCreds? Creds { get; set; }
+        public SocketConfig Config { get; }
 
         public string GenerateMessageTag()
         {
@@ -79,15 +67,15 @@ namespace WhatsSocket.Core
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
-        public BaseSocket(string session, AuthenticationCreds creds, Logger logger, bool isMobile = false)
+        public BaseSocket([NotNull] SocketConfig config)
         {
-            Session = session;
-            Creds = creds;
+            if (config == null)
+                throw new ArgumentNullException(nameof(config));
+
+            Config = config;
             EV = new EventEmitter(this);
-            Creds = creds;
-            Logger = logger;
-            Logger.Level = LogLevel.Verbose;
-            IsMobile = isMobile;
+            Creds = config.Auth.Creds;
+            Logger = config.Logger;
 
             InitStores();
             events["frame"] = OnFrame;
@@ -103,7 +91,6 @@ namespace WhatsSocket.Core
             events["CB:receipt"] = OnReceipt;
             events["CB:notification"] = OnNotification;
             events["CB:ack,class:message"] = OnHandleAck;
-
         }
 
 
@@ -476,7 +463,11 @@ namespace WhatsSocket.Core
 
         private async Task UploadPreKeys()
         {
-            var node = ValidateConnectionUtil.GetNextPreKeysNode(Creds, Keys, Constants.INITIAL_PREKEY_COUNT);
+            if (Creds == null)
+            {
+                throw new ArgumentNullException(nameof(Creds));
+            }
+            var node = ValidateConnectionUtil.GetNextPreKeysNode(Creds, Repository.Storage.Keys, Constants.INITIAL_PREKEY_COUNT);
             var result = await Query(node);
             EV.Emit(Creds);
         }
@@ -531,7 +522,7 @@ namespace WhatsSocket.Core
 
 
             var clientFinish = new HandshakeMessage();
-            if (IsMobile)
+            if (Config.Mobile)
             {
                 //TODO : generateMobileNode
             }
@@ -654,12 +645,9 @@ namespace WhatsSocket.Core
 
         private void InitStores()
         {
-            SenderKeysStore = new SenderKeyStore(Path.Combine(Root, Session, "data", "sender-keys"), EV);
-            Keys = new KeyStore(Path.Combine(Root, Session, "data", "keys"), EV);
-            AppStateSyncVersionStore = new AppStateSyncVersionStore(Path.Combine(Root, Session, "data", "app-state-sync-version"), EV);
-            AppStateSyncKeyStore = new AppStateSyncKeyStore(Path.Combine(Root, Session, "data", "app-state-sync-key"), EV);
-            SessionStore = new SessionStore(Path.Combine(Root, Session, "data", "sessions"), Keys, SenderKeysStore, AppStateSyncVersionStore, Creds, AppStateSyncKeyStore, EV);
-            Repository = new SignalRepository(SessionStore);
+            Repository = Config.MakeSignalRepository(EV);
+
+
         }
     }
 }

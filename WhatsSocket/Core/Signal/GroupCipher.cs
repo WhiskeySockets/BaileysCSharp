@@ -47,7 +47,7 @@ namespace WhatsSocket.Core.Signal
 
         private byte[] GetPlainText(byte[] iv, byte[] cipherKey, byte[] ciphertext)
         {
-            return EncryptionHelper.DecryptAesCbc(ciphertext, cipherKey, iv);
+            return EncryptionHelper.DecryptAesCbcWithIV(ciphertext, cipherKey, iv);
         }
 
 

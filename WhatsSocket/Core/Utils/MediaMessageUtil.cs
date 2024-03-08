@@ -16,7 +16,7 @@ namespace WhatsSocket.Core.Utils
         const int AES_CHUNK_SIZE = 16;
         public static async Task<byte[]> DownloadContentFromMessage(ExternalBlobReference blob, string type, MediaDownloadOptions options)
         {
-            var downloadUrl = $"https://${DEF_HOST}${blob.DirectPath}";
+            var downloadUrl = $"https://{DEF_HOST}{blob.DirectPath}";
             var keys = GetMediaKeys(blob.MediaKey.ToByteArray(), type);
             return await DownloadEncryptedContent(downloadUrl, keys, options);
         }
@@ -42,6 +42,7 @@ namespace WhatsSocket.Core.Utils
 
             using (var httpClient = new HttpClient())
             {
+                httpClient.MaxResponseContentBufferSize = 2147483647;
                 httpClient.DefaultRequestHeaders.Add("Origin", Constants.DEFAULT_ORIGIN);
 
                 var range = "";
@@ -53,12 +54,15 @@ namespace WhatsSocket.Core.Utils
                         range = $"{range}{endChunk}";
                     }
                 }
-                if (string.IsNullOrWhiteSpace(range))
+                if (!string.IsNullOrWhiteSpace(range))
                 {
                     httpClient.DefaultRequestHeaders.Add("Range", range);
                 }
 
                 var data = await httpClient.GetByteArrayAsync(downloadUrl);
+                var decryptLength = ToSmallestChunkSize(data.Length);
+                data = data.Slice(0, decryptLength);
+
 
                 var iv = keys.IV;
                 if (firstBlockIsIV)
@@ -67,7 +71,7 @@ namespace WhatsSocket.Core.Utils
                     data = data.Slice(AES_CHUNK_SIZE);
                 }
 
-                var decrypted = EncryptionHelper.DecryptAesCbc(data, keys.CipherKey, iv);
+                var decrypted = EncryptionHelper.DecryptAesCbcWithIV(data, keys.CipherKey, iv);
                 return decrypted;
             }
         }
@@ -89,7 +93,7 @@ namespace WhatsSocket.Core.Utils
         public static byte[] HkdifInfoKey(string type)
         {
             var hkdfInfo = Constants.MEDIA_HKDF_KEY_MAPPING[type];
-            return Encoding.UTF8.GetBytes($"WhatsApp ${hkdfInfo} Keys");
+            return Encoding.UTF8.GetBytes($"WhatsApp {hkdfInfo} Keys");
         }
 
 

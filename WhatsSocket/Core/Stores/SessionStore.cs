@@ -11,6 +11,7 @@ using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.Models.Sessions;
 
 namespace WhatsSocket.Core.Stores
 {
@@ -30,18 +31,20 @@ namespace WhatsSocket.Core.Stores
         public AppStateSyncKeyStore AppStateSyncKeyStore { get; }
         public EventEmitter Ev { get; }
         [JsonIgnore]
-        public AuthenticationCreds Creds { get; set; }
+        public AuthenticationCreds? Creds { get; set; }
+
+
+
+
 
         private string _sessions;
-        public SessionStore(string path, KeyStore keys, SenderKeyStore senderKeys, AppStateSyncVersionStore appStateSyncVersionStore, AuthenticationCreds creds, AppStateSyncKeyStore appStateSyncKeyStore, EventEmitter ev)
+        public SessionStore(string path, AuthenticationCreds? creds, EventEmitter ev)
         {
-            _sessions = path;
-            Keys = keys;
-            SenderKeys = senderKeys;
-            AppStateSyncVersionStore = appStateSyncVersionStore;
             Creds = creds;
-            Directory.CreateDirectory(_sessions);
+
             Sessions = new Dictionary<string, SessionRecord>();
+            _sessions = Path.Combine(path, "data", "sessions");
+            Directory.CreateDirectory(_sessions);
             var files = Directory.GetFiles(_sessions);
             foreach (var item in files)
             {
@@ -50,11 +53,13 @@ namespace WhatsSocket.Core.Stores
                 Sessions[id] = JsonConvert.DeserializeObject<SessionRecord>(File.ReadAllText(item));
 
             }
-            AppStateSyncKeyStore = appStateSyncKeyStore;
             Ev = ev;
+            SenderKeys = new SenderKeyStore(Path.Combine(path, "data", "sender-keys"), ev);
+            Keys = new KeyStore(Path.Combine(path, "keys"), ev);
+            AppStateSyncVersionStore = new AppStateSyncVersionStore(Path.Combine(path, "data", "app-state-sync-version"), ev);
+            AppStateSyncKeyStore = new AppStateSyncKeyStore(Path.Combine(path, "data", "app-state-sync-key"), ev);
+
         }
-
-
 
         public Dictionary<string, SessionRecord> Sessions { get; set; }
 

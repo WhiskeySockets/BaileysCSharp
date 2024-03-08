@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Utils;
+using Org.BouncyCastle.Bcpg;
 
 namespace WhatsSocketConsole
 {
@@ -21,6 +22,9 @@ namespace WhatsSocketConsole
 
         public static void RunTests()
         {
+            LtHashTest();
+            TestSliceMinusEnd();
+            TestExpandedHKDF();
             TestPingEncoding();
             TestEncodeAndDecode();
             TestDecodeFrame();
@@ -31,9 +35,43 @@ namespace WhatsSocketConsole
             TestSign();
             TestSuccessSign();
             TestDeriveSecret();
-            
+
         }
 
+        private static void LtHashTest()
+        {
+            var ss = Convert.FromBase64String("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+            var addBuffs = new List<byte[]>
+            {
+                Convert.FromBase64String("tpAlo9TRdclDonMD7ragdYFjKP5VaXuXokzOtxtM2u8="),
+            };
+            var subBuffs = new List<byte[]>();
+
+            var ah = new HashAntiTampering("WhatsApp Patch Integrity");
+
+            var result = ah.SubstarctThenAdd(ss, addBuffs, subBuffs);
+
+        }
+
+        private static void TestSliceMinusEnd()
+        {
+            var buffer = Convert.FromBase64String("Q9QximJn3r0imIXilMioUt6XLzDAGe4HTQup189OgKvsfu7M5N/g/bHN/5L3m3vGOgqPwaYfGsb4i43bSYo3MzKFKZgkqX0LCISFjQtxK64yo/M3VbO2OJoTfZLMIq89");
+            var a = buffer.Slice(0, -32).ToBase64();
+            Debug.Assert(a == "Q9QximJn3r0imIXilMioUt6XLzDAGe4HTQup189OgKvsfu7M5N/g/bHN/5L3m3vGOgqPwaYfGsb4i43bSYo3Mw==");
+            var b = buffer.Slice(-32).ToBase64();
+            Debug.Assert(b == "MoUpmCSpfQsIhIWNC3ErrjKj8zdVs7Y4mhN9kswirz0=");
+        }
+
+        private static void TestExpandedHKDF()
+        {
+            var result = EncryptionHelper.HKDF(Convert.FromBase64String("IpLK/bLtOJpZa7mw+9/Cn6v7EF2YfxvyrSs1K+tvFoE="), 112, [], Encoding.UTF8.GetBytes("WhatsApp App State Keys"));
+
+
+            //var IV = result.Slice(0, 16);
+            //var CipherKey = result.Slice(16, 48);
+            //var MacKey = result.Slice(48, 80);
+        }
 
         private static void TestDeriveSecret()
         {

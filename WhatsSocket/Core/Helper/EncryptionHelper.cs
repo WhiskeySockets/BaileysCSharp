@@ -32,22 +32,22 @@ namespace WhatsSocket.Core.Helper
                 Private = privateKeyBytes,
             };
         }
-        
+
         public static byte[] SharedKey(ByteString privateKey, ByteString publicKey)
         {
             return SharedKey(privateKey.ToByteArray(), publicKey.ToByteArray());
         }
-        
+
         public static byte[] SharedKey(byte[] privateKey, ByteString publicKey)
         {
             return SharedKey(privateKey, publicKey.ToByteArray());
         }
-        
+
         public static byte[] SharedKey(ByteString privateKey, byte[] publicKey)
         {
             return SharedKey(privateKey.ToByteArray(), publicKey);
         }
-        
+
         public static byte[] SharedKey(byte[] privateKey, byte[] publicKey)
         {
             X25519PrivateKeyParameters privateParamenter = new X25519PrivateKeyParameters(privateKey, 0);
@@ -58,19 +58,19 @@ namespace WhatsSocket.Core.Helper
             agreement.CalculateAgreement(publicParamenter, buffer, 0);
             return buffer;
         }
-        
+
         public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
         {
             publicKey = AuthenticationUtils.GenerateSignalPubKey(publicKey);
             return Curve25519.VerifySignature(publicKey, message, signature);
         }
-        
+
         public static byte[] Sign(byte[] privateKey, byte[] data)
         {
             var signature = Curve25519.Sign(privateKey, data);
             return signature;
         }
-        
+
         public static byte[] Md5(string input)
         {
             using (MD5 md5 = MD5.Create())
@@ -80,18 +80,29 @@ namespace WhatsSocket.Core.Helper
                 return hashBytes;
             }
         }
-        
-        public static string HmacSign(byte[] data, byte[] key)
+
+        public static byte[] HmacSign(byte[] data, byte[] key, string type = "sha256")
         {
-            return Convert.ToBase64String(CalculateMAC(key, data));
+            return CalculateMAC(key, data, type);
         }
-        
-        public static byte[] CalculateMAC(byte[] key, byte[] data)
+
+        public static byte[] CalculateMAC(byte[] key, byte[] data, string type = "sha256")
         {
-            using (var hmacsha256 = new HMACSHA256(key))
+            if (type == "sha256")
             {
-                var hash = hmacsha256.ComputeHash(data);
-                return hash;
+                using (var hmacsha256 = new HMACSHA256(key))
+                {
+                    var hash = hmacsha256.ComputeHash(data);
+                    return hash;
+                }
+            }
+            else
+            {
+                using (var hmacsha256 = new HMACSHA512(key))
+                {
+                    var hash = hmacsha256.ComputeHash(data);
+                    return hash;
+                }
             }
         }
 
@@ -143,7 +154,12 @@ namespace WhatsSocket.Core.Helper
             }
         }
 
-        public static byte[] DecryptAesCbc(byte[] encryptedData, byte[] key, byte[] iv)
+        public static byte[] DecryptAesCbc(byte[] buffer, byte[] key)
+        {
+            return DecryptAesCbcWithIV(buffer.Slice(16, buffer.Length), key, buffer.Slice(0, 16));
+        }
+
+        public static byte[] DecryptAesCbcWithIV(byte[] buffer, byte[] key, byte[] iv)
         {
             byte[] result;
             using (Aes aesAlg = Aes.Create())
@@ -155,7 +171,7 @@ namespace WhatsSocket.Core.Helper
                 // Create a decryptor to perform the stream transform
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
-                using (MemoryStream msDecrypt = new MemoryStream(encryptedData))
+                using (MemoryStream msDecrypt = new MemoryStream(buffer))
                 {
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                     {
@@ -223,7 +239,7 @@ namespace WhatsSocket.Core.Helper
             }
             // You may want to catch more exceptions here...
         }
-        
+
         public static byte[] CalculateAgreement(byte[] publicKey, byte[] privateKey)
         {
             publicKey = publicKey.Skip(1).ToArray();
@@ -237,4 +253,48 @@ namespace WhatsSocket.Core.Helper
         }
 
     }
+
+
+    public class HKDF
+    {
+        public static byte[] Extract(byte[] salt, byte[] inputKeyMaterial)
+        {
+            using (var hmac = new HMACSHA256(salt))
+            {
+                return hmac.ComputeHash(inputKeyMaterial);
+            }
+        }
+
+        public static byte[] Expand(byte[] prk, byte[] info, int outputLength)
+        {
+            int iterations = (int)Math.Ceiling(outputLength / (double)prk.Length);
+            byte[] t = new byte[0];
+            byte[] okm = new byte[0];
+
+            using (var hmac = new HMACSHA256(prk))
+            {
+                for (int i = 0; i < iterations; i++)
+                {
+                    byte[] input = new byte[t.Length + info.Length + 1];
+                    Buffer.BlockCopy(t, 0, input, 0, t.Length);
+                    Buffer.BlockCopy(info, 0, input, t.Length, info.Length);
+                    input[input.Length - 1] = (byte)(i + 1);
+
+                    t = hmac.ComputeHash(input);
+                    okm = Concatenate(okm, t);
+                }
+            }
+
+            return okm;
+        }
+
+        private static byte[] Concatenate(byte[] arr1, byte[] arr2)
+        {
+            byte[] newArr = new byte[arr1.Length + arr2.Length];
+            Buffer.BlockCopy(arr1, 0, newArr, 0, arr1.Length);
+            Buffer.BlockCopy(arr2, 0, newArr, arr1.Length, arr2.Length);
+            return newArr;
+        }
+    }
+
 }

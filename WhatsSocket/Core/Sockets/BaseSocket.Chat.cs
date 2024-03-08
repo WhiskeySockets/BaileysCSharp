@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.Utils;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ChatUtils;
 
 namespace WhatsSocket.Core
@@ -79,57 +81,79 @@ namespace WhatsSocket.Core
 
                 Creds.AccountSyncCounter++;
                 EV.Emit(Creds);
+
+                if (NeedToFlushWithAppStateSync)
+                {
+                    Logger.Debug("Flussing with app state sync");
+                    //Unsure if I am going to follow the buffer pattern if we are going to make use of a NoSQL or SQLLite approach
+                }
             }
 
-            if (NeedToFlushWithAppStateSync)
-            {
-                Logger.Debug("Flussing with app state sync");
-                //Unsure if I am going to follow the buffer pattern if we are going to make use of a NoSQL or SQLLite approach
-            }
         }
 
         private async Task ResyncAppState(string[] collections, bool isInitialSync)
         {
-            Dictionary<string, int> initialVersionMap = new Dictionary<string, int>();
+
+            Dictionary<string, ulong> initialVersionMap = new Dictionary<string, ulong>();
             var collectionsToHandle = collections.ToList();
+
+            Dictionary<string, int> attemptsMap = new Dictionary<string, int>();
+
+            Dictionary<string, ChatMutation> globalMutationMap = new Dictionary<string, ChatMutation>();
+            foreach (var collection in collections)
+            {
+                attemptsMap[collection] = 0;
+                initialVersionMap[collection] = 0;
+            }
+
 
             while (collectionsToHandle.Count > 0)
             {
-                List<BinaryNode> nodes = new List<BinaryNode>();
-                foreach (var name in collectionsToHandle)
+                string lastName = "";
+                try
                 {
-                    var state = Repository.Storage.AppStateSyncVersionStore.Get(name);
-
-                    if (state != null)
+                    Dictionary<string, AppStateSyncVersion> states = new Dictionary<string, AppStateSyncVersion>();
+                    List<BinaryNode> nodes = new List<BinaryNode>();
+                    foreach (var name in collections)
                     {
-                        initialVersionMap[name] = state.Version;
-                    }
-                    else
-                    {
-                        state = new Stores.AppStateSyncVersion();
-                    }
-
-                    Logger.Info($"Resyncing {name} from v{state.Version}");
-
-                    nodes.Add(new BinaryNode("collection")
-                    {
-                        attrs = new Dictionary<string, string> {
+                        lastName = name;
+                        var state = Repository.Storage.AppStateSyncVersionStore.Get(name);
+                        if (state != null)
+                        {
+                            if (!initialVersionMap.ContainsKey(name))
                             {
-                                name,name
+                                initialVersionMap[name] = state.Version;
+                            }
+                        }
+                        else
+                        {
+                            state = new Stores.AppStateSyncVersion();
+                        }
+                        states[name] = state;
+
+                        Logger.Info($"Resyncing {name} from v{state.Version}");
+
+                        nodes.Add(new BinaryNode("collection")
+                        {
+                            attrs = new Dictionary<string, string> {
+                            {
+                                "name",name
                             },
                             {
                                 "version",
                                  state.Version.ToString()
                             },
                             {
-                                "resturn_snapspot",
-                                (state.Version == 0).ToString() // make sure this match
+                                "return_snapshot",
+                                (state.Version == 0 ? "true": "false") // make sure this match
                             }
                         }
-                    });
+                        });
+                    }
 
-                    var query = new BinaryNode("iq")
+                    var query = new BinaryNode()
                     {
+                        tag = "iq",
                         attrs = new Dictionary<string, string>
                         {
                             {"to",Constants.S_WHATSAPP_NET },
@@ -138,13 +162,78 @@ namespace WhatsSocket.Core
                         },
                         content = new BinaryNode[]
                         {
-                            new BinaryNode("sync",nodes.ToArray())
+                            new BinaryNode()
+                            {
+                                tag = "sync",
+                                content = nodes.ToArray()
+                            }
                         }
                     };
 
                     var result = await Query(query);
 
+                    // extract from binary node
                     var decoded = await ExtractSyncedPathces(result);
+                    foreach (var keyPair in decoded)
+                    {
+                        var name = keyPair.Key;
+                        lastName = name;
+                        var item = keyPair.Value;
+
+
+                        var patches = decoded[name].Patches;
+
+                        if (item.Snapshot != null)
+                        {
+                            var decodedSnapshot = DecodeSyncdSnapshot(name, item.Snapshot, Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, Config.AppStateMacVerification.Snapshot);
+
+                            var newState = decodedSnapshot.state;
+                            states[name] = newState;
+                            Logger.Info($"restored state of {name} from snapshot to v{newState.Version} with mutations");
+                            foreach (var map in decodedSnapshot.mutationMap)
+                            {
+                                globalMutationMap[map.Key] = map.Value;
+                            }
+                            Repository.Storage.AppStateSyncVersionStore.Set(name, newState);
+                        }
+
+
+                        // only process if there are syncd patches
+                        if (patches.Count > 0)
+                        {
+                            var decodePatches = await DecodePatches(name, patches, states[name], Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, Config.AppStateMacVerification.Patch);
+
+                            Repository.Storage.AppStateSyncVersionStore.Set(name, decodePatches.state);
+
+
+                            Logger.Info($"synced {name} to v{decodePatches.state.Version}");
+                            initialVersionMap[name] = decodePatches.state.Version;
+                            foreach (var map in decodePatches.mutationMap)
+                            {
+                                globalMutationMap[map.Key] = map.Value;
+                            }
+                        }
+
+                        if (keyPair.Value.HasMorePatches)
+                        {
+                            Logger.Info($"{name} has more patches...");
+                        }
+                        else
+                        {
+                            collectionsToHandle.Remove(name);
+                        }
+                    }
+                }
+                catch (Boom ex)
+                {
+                    var isIrrecoverableError = ex.Reason == Events.DisconnectReason.NoKeyForMutation || attemptsMap[lastName] < 2;
+
+                    //await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
+                    Repository.Storage.AppStateSyncVersionStore.Set(lastName, null);
+                    if (isIrrecoverableError)
+                    {
+                        collectionsToHandle.Remove(lastName);
+                    }
                 }
             }
         }

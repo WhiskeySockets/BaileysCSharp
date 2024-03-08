@@ -30,13 +30,16 @@ namespace WhatsSocket.Core.Stores
             }
         }
 
-        public void StoreSenderKey(string id, AppStateSyncVersion? key)
+        public void Set(string id, AppStateSyncVersion? key)
         {
             if (key == null)
             {
                 Keys.Remove(id);
-                //File.Copy(Path.Combine(_keyStore, $"sender-key-{id}.json"), Path.Combine(_keyStore, $"sender-key-{id}.used"));
-                //File.Delete($"pre-key-{id}.json");
+                var filename = $"app-state-sync-version-{id}";
+                if (File.Exists($"{_keyStore}/{filename}.json"))
+                {
+                    File.Delete($"{_keyStore}/{filename}.json");
+                }
             }
             else
             {

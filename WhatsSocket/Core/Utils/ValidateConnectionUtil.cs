@@ -96,7 +96,7 @@ namespace WhatsSocket.Core.Utils
 
             // check HMAC matches
             var hmac = detailsHmac.Hmac.ToBase64();
-            if (hmac != advSign)
+            if (hmac != advSign.ToBase64())
             {
                 End("Invalid Account Signature", DisconnectReason.BadSession);
             }
@@ -272,6 +272,7 @@ namespace WhatsSocket.Core.Utils
 
         private static PreKeySet GenerateOrGetPreKeys(AuthenticationCreds creds, int range)
         {
+
             var avaliable = creds.NextPreKeyId - creds.FirstUnuploadedPreKeyId;
             var remaining = range - avaliable;
             var lastPreKeyId = creds.NextPreKeyId + remaining - 1;
