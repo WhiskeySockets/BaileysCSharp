@@ -39,7 +39,7 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        internal static void ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds creds, SignalRepository repository, Delegates.EventEmitter ev)
+        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, SignalRepository repository, Delegates.EventEmitter ev)
         {
             var meId = creds.Me.ID;
             var chat = new Chat()
@@ -69,7 +69,7 @@ namespace WhatsSocket.Core.Utils
             var protocolMsg = content?.ProtocolMessage;
             if (protocolMsg != null)
             {
-                switch (content.ProtocolMessage.Type)
+                switch (content?.ProtocolMessage.Type)
                 {
                     case Message.Types.ProtocolMessage.Types.Type.HistorySyncNotification:
                         {
@@ -86,7 +86,7 @@ namespace WhatsSocket.Core.Utils
                                 });
                                 ev.Emit(creds);
 
-                                var data = HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
+                                var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
                             }
                         }
                         break;

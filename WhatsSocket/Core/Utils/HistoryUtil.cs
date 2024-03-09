@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Models;
 using static Proto.Message.Types;
 
 namespace WhatsSocket.Core.Utils
@@ -19,20 +20,55 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static object DownloadAndProcessHistorySyncNotification(Message.Types.HistorySyncNotification msg)
+        public static async Task<object> DownloadAndProcessHistorySyncNotification(Message.Types.HistorySyncNotification msg)
         {
-            var historyMsg = DownloadHistory(msg);
+            var historyMsg = await DownloadHistory(msg);
             return ProcessHistoryMessage(historyMsg);
         }
 
-        private static object ProcessHistoryMessage(object msg)
+        private static object ProcessHistoryMessage(HistorySync item)
         {
+            List<Contact> contacts = new List<Contact>();
+
+            switch (item.SyncType)
+            {
+                case HistorySync.Types.HistorySyncType.InitialBootstrap:
+                case HistorySync.Types.HistorySyncType.Recent:
+                case HistorySync.Types.HistorySyncType.Full:
+
+                    foreach (var chat in item.Conversations)
+                    {
+                        contacts.Add(new Contact()
+                        {
+                            ID = chat.Id,
+                            Name = chat.Name,
+                        });
+
+                    }
+
+                    break;
+
+
+                case HistorySync.Types.HistorySyncType.InitialStatusV3:
+                    break;
+                case HistorySync.Types.HistorySyncType.PushName:
+                    break;
+                case HistorySync.Types.HistorySyncType.NonBlockingData:
+                    break;
+                case HistorySync.Types.HistorySyncType.OnDemand:
+                    break;
+                default:
+                    break;
+            }
             return null;
         }
 
-        private static object DownloadHistory(Message.Types.HistorySyncNotification msg)
+        private static async Task<HistorySync> DownloadHistory(Message.Types.HistorySyncNotification msg)
         {
-            return null;
+            var stream = await MediaMessageUtil.DownloadContentFromMessage(msg, "md-msg-hist", new Models.MediaDownloadOptions());
+            var buffer = BufferReader.Inflate(stream);
+            var syncData = HistorySync.Parser.ParseFrom(buffer);
+            return syncData;
         }
 
     }

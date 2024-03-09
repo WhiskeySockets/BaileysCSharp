@@ -22,6 +22,7 @@ namespace WhatsSocketConsole
 
         public static void RunTests()
         {
+            TestInflate();
             LtHashTest();
             TestSliceMinusEnd();
             TestExpandedHKDF();
@@ -36,6 +37,15 @@ namespace WhatsSocketConsole
             TestSuccessSign();
             TestDeriveSecret();
 
+        }
+
+        private static void TestInflate()
+        {
+            var buffer = Convert.FromBase64String("eAHjYLHS5pIyMje3NDe3tDA0t3Qo1ivPSCwpTiwo0MtLLRHidcnPS8xJUfBKzCtOzQMAE8oNnQ==");
+
+            var inflat = BufferReader.Inflate(buffer);
+
+            Debug.Assert(Convert.ToBase64String(inflat) == "CAQ6KwoaMjc3OTc3OTgxNzlAcy53aGF0c2FwcC5uZXQSDURvbmFsZCBKYW5zZW4=");
         }
 
         private static void LtHashTest()

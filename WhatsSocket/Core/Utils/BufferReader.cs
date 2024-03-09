@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Utilities.Encoders;
+using Org.BouncyCastle.Utilities.Zlib;
 using System;
 using System.IO.Compression;
 using System.Text;
@@ -26,17 +27,41 @@ namespace WhatsSocket.Core.Utils
         {
             if ((2 & buffer[0]) != 0)
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 1, buffer.Length - 1))
-                using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))
-                using (MemoryStream decompressedStream = new MemoryStream())
-                {
-                    deflateStream.CopyTo(decompressedStream);
-                    return decompressedStream.ToArray();
-                }
+                return Deflate(buffer.Skip(1).ToArray());
+
+                //using (MemoryStream memoryStream = new MemoryStream(buffer, 1, buffer.Length - 1))
+                //using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))
+                //using (MemoryStream decompressedStream = new MemoryStream())
+                //{
+                //    deflateStream.CopyTo(decompressedStream);
+                //    return decompressedStream.ToArray();
+                //}
             }
             else
             {
                 return buffer[1..];
+            }
+        }
+
+
+        public static byte[] Deflate(byte[] buffer)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(buffer, 0, buffer.Length))
+            using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))
+            using (MemoryStream decompressedStream = new MemoryStream())
+            {
+                deflateStream.CopyTo(decompressedStream);
+                return decompressedStream.ToArray();
+            }
+        }
+        public static byte[] Inflate(byte[] buffer)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(buffer, 0, buffer.Length))
+            using (var deflateStream = new ZInputStream(memoryStream))
+            using (MemoryStream decompressedStream = new MemoryStream())
+            {
+                deflateStream.CopyTo(decompressedStream);
+                return decompressedStream.ToArray();
             }
         }
 

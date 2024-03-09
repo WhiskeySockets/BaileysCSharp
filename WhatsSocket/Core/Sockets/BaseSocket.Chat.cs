@@ -20,6 +20,7 @@ namespace WhatsSocket.Core
 
         public static string[] ALL_WA_PATCH_NAMES = ["critical_block", "critical_unblock_low", "regular_high", "regular_low", "regular"];
 
+        private bool PendingAppStateSync { get; set; } = false;
         private bool NeedToFlushWithAppStateSync { get; set; } = false;
 
 
@@ -53,28 +54,34 @@ namespace WhatsSocket.Core
             var historyMsg = HistoryUtil.GetHistoryMsg(msg.Message);
             var shouldProcessHistoryMsg = historyMsg != null ?
                 (ShouldSyncHistoryMessage(historyMsg)
-                & Constants.PROCESSABLE_HISTORY_TYPES.Contains(historyMsg.SyncType))
+                && Constants.PROCESSABLE_HISTORY_TYPES.Contains(historyMsg.SyncType))
                 : false;
 
-            var pendingAppStateSync = false;
-            if (historyMsg != null && Creds.MyAppStateKeyId == null)
+            if (historyMsg != null && Creds?.MyAppStateKeyId == null)
             {
                 Logger.Warn("skipping app state sync, as myAppStateKeyId is not set");
-                pendingAppStateSync = true;
+                PendingAppStateSync = true;
             }
+
 
             if (historyMsg != null && Creds.MyAppStateKeyId != null)
             {
-                pendingAppStateSync = false;
+                PendingAppStateSync = false;
                 await DoAppStateSync();
             }
 
-            ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Repository, EV);
+            await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Repository, EV);
+
+            if (msg.Message.ProtocolMessage.AppStateSyncKeyShare != null && PendingAppStateSync)
+            {
+                await DoAppStateSync();
+                PendingAppStateSync = false;
+            }
         }
 
         private async Task DoAppStateSync()
         {
-            if (Creds.AccountSyncCounter == 0)
+            if (Creds?.AccountSyncCounter == 0)
             {
                 Logger.Info("Doing initial app state sync");
                 await ResyncAppState(ALL_WA_PATCH_NAMES, true);
@@ -85,7 +92,7 @@ namespace WhatsSocket.Core
                 if (NeedToFlushWithAppStateSync)
                 {
                     Logger.Debug("Flussing with app state sync");
-                    //Unsure if I am going to follow the buffer pattern if we are going to make use of a NoSQL or SQLLite approach
+                    EV.Flush();
                 }
             }
 

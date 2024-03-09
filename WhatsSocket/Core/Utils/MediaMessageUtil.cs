@@ -20,6 +20,12 @@ namespace WhatsSocket.Core.Utils
             var keys = GetMediaKeys(blob.MediaKey.ToByteArray(), type);
             return await DownloadEncryptedContent(downloadUrl, keys, options);
         }
+        public static async Task<byte[]> DownloadContentFromMessage(Message.Types.HistorySyncNotification blob, string type, MediaDownloadOptions options)
+        {
+            var downloadUrl = $"https://{DEF_HOST}{blob.DirectPath}";
+            var keys = GetMediaKeys(blob.MediaKey.ToByteArray(), type);
+            return await DownloadEncryptedContent(downloadUrl, keys, options);
+        }
 
         private static async Task<byte[]> DownloadEncryptedContent(string downloadUrl, MediaDecryptionKeyInfo keys, MediaDownloadOptions options)
         {

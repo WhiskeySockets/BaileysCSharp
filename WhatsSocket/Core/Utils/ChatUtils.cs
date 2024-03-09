@@ -222,8 +222,25 @@ namespace WhatsSocket.Core.Utils
             };
 
 
-            DecodeSyncdMutations(snapshot.Records, newState, appStateSyncKeyStore, onChatMutation, validateMacs);
+            var decoded = DecodeSyncdMutations(snapshot.Records, newState, appStateSyncKeyStore, onChatMutation, validateMacs);
 
+            newState.Hash = decoded.Hash;
+            newState.IndexValueMap = decoded.IndexValueMap;
+
+            if (validateMacs)
+            {
+                var base64Key = snapshot.KeyId.Id.ToBase64();
+                var keyEnc = appStateSyncKeyStore.Get(base64Key);
+                if (keyEnc == null)
+                {
+                    throw new Boom($"failed to find key '{base64Key}' to decode patch", Events.DisconnectReason.NoKeyForMutation);
+                }
+
+                var result = MutationKeys(keyEnc.KeyData);
+                var computedSnapshotMac = GenerateSnapshotMac(newState.Hash, newState.Version, name, result.SnapshotMacKey);
+                if (snapshot.Mac.ToByteArray().Compare(computedSnapshotMac) != 0)
+                    throw new Boom($"failed to verify LTHash at {newState.Version} of ${name} from snapshot");
+            }
 
 
             return (newState, mutationMap);

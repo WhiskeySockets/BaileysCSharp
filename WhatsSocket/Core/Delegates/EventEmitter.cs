@@ -74,5 +74,10 @@ namespace WhatsSocket.Core.Delegates
         {
             OnSenderKeyStoreChange?.Invoke(Sender, senderKeyStore);
         }
+
+        internal void Flush()
+        {
+            //what to do here
+        }
     }
 }
