@@ -26,7 +26,7 @@ namespace WhatsSocket.Core.Stores
                 var fileInfo = new FileInfo(item);
                 if (fileInfo.Name.StartsWith("sender-key-"))
                 {
-                    var id = fileInfo.Name.Replace("sender-key-","").Replace(".json", "").Replace("-", ":");
+                    var id = fileInfo.Name.Replace("sender-key-", "").Replace(".json", "").Replace("-", ":");
                     if (File.Exists(item))
                     {
                         Keys[id] = new SenderKeyRecord(item);
@@ -47,7 +47,7 @@ namespace WhatsSocket.Core.Stores
             {
                 Keys[id] = key;
                 var filename = $"sender-key-{id.Replace(":", "-")}";
-                File.WriteAllText($"{_keyStore}/{filename}.json", key.Serialize()) ;
+                File.WriteAllText($"{_keyStore}/{filename}.json", key.Serialize());
             }
             Ev.Emit(this);
         }

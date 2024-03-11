@@ -197,7 +197,7 @@ namespace WhatsSocket.Core.Utils
 
 
 
-        public static BinaryNode GetNextPreKeysNode(AuthenticationCreds creds, KeyStore keys, int count)
+        public static BinaryNode GetNextPreKeysNode(AuthenticationCreds creds, BaseKeyStore keys, int count)
         {
             var preKeys = GetNextPreKeys(creds, keys, count);
 
@@ -235,26 +235,30 @@ namespace WhatsSocket.Core.Utils
             };
         }
 
-        private static BinaryNode XmppPreKey(KeyPair value, int key)
+        private static BinaryNode XmppPreKey(KeyPair value, string key)
         {
             return new BinaryNode("key")
             {
                 content = new BinaryNode[]
                 {
-                    new BinaryNode("id", key.EncodeBigEndian(3)),
+                    new BinaryNode("id", Convert.ToInt32(key).EncodeBigEndian(3)),
                     new BinaryNode("value", value.Public),
                 }
             };
         }
 
-        private static Dictionary<int, KeyPair> GetNextPreKeys(AuthenticationCreds creds, KeyStore keys, int count)
+        private static Dictionary<string, PreKeyPair> GetNextPreKeys(AuthenticationCreds creds, BaseKeyStore keys, int count)
         {
             var keySet = GenerateOrGetPreKeys(creds, count);
 
             creds.NextPreKeyId = Math.Max(keySet.LastPreKeyId + 1, creds.NextPreKeyId);
             creds.FirstUnuploadedPreKeyId = Math.Max(creds.FirstUnuploadedPreKeyId, keySet.LastPreKeyId + 1);
 
-            keys.Set(keySet.NewPreKeys.Select(x => new PreKeyPair(x.Key.ToString(), x.Value)).ToArray());
+            foreach (var item in keySet.NewPreKeys)
+            {
+                keys.Set(item.Key.ToString(), new PreKeyPair(item.Key.ToString(), item.Value));
+            }
+            //keys.Set(keySet.NewPreKeys.Select(x => new PreKeyPair(x.Key.ToString(), x.Value)).ToArray());
 
             var preKeys = GetPreKeys(keys, keySet.PreKeyRange[0], keySet.PreKeyRange[0] + keySet.PreKeyRange[1]);
 
@@ -262,14 +266,14 @@ namespace WhatsSocket.Core.Utils
             return preKeys;
         }
 
-        private static Dictionary<int, KeyPair> GetPreKeys(KeyStore keys, int min, int max)
+        private static Dictionary<string, PreKeyPair> GetPreKeys(BaseKeyStore keys, int min, int max)
         {
             List<string> ids = new List<string>();
             for (int i = min; i < max; i++)
             {
                 ids.Add(i.ToString());
             }
-            return keys.Range<PreKeyPair>(ids).ToDictionary(x => Convert.ToInt32(x.Id), x => x.Key);
+            return keys.Get<PreKeyPair>(ids);
         }
 
         private static PreKeySet GenerateOrGetPreKeys(AuthenticationCreds creds, int range)

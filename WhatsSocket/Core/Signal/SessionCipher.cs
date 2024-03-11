@@ -7,26 +7,29 @@ using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Exceptions;
 
 namespace WhatsSocket.Core.Signal
 {
+
     public class SessionCipher
     {
-        public SessionCipher(SessionStore storage, ProtocolAddress address)
+        public SessionCipher(AuthenticationState auth, ProtocolAddress address)
         {
-            Storage = storage;
+            Storage = new SignalStorage(auth);
             Address = address;
         }
 
-        public SessionStore Storage { get; }
+        public SignalStorage Storage { get; }
         public ProtocolAddress Address { get; }
 
 
         public SessionRecord? GetRecord()
         {
-            return Storage.Get(Address.ToString());
+            var record = Storage.LoadSession(Address);
+            return record;
         }
 
         internal byte[] DecryptPreKeyWhisperMessage(byte[] data)
@@ -60,7 +63,7 @@ namespace WhatsSocket.Core.Signal
         private void StoreRecord(SessionRecord record)
         {
             record.RemoveOldSessions();
-            Storage.Set(Address.ToString(), record);
+            Storage.StoreSession(Address,record);
         }
 
         private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session? session)

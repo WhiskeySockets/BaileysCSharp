@@ -14,11 +14,13 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Exceptions;
 using static Google.Protobuf.WellKnownTypes.Field.Types;
 using static Proto.ContextInfo.Types.AdReplyInfo.Types;
+using static Proto.Message.Types;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.Utils.MediaMessageUtil;
 
@@ -86,7 +88,7 @@ namespace WhatsSocket.Core.Utils
 
 
 
-        internal static async Task<(AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, AppStateSyncKeyStore appStateSyncKeyStore, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static async Task<(AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = appStateSyncVersion.Version;
@@ -124,14 +126,15 @@ namespace WhatsSocket.Core.Utils
                     }
                 };
 
-                var decodeResult = DecodeSyncdPatch(syncd, name, newState, appStateSyncKeyStore, onChatMutation, true);
+                var decodeResult = DecodeSyncdPatch(syncd, name, newState, keys, onChatMutation, true);
 
                 newState.Hash = decodeResult.Hash;
                 newState.IndexValueMap = decodeResult.IndexValueMap;
                 if (validateMacs)
                 {
                     var base64Key = syncd.KeyId.ToByteArray().ToBase64();
-                    var keyEnc = appStateSyncKeyStore.Get(base64Key);
+                    var keyEnc = keys.Get<AppStateSyncKeyStructure>(base64Key);
+                    //var keyEnc = appStateSyncKeyStore.Get(base64Key);
                     if (keyEnc == null)
                     {
                         throw new Boom("failed to find key {base64Key} to decode mutation");
@@ -158,12 +161,13 @@ namespace WhatsSocket.Core.Utils
             return EncryptionHelper.HmacSign(total, key);
         }
 
-        private static AppStateSyncVersion DecodeSyncdPatch(SyncdPatch msg, string name, AppStateSyncVersion initialState, AppStateSyncKeyStore appStateSyncKeyStore, Action<ChatMutation> onChatMutation, bool validateMacs)
+        private static AppStateSyncVersion DecodeSyncdPatch(SyncdPatch msg, string name, AppStateSyncVersion initialState, BaseKeyStore keys, Action<ChatMutation> onChatMutation, bool validateMacs)
         {
             if (validateMacs)
             {
                 var base64Key = msg.KeyId.Id.ToBase64();
-                var mainKeyObj = appStateSyncKeyStore.Get(base64Key);
+                var mainKeyObj = keys.Get<AppStateSyncKeyStructure>(base64Key);
+                //var mainKeyObj = appStateSyncKeyStore.Get(base64Key);
                 if (mainKeyObj == null)
                 {
                     throw new Boom($"failed to find key '{base64Key}' to decode patch", Events.DisconnectReason.NoKeyForMutation);
@@ -177,7 +181,7 @@ namespace WhatsSocket.Core.Utils
                     throw new Boom("Invalid Patch Mac");
             }
 
-            var result = DecodeSyncdMutations(msg.Mutations, initialState, appStateSyncKeyStore, onChatMutation, validateMacs);
+            var result = DecodeSyncdMutations(msg.Mutations, initialState, keys, onChatMutation, validateMacs);
             return result;
         }
 
@@ -201,7 +205,7 @@ namespace WhatsSocket.Core.Utils
             return SyncdMutations.Parser.ParseFrom(buffer);
         }
 
-        internal static (AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, AppStateSyncKeyStore appStateSyncKeyStore, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static (AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = snapshot.Version.Version;
@@ -222,7 +226,7 @@ namespace WhatsSocket.Core.Utils
             };
 
 
-            var decoded = DecodeSyncdMutations(snapshot.Records, newState, appStateSyncKeyStore, onChatMutation, validateMacs);
+            var decoded = DecodeSyncdMutations(snapshot.Records, newState, keys, onChatMutation, validateMacs);
 
             newState.Hash = decoded.Hash;
             newState.IndexValueMap = decoded.IndexValueMap;
@@ -230,7 +234,7 @@ namespace WhatsSocket.Core.Utils
             if (validateMacs)
             {
                 var base64Key = snapshot.KeyId.Id.ToBase64();
-                var keyEnc = appStateSyncKeyStore.Get(base64Key);
+                var keyEnc = keys.Get<AppStateSyncKeyStructure>(base64Key);
                 if (keyEnc == null)
                 {
                     throw new Boom($"failed to find key '{base64Key}' to decode patch", Events.DisconnectReason.NoKeyForMutation);
@@ -246,28 +250,28 @@ namespace WhatsSocket.Core.Utils
             return (newState, mutationMap);
         }
 
-        private static AppStateSyncVersion DecodeSyncdMutations(RepeatedField<SyncdRecord> records, AppStateSyncVersion initialState, AppStateSyncKeyStore getAppStateSyncKey, Action<ChatMutation> onMutation, bool validateMacs)
+        private static AppStateSyncVersion DecodeSyncdMutations(RepeatedField<SyncdRecord> records, AppStateSyncVersion initialState, BaseKeyStore keys, Action<ChatMutation> onMutation, bool validateMacs)
         {
             var ltGenerator = new HashGenerator(initialState);
             foreach (var record in records)
             {
-                DecodeSyncdMutation(ltGenerator, record, SyncdMutation.Types.SyncdOperation.Set, getAppStateSyncKey, validateMacs, onMutation);
+                DecodeSyncdMutation(ltGenerator, record, SyncdMutation.Types.SyncdOperation.Set, keys, validateMacs, onMutation);
             }
             return ltGenerator.Finish();
         }
-        private static AppStateSyncVersion DecodeSyncdMutations(RepeatedField<SyncdMutation> msgMutations, AppStateSyncVersion initialState, AppStateSyncKeyStore getAppStateSyncKey, Action<ChatMutation> onMutation, bool validateMacs)
+        private static AppStateSyncVersion DecodeSyncdMutations(RepeatedField<SyncdMutation> msgMutations, AppStateSyncVersion initialState, BaseKeyStore keys, Action<ChatMutation> onMutation, bool validateMacs)
         {
             var ltGenerator = new HashGenerator(initialState);
             foreach (var item in msgMutations)
             {
-                DecodeSyncdMutation(ltGenerator, item.Record, item.Operation, getAppStateSyncKey, validateMacs, onMutation);
+                DecodeSyncdMutation(ltGenerator, item.Record, item.Operation, keys, validateMacs, onMutation);
             }
             return ltGenerator.Finish();
         }
 
-        private static void DecodeSyncdMutation(HashGenerator ltGenerator, SyncdRecord record, SyncdMutation.Types.SyncdOperation operation, AppStateSyncKeyStore getAppStateSyncKey, bool validateMacs, Action<ChatMutation> onMutation)
+        private static void DecodeSyncdMutation(HashGenerator ltGenerator, SyncdRecord record, SyncdMutation.Types.SyncdOperation operation, BaseKeyStore keys, bool validateMacs, Action<ChatMutation> onMutation)
         {
-            var key = GetKey(record.KeyId.Id, getAppStateSyncKey);
+            var key = GetKey(record.KeyId.Id, keys);
             var content = record.Value.Blob.ToByteArray();
             var encContent = content.Slice(0, -32);
             var ogValueMac = content.Slice(-32);
@@ -320,10 +324,10 @@ namespace WhatsSocket.Core.Utils
             return hmac.Slice(0, 32);
         }
 
-        private static MutationKey GetKey(ByteString id, AppStateSyncKeyStore getAppStateSyncKey)
+        private static MutationKey GetKey(ByteString id, BaseKeyStore keys)
         {
             var base64Key = id.ToBase64();
-            var keyEnc = getAppStateSyncKey.Get(base64Key);
+            var keyEnc = keys.Get<AppStateSyncKeyStructure>(base64Key);
             if (keyEnc == null)
                 throw new Boom("Failed to find any key", Events.DisconnectReason.NoKeyForMutation);
 

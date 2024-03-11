@@ -2,10 +2,12 @@
 using System.Text.RegularExpressions;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Stores
 {
 
+    [FolderPrefix("app-state-sync-version")]
     public class AppStateSyncVersion
     {
         [JsonProperty("version")]

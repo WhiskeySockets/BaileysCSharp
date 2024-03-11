@@ -1,9 +1,12 @@
 ﻿using Newtonsoft.Json;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Stores
 {
+    //SessionRecord
+    [FolderPrefix("session")]
     public class SessionRecord
     {
         [JsonProperty("_sessions")]

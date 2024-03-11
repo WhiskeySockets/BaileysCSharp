@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Models.SenderKeys
 {
+    [FolderPrefix("sender-key")]
     public class SenderKeyRecord
     {
         public List<SenderKeyState> SenderKeys { get; set; }

@@ -1,6 +1,7 @@
 ﻿using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Exceptions;
 
@@ -8,18 +9,20 @@ namespace WhatsSocket.Core.Signal
 {
     internal class GroupCipher
     {
-        public GroupCipher(SessionStore storage, string senderName)
+        public GroupCipher(BaseKeyStore keys, string senderName)
         {
-            Storage = storage;
+            Keys = keys;
             SenderName = senderName;
         }
 
-        public SessionStore Storage { get; }
+        public BaseKeyStore Keys { get; }
+        SessionStore SessionStore { get; }
         public string SenderName { get; }
 
         public byte[] Decrypt(byte[] data)
         {
-            var record = Storage.LoadSenderKey(SenderName);
+            //var record = Storage.LoadSenderKey(SenderName);
+            var record = Keys.Get<SenderKeyRecord>(SenderName);
 
             if (record == null)
             {
@@ -40,7 +43,8 @@ namespace WhatsSocket.Core.Signal
             var plainText = GetPlainText(senderKey.IV, senderKey.CipherKey, senderKeyMessage.Ciphertext);
 
 
-            Storage.StoreSenderKey(SenderName, record);
+            Keys.Set(SenderName, record);
+            //Storage.StoreSenderKey(SenderName, record);
 
             return plainText;
         }

@@ -16,6 +16,7 @@ using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocketConsole
 {
@@ -27,7 +28,7 @@ namespace WhatsSocketConsole
         {
             Tests.RunTests();
 
-    
+
 
             //This creds file comes from the nodejs sample    
             var credsFile = Path.Join(Directory.GetCurrentDirectory(), "test", "creds.json");
@@ -41,13 +42,15 @@ namespace WhatsSocketConsole
             authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
 
 
+            BaseKeyStore keys = new FileKeyStore(Path.Join(Directory.GetCurrentDirectory(), "test"));
 
             var config = new SocketConfig()
             {
                 ID = "test",
                 Auth = new AuthenticationState()
                 {
-                    Creds    = authentication
+                    Creds = authentication,
+                    Keys = keys
                 }
             };
 

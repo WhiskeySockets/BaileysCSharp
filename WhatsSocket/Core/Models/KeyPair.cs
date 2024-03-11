@@ -22,5 +22,4 @@ namespace WhatsSocket.Core.Models
             }
         }
     }
-
 }

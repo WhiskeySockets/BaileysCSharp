@@ -20,6 +20,7 @@ using WhatsSocket.Core.Sockets.Client;
 using WhatsSocket.Core.Signal;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using System.Diagnostics.CodeAnalysis;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core
 {
@@ -57,6 +58,8 @@ namespace WhatsSocket.Core
         public AuthenticationCreds? Creds { get; set; }
         public SocketConfig SocketConfig { get; }
 
+        public BaseKeyStore Keys { get; }
+
 
 
 
@@ -78,6 +81,7 @@ namespace WhatsSocket.Core
             SocketConfig = config;
             EV = new EventEmitter(this);
             Creds = config.Auth.Creds;
+            Keys = config.Auth.Keys;
             Logger = config.Logger;
 
             InitStores();
@@ -470,7 +474,7 @@ namespace WhatsSocket.Core
             {
                 throw new ArgumentNullException(nameof(Creds));
             }
-            var node = ValidateConnectionUtil.GetNextPreKeysNode(Creds, Repository.Storage.Keys, Constants.INITIAL_PREKEY_COUNT);
+            var node = ValidateConnectionUtil.GetNextPreKeysNode(Creds, Keys, Constants.INITIAL_PREKEY_COUNT);
             var result = await Query(node);
             EV.Emit(Creds);
         }

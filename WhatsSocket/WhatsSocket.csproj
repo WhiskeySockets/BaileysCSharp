@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\Stores\AppStateSyncKeyStore.cs" />
+    <Compile Remove="Core\Stores\AppStateSyncVersionStore.cs" />
+    <Compile Remove="Core\Stores\KeyStore.cs" />
+    <Compile Remove="Core\Stores\SenderKeyStore.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Core\HandshakeMessage.proto" />
     <None Remove="Proto\WAProto.3.proto" />
     <None Remove="Proto\WhisperTextProtocol.proto" />

@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Signal;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
@@ -39,7 +40,7 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, SignalRepository repository, Delegates.EventEmitter ev)
+        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, Delegates.EventEmitter ev)
         {
             var meId = creds.Me.ID;
             var chat = new Chat()
@@ -98,7 +99,8 @@ namespace WhatsSocket.Core.Utils
                             {
                                 var id = item.KeyId.KeyId.ToBase64();
                                 var keyData = new AppStateSyncKeyStructure(item.KeyData);
-                                repository.Storage.AppStateSyncKeyStore.Set(id, keyData);
+                                keyStore.Set<AppStateSyncKeyStructure>(id, keyData);
+                                //repository.Storage.AppStateSyncKeyStore.Set(id, keyData);
                                 newAppStateSyncKeyId = id;
                             }
                             creds.MyAppStateKeyId = newAppStateSyncKeyId;

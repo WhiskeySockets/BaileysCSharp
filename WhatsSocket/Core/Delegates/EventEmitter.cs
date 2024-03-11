@@ -18,9 +18,9 @@ namespace WhatsSocket.Core.Delegates
         public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
         public event EventEmitterHandler<DisconnectReason> OnDisconnect;
         public event EventEmitterHandler<Contact> OnContactChange;
-        public event EventEmitterHandler<AppStateSyncKeyStore> OnAppStateSyncKeyStoreChange;
-        public event EventEmitterHandler<AppStateSyncVersionStore> OnAppStateSyncVersionStoreChange;
-        public event EventEmitterHandler<SenderKeyStore> OnSenderKeyStoreChange;
+        //public event EventEmitterHandler<AppStateSyncKeyStore> OnAppStateSyncKeyStoreChange;
+        //public event EventEmitterHandler<AppStateSyncVersionStore> OnAppStateSyncVersionStoreChange;
+        //public event EventEmitterHandler<SenderKeyStore> OnSenderKeyStoreChange;
 
         public EventEmitter(BaseSocket sender)
         {
@@ -60,20 +60,20 @@ namespace WhatsSocket.Core.Delegates
             OnContactChange?.Invoke(Sender, contact);
         }
 
-        internal void Emit(AppStateSyncKeyStore appStateSyncKeyStore)
-        {
-            OnAppStateSyncKeyStoreChange?.Invoke(Sender, appStateSyncKeyStore);
-        }
+        //internal void Emit(AppStateSyncKeyStore appStateSyncKeyStore)
+        //{
+        //    OnAppStateSyncKeyStoreChange?.Invoke(Sender, appStateSyncKeyStore);
+        //}
 
-        internal void Emit(AppStateSyncVersionStore appStateSyncVersionStore)
-        {
-            OnAppStateSyncVersionStoreChange?.Invoke(Sender, appStateSyncVersionStore);
-        }
+        //internal void Emit(AppStateSyncVersionStore appStateSyncVersionStore)
+        //{
+        //    OnAppStateSyncVersionStoreChange?.Invoke(Sender, appStateSyncVersionStore);
+        //}
 
-        internal void Emit(SenderKeyStore senderKeyStore)
-        {
-            OnSenderKeyStoreChange?.Invoke(Sender, senderKeyStore);
-        }
+        //internal void Emit(SenderKeyStore senderKeyStore)
+        //{
+        //    OnSenderKeyStoreChange?.Invoke(Sender, senderKeyStore);
+        //}
 
         internal void Flush()
         {

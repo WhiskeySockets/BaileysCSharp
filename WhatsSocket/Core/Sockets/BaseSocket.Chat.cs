@@ -70,9 +70,9 @@ namespace WhatsSocket.Core
                 await DoAppStateSync();
             }
 
-            await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Repository, EV);
+            await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Keys, EV);
 
-            if (msg.Message.ProtocolMessage.AppStateSyncKeyShare != null && PendingAppStateSync)
+            if (msg?.Message?.ProtocolMessage?.AppStateSyncKeyShare != null && PendingAppStateSync)
             {
                 await DoAppStateSync();
                 PendingAppStateSync = false;
@@ -124,7 +124,7 @@ namespace WhatsSocket.Core
                     foreach (var name in collections)
                     {
                         lastName = name;
-                        var state = Repository.Storage.AppStateSyncVersionStore.Get(name);
+                        var state = Keys.Get<AppStateSyncVersion>(name);
                         if (state != null)
                         {
                             if (!initialVersionMap.ContainsKey(name))
@@ -192,7 +192,7 @@ namespace WhatsSocket.Core
 
                         if (item.Snapshot != null)
                         {
-                            var decodedSnapshot = DecodeSyncdSnapshot(name, item.Snapshot, Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Snapshot);
+                            var decodedSnapshot = DecodeSyncdSnapshot(name, item.Snapshot, Keys, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Snapshot);
 
                             var newState = decodedSnapshot.state;
                             states[name] = newState;
@@ -201,16 +201,18 @@ namespace WhatsSocket.Core
                             {
                                 globalMutationMap[map.Key] = map.Value;
                             }
-                            Repository.Storage.AppStateSyncVersionStore.Set(name, newState);
+                            Keys.Set<AppStateSyncVersion>(name, newState);
+                            //Repository.Storage.AppStateSyncVersionStore.Set(name, newState);
                         }
 
 
                         // only process if there are syncd patches
                         if (patches.Count > 0)
                         {
-                            var decodePatches = await DecodePatches(name, patches, states[name], Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Patch);
+                            var decodePatches = await DecodePatches(name, patches, states[name], Keys, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Patch);
 
-                            Repository.Storage.AppStateSyncVersionStore.Set(name, decodePatches.state);
+                            Keys.Set<AppStateSyncVersion>(name, decodePatches.state);
+                            //Repository.Storage.AppStateSyncVersionStore.Set(name, decodePatches.state);
 
 
                             Logger.Info($"synced {name} to v{decodePatches.state.Version}");
@@ -236,7 +238,8 @@ namespace WhatsSocket.Core
                     var isIrrecoverableError = ex.Reason == Events.DisconnectReason.NoKeyForMutation || attemptsMap[lastName] < 2;
 
                     //await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
-                    Repository.Storage.AppStateSyncVersionStore.Set(lastName, null);
+                    Keys.Set<AppStateSyncVersion>(lastName, null);
+                    //Repository.Storage.AppStateSyncVersionStore.Set(lastName, null);
                     if (isIrrecoverableError)
                     {
                         collectionsToHandle.Remove(lastName);

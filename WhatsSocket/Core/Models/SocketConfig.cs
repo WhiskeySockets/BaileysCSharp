@@ -56,8 +56,7 @@ namespace WhatsSocket.Core.Models
         public SignalRepository MakeSignalRepository(EventEmitter ev)
         {
             var path = Path.Combine(Root, ID);
-            var store = new SessionStore(path, Auth.Creds, ev);
-            return new SignalRepository(store);
+            return new SignalRepository(Auth);
         }
     }
 }

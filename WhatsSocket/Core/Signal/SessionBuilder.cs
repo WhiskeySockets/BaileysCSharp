@@ -5,31 +5,21 @@ using Textsecure;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 
 namespace WhatsSocket.Core.Signal
 {
 
-    [Serializable]
-    public class SessonException : Exception
-    {
-        public SessonException() { }
-        public SessonException(string message) : base(message) { }
-        public SessonException(string message, Exception inner) : base(message, inner) { }
-        protected SessonException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
-    }
-
     public class SessionBuilder
     {
-        public SessionBuilder(SessionStore storage, ProtocolAddress address)
+        public SessionBuilder(SignalStorage storage, ProtocolAddress address)
         {
             Storage = storage;
             Address = address;
         }
 
-        public SessionStore Storage { get; }
+        public SignalStorage Storage { get; }
         public ProtocolAddress Address { get; }
 
 

@@ -9,26 +9,22 @@ namespace WhatsSocket.Core.Signal
 {
     public class SignalRepository
     {
-        public SignalRepository(SessionStore storage)
+        public SignalRepository(AuthenticationState auth)
         {
-            Storage = storage;
+            Auth = auth;
         }
-
-        public SessionStore Storage { get; }
-
-
-
+        public AuthenticationState Auth { get; }
 
         public byte[] decryptGroupMessage(string group, string authorJid, byte[] content)
         {
             var senderName = JidToSignalSenderKeyName(group, authorJid);
-            var session = new GroupCipher(Storage, senderName);
+            var session = new GroupCipher(Auth.Keys, senderName);
             return session.Decrypt(content);
         }
         public byte[] decryptMessage(string user, string type, byte[] ciphertext)
         {
             var addr = new ProtocolAddress(JidDecode(user));
-            var session = new SessionCipher(Storage, addr);
+            var session = new SessionCipher(Auth, addr);
             byte[] result;
             if (type == "pkmsg")
             {
@@ -43,10 +39,10 @@ namespace WhatsSocket.Core.Signal
 
         public void ProcessSenderKeyDistributionMessage(string author, Message.Types.SenderKeyDistributionMessage senderKeyDistributionMessage)
         {
-            var builder = new GroupSessionBuilder(Storage.SenderKeys);
+            var builder = new GroupSessionBuilder(Auth.Keys);
             var senderName = JidToSignalSenderKeyName(senderKeyDistributionMessage.GroupId, author);
             var senderMsg = Proto.SenderKeyDistributionMessage.Parser.ParseFrom(senderKeyDistributionMessage.AxolotlSenderKeyDistributionMessage.ToByteArray().Skip(1).ToArray());
-            Storage.StoreSenderKey(senderName, new SenderKeyRecord());
+            Auth.Keys.Set(senderName, new SenderKeyRecord());
             builder.Process(senderName, senderMsg);
         }
     }
