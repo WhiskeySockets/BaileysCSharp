@@ -2,6 +2,7 @@
 using Proto;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Stores
 {
@@ -12,6 +13,7 @@ namespace WhatsSocket.Core.Stores
         public EventEmitter Ev { get; }
 
         private string _keyStore;
+
         public SenderKeyStore(string path, EventEmitter ev)
         {
             _keyStore = path;

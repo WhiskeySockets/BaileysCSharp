@@ -12,6 +12,8 @@ using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.NoSQL;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace WhatsSocket.Core.Stores
 {
@@ -19,8 +21,8 @@ namespace WhatsSocket.Core.Stores
 
     public class SessionStore
     {
-        [JsonIgnore]
-        public KeyStore Keys { get; set; }
+        //[JsonIgnore]
+        //public KeyStore Keys { get; set; }
         [JsonIgnore]
         public SenderKeyStore SenderKeys { get; }
         [JsonIgnore]
@@ -29,18 +31,22 @@ namespace WhatsSocket.Core.Stores
         [JsonIgnore]
 
         public AppStateSyncKeyStore AppStateSyncKeyStore { get; }
+
+
         public EventEmitter Ev { get; }
         [JsonIgnore]
         public AuthenticationCreds? Creds { get; set; }
 
 
 
-
+        public KeyStore Keys { get; set; }
 
         private string _sessions;
         public SessionStore(string path, AuthenticationCreds? creds, EventEmitter ev)
         {
             Creds = creds;
+
+            Keys = new KeyStore(path);
 
             Sessions = new Dictionary<string, SessionRecord>();
             _sessions = Path.Combine(path, "data", "sessions");
@@ -55,7 +61,7 @@ namespace WhatsSocket.Core.Stores
             }
             Ev = ev;
             SenderKeys = new SenderKeyStore(Path.Combine(path, "data", "sender-keys"), ev);
-            Keys = new KeyStore(Path.Combine(path, "keys"), ev);
+            //Keys = new KeyStore(Path.Combine(path, "keys"), Config, ev);
             AppStateSyncVersionStore = new AppStateSyncVersionStore(Path.Combine(path, "data", "app-state-sync-version"), ev);
             AppStateSyncKeyStore = new AppStateSyncKeyStore(Path.Combine(path, "data", "app-state-sync-key"), ev);
 
@@ -100,7 +106,10 @@ namespace WhatsSocket.Core.Stores
 
         internal KeyPair LoadPreKey(uint preKeyId)
         {
-            return Keys.Get((int)preKeyId);
+            var result = Keys.Get<PreKeyPair>(preKeyId.ToString());
+            if (result == null)
+                return null;
+            return result.Key;
         }
 
         internal KeyPair LoadSignedPreKey(uint signedPreKeyId)
@@ -117,9 +126,9 @@ namespace WhatsSocket.Core.Stores
             };
         }
 
-        internal void RemovePreKey(int preKeyId)
+        internal void RemovePreKey(uint preKeyId)
         {
-            Keys.Set(preKeyId, null);
+            Keys.Set<PreKeyPair>(preKeyId.ToString(), null);
         }
 
         internal void StoreSenderKey(string senderName, SenderKeyRecord senderMsg)

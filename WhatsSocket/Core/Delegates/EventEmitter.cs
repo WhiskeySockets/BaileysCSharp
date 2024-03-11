@@ -14,7 +14,7 @@ namespace WhatsSocket.Core.Delegates
     {
         public event EventEmitterHandler<QRData> OnQR;
         public event EventEmitterHandler<SessionStore> OnSessionStoreChange;
-        public event EventEmitterHandler<KeyStore> OnKeyStoreChange;
+        //public event EventEmitterHandler<KeyStore> OnKeyStoreChange;
         public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
         public event EventEmitterHandler<DisconnectReason> OnDisconnect;
         public event EventEmitterHandler<Contact> OnContactChange;
@@ -40,10 +40,10 @@ namespace WhatsSocket.Core.Delegates
             OnSessionStoreChange?.Invoke(Sender, store);
         }
 
-        internal void Emit(KeyStore store)
-        {
-            OnKeyStoreChange?.Invoke(Sender, store);
-        }
+        //internal void Emit(KeyStore store)
+        //{
+        //    OnKeyStoreChange?.Invoke(Sender, store);
+        //}
 
         internal void Emit(AuthenticationCreds creds)
         {

@@ -192,7 +192,7 @@ namespace WhatsSocket.Core
 
                         if (item.Snapshot != null)
                         {
-                            var decodedSnapshot = DecodeSyncdSnapshot(name, item.Snapshot, Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, Config.AppStateMacVerification.Snapshot);
+                            var decodedSnapshot = DecodeSyncdSnapshot(name, item.Snapshot, Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Snapshot);
 
                             var newState = decodedSnapshot.state;
                             states[name] = newState;
@@ -208,7 +208,7 @@ namespace WhatsSocket.Core
                         // only process if there are syncd patches
                         if (patches.Count > 0)
                         {
-                            var decodePatches = await DecodePatches(name, patches, states[name], Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, Config.AppStateMacVerification.Patch);
+                            var decodePatches = await DecodePatches(name, patches, states[name], Repository.Storage.AppStateSyncKeyStore, initialVersionMap[name], Logger, SocketConfig.AppStateMacVerification.Patch);
 
                             Repository.Storage.AppStateSyncVersionStore.Set(name, decodePatches.state);
 

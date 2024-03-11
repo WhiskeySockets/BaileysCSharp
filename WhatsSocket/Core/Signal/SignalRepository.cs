@@ -1,6 +1,7 @@
 ﻿using Proto;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using static WhatsSocket.Core.WABinary.JidUtils;
 
@@ -14,6 +15,7 @@ namespace WhatsSocket.Core.Signal
         }
 
         public SessionStore Storage { get; }
+
 
 
 

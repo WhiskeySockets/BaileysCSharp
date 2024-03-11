@@ -55,7 +55,10 @@ namespace WhatsSocket.Core
         public bool SendActiveReceipts { get; set; }
 
         public AuthenticationCreds? Creds { get; set; }
-        public SocketConfig Config { get; }
+        public SocketConfig SocketConfig { get; }
+
+
+
 
         public string GenerateMessageTag()
         {
@@ -72,7 +75,7 @@ namespace WhatsSocket.Core
             if (config == null)
                 throw new ArgumentNullException(nameof(config));
 
-            Config = config;
+            SocketConfig = config;
             EV = new EventEmitter(this);
             Creds = config.Auth.Creds;
             Logger = config.Logger;
@@ -522,7 +525,7 @@ namespace WhatsSocket.Core
 
 
             var clientFinish = new HandshakeMessage();
-            if (Config.Mobile)
+            if (SocketConfig.Mobile)
             {
                 //TODO : generateMobileNode
             }
@@ -645,7 +648,7 @@ namespace WhatsSocket.Core
 
         private void InitStores()
         {
-            Repository = Config.MakeSignalRepository(EV);
+            Repository = SocketConfig.MakeSignalRepository(EV);
 
 
         }

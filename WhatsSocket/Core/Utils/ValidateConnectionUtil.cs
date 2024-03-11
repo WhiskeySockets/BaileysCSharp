@@ -13,6 +13,7 @@ using WhatsSocket.Core.Models;
 using WhatsSocket.Exceptions;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -252,7 +253,8 @@ namespace WhatsSocket.Core.Utils
 
             creds.NextPreKeyId = Math.Max(keySet.LastPreKeyId + 1, creds.NextPreKeyId);
             creds.FirstUnuploadedPreKeyId = Math.Max(creds.FirstUnuploadedPreKeyId, keySet.LastPreKeyId + 1);
-            keys.Set(keySet.NewPreKeys);
+
+            keys.Set(keySet.NewPreKeys.Select(x => new PreKeyPair(x.Key.ToString(), x.Value)).ToArray());
 
             var preKeys = GetPreKeys(keys, keySet.PreKeyRange[0], keySet.PreKeyRange[0] + keySet.PreKeyRange[1]);
 
@@ -262,12 +264,12 @@ namespace WhatsSocket.Core.Utils
 
         private static Dictionary<int, KeyPair> GetPreKeys(KeyStore keys, int min, int max)
         {
-            List<int> ids = new List<int>();
+            List<string> ids = new List<string>();
             for (int i = min; i < max; i++)
             {
-                ids.Add(i);
+                ids.Add(i.ToString());
             }
-            return keys.Range(ids);
+            return keys.Range<PreKeyPair>(ids).ToDictionary(x => Convert.ToInt32(x.Id), x => x.Key);
         }
 
         private static PreKeySet GenerateOrGetPreKeys(AuthenticationCreds creds, int range)

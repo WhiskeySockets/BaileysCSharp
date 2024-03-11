@@ -33,7 +33,7 @@ namespace WhatsSocket.Core.Signal
         public ProtocolAddress Address { get; }
 
 
-        public int InitIncoming(SessionRecord record, PreKeyWhisperMessage message)
+        public uint InitIncoming(SessionRecord record, PreKeyWhisperMessage message)
         {
             var fqAddr = Address.ToString();
             if (Storage.IsTrustedIdentity(fqAddr, message.IdentityKey))
@@ -65,7 +65,7 @@ namespace WhatsSocket.Core.Signal
                 message.IdentityKey, message.BaseKey,
                 null, message.RegistrationId));
 
-            return (int)message.PreKeyId;
+            return message.PreKeyId;
         }
 
         private Session InitSession(bool isInitiator, KeyPair ourEphemeralKey, KeyPair ourSignedKey, ByteString theirIdentityPubKey, ByteString theirEphemeralPubKey, ByteString theirSignedPubKey, uint registrationId)

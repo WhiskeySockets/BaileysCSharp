@@ -56,7 +56,7 @@ namespace WhatsSocketConsole
 
             socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
             socket.EV.OnDisconnect += EV_OnDisconnect;
-            socket.EV.OnKeyStoreChange += EV_OnKeyStoreChange;
+            //socket.EV.OnKeyStoreChange += EV_OnKeyStoreChange;
             socket.EV.OnSessionStoreChange += EV_OnSessionStoreChange;
             socket.EV.OnQR += EV_OnQR;
             socket.EV.OnContactChange += EV_OnContactChange;
@@ -88,10 +88,6 @@ namespace WhatsSocketConsole
 
         }
 
-        private static void EV_OnKeyStoreChange(BaseSocket sender, KeyStore args)
-        {
-
-        }
 
 
 
