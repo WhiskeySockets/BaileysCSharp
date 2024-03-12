@@ -35,7 +35,7 @@ namespace WhatsSocket.Core
 
                 if (!msg.Key.FromMe)
                 {
-                    EV.Emit(new Contact()
+                    EV.Emit(new ContactModel()
                     {
                         ID = jid,
                         Notify = msg.PushName,
@@ -64,13 +64,22 @@ namespace WhatsSocket.Core
             }
 
 
-            if (historyMsg != null && Creds.MyAppStateKeyId != null)
+            var t1 = new Task(async () =>
             {
-                PendingAppStateSync = false;
-                await DoAppStateSync();
-            }
+                if (historyMsg != null && Creds.MyAppStateKeyId != null)
+                {
+                    PendingAppStateSync = false;
+                    await DoAppStateSync();
+                }
+            });
 
-            await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Keys, EV);
+            var t2 = new Task(async () =>
+            {
+                await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Keys, EV);
+            });
+            t1.Start();
+            t2.Start();
+            Task.WaitAll(t1, t2);
 
             if (msg?.Message?.ProtocolMessage?.AppStateSyncKeyShare != null && PendingAppStateSync)
             {

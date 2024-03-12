@@ -59,10 +59,7 @@ namespace WhatsSocketConsole
 
             socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
             socket.EV.OnDisconnect += EV_OnDisconnect;
-            //socket.EV.OnKeyStoreChange += EV_OnKeyStoreChange;
-            socket.EV.OnSessionStoreChange += EV_OnSessionStoreChange;
             socket.EV.OnQR += EV_OnQR;
-            socket.EV.OnContactChange += EV_OnContactChange;
 
 
             socket.MakeSocket();
@@ -70,10 +67,6 @@ namespace WhatsSocketConsole
             Console.ReadLine();
         }
 
-        private static void EV_OnContactChange(BaseSocket sender, Contact args)
-        {
-
-        }
 
         private static void EV_OnQR(BaseSocket sender, QRData args)
         {
@@ -84,11 +77,6 @@ namespace WhatsSocketConsole
             var data = qrCode.GetGraphic(1);
 
             Console.WriteLine(data);
-        }
-
-        private static void EV_OnSessionStoreChange(BaseSocket sender, SessionStore args)
-        {
-
         }
 
 

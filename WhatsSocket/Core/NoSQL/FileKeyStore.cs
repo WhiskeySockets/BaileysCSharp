@@ -19,26 +19,31 @@ namespace WhatsSocket.Core.NoSQL
         }
 
 
+        private static object locker = new object();
+
 
         public override T Get<T>(string id)
         {
-            var attributes = typeof(T).GetCustomAttribute<FolderPrefix>();
-            if (attributes == null)
+            lock (locker)
             {
-                Debug.WriteLine($"{typeof(T).Name} does not have FolderPrefix attribute");
-                throw new NotSupportedException($"{typeof(T).Name} does not have FolderPrefix attribute");
-            }
+                var attributes = typeof(T).GetCustomAttribute<FolderPrefix>();
+                if (attributes == null)
+                {
+                    Debug.WriteLine($"{typeof(T).Name} does not have FolderPrefix attribute");
+                    throw new NotSupportedException($"{typeof(T).Name} does not have FolderPrefix attribute");
+                }
 
-            var path = System.IO.Path.Combine(Path, attributes.Prefix);
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-            var file = $"{path}\\{id}.json";
-            if (File.Exists(file))
-            {
-                var data = File.ReadAllText(file) ?? "";
-                return JsonConvert.DeserializeObject<T>(data);
+                var path = System.IO.Path.Combine(Path, attributes.Prefix);
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                var file = $"{path}\\{id}.json";
+                if (File.Exists(file))
+                {
+                    var data = File.ReadAllText(file) ?? "";
+                    return JsonConvert.DeserializeObject<T>(data);
+                }
+                return default(T);
             }
-            return default(T);
 
             //var collection = context?.GetCollection<T>();
             //var result = (T)collection.FindById(id);
@@ -71,21 +76,23 @@ namespace WhatsSocket.Core.NoSQL
 
         public override void Set<T>(string id, T? value) where T : default
         {
-            var attributes = typeof(T).GetCustomAttribute<FolderPrefix>();
-            var path = System.IO.Path.Combine(Path, attributes.Prefix);
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-            var file = $"{path}\\{id}.json";
-
-            if (value != null)
+            lock (locker)
             {
-                File.WriteAllText(file, JsonConvert.SerializeObject(value));
-            }
-            else if (File.Exists(file))
-            {
-                File.Delete(file);
-            }
+                var attributes = typeof(T).GetCustomAttribute<FolderPrefix>();
+                var path = System.IO.Path.Combine(Path, attributes.Prefix);
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                var file = $"{path}\\{id}.json";
 
+                if (value != null)
+                {
+                    File.WriteAllText(file, JsonConvert.SerializeObject(value));
+                }
+                else if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
             //Use Below
             //var collection = context?.GetCollection<T>();
             //if (value != null)

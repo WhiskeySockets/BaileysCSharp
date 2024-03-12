@@ -43,13 +43,28 @@ namespace WhatsSocket.Core.Utils
               content.EditedMessage;
         }
 
-        internal static string GetContentType(Message content)
+        internal static bool GetContentType(Message content)
         {
-            if (content != null)
+            if (content == null)
             {
-                return "what to do here ?";
+                return false;
             }
-            return null;
+            if (content.SenderKeyDistributionMessage != null)
+                return false;
+
+            var keys = content.GetType().GetProperties().Where(x => x.Name == "HasConversation" || (x.Name.Contains("Message") && x.Name.StartsWith("Has"))).ToArray();
+            foreach (var key in keys)
+            {
+                var value = key.GetValue(content, null);
+                if (value is bool hasValue)
+                {
+                    if (hasValue)
+                        return true;
+                }
+            }
+
+
+            return false;
         }
     }
 }

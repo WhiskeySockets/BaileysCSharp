@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Proto;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,14 +14,15 @@ namespace WhatsSocket.Core.Delegates
     public class EventEmitter
     {
         public event EventEmitterHandler<QRData> OnQR;
-        public event EventEmitterHandler<SessionStore> OnSessionStoreChange;
+        //public event EventEmitterHandler<SessionStore> OnSessionStoreChange;
         //public event EventEmitterHandler<KeyStore> OnKeyStoreChange;
         public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
         public event EventEmitterHandler<DisconnectReason> OnDisconnect;
-        public event EventEmitterHandler<Contact> OnContactChange;
+        public event EventEmitterHandler<ContactModel> OnContactChange;
         //public event EventEmitterHandler<AppStateSyncKeyStore> OnAppStateSyncKeyStoreChange;
         //public event EventEmitterHandler<AppStateSyncVersionStore> OnAppStateSyncVersionStoreChange;
         //public event EventEmitterHandler<SenderKeyStore> OnSenderKeyStoreChange;
+        public event EventEmitterHandler<(List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest)> OnHistorySync;
 
         public EventEmitter(BaseSocket sender)
         {
@@ -35,10 +37,10 @@ namespace WhatsSocket.Core.Delegates
             OnQR?.Invoke(Sender, qr);
         }
 
-        internal void Emit(SessionStore store)
-        {
-            OnSessionStoreChange?.Invoke(Sender, store);
-        }
+        //internal void Emit(SessionStore store)
+        //{
+        //    OnSessionStoreChange?.Invoke(Sender, store);
+        //}
 
         //internal void Emit(KeyStore store)
         //{
@@ -55,7 +57,7 @@ namespace WhatsSocket.Core.Delegates
             OnDisconnect?.Invoke(Sender, reason);
         }
 
-        internal void Emit(Contact contact)
+        internal void Emit(ContactModel contact)
         {
             OnContactChange?.Invoke(Sender, contact);
         }
@@ -75,9 +77,14 @@ namespace WhatsSocket.Core.Delegates
         //    OnSenderKeyStoreChange?.Invoke(Sender, senderKeyStore);
         //}
 
-        internal void Flush()
+        public void Flush()
         {
             //what to do here
+        }
+
+        public void Emit((List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest) data)
+        {
+            OnHistorySync?.Invoke(Sender, data);
         }
     }
 }

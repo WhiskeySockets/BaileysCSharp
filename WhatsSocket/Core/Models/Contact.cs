@@ -2,7 +2,7 @@
 
 namespace WhatsSocket.Core.Models
 {
-    public class Contact
+    public class ContactModel
     {
         [JsonProperty("id")]
         public string ID { get; set; }

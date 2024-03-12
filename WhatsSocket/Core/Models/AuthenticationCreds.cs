@@ -35,7 +35,7 @@ namespace WhatsSocket.Core.Models
         }
 
         [JsonProperty("me")]
-        public Contact Me { get; set; }
+        public ContactModel Me { get; set; }
 
         [JsonProperty("noiseKey")]
         public KeyPair NoiseKey { get; set; }

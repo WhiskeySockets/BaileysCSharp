@@ -43,7 +43,7 @@ namespace WhatsSocket.Core.Utils
         internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, Delegates.EventEmitter ev)
         {
             var meId = creds.Me.ID;
-            var chat = new Chat()
+            var chat = new ChatModel()
             {
                 ID = JidUtils.JidNormalizedUser(GetChatID(message.Key))
             };
@@ -88,6 +88,7 @@ namespace WhatsSocket.Core.Utils
                                 ev.Emit(creds);
 
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
+                                ev.Emit((data.contacts,data.chats,data.messages,isLatest));
                             }
                         }
                         break;
@@ -100,7 +101,6 @@ namespace WhatsSocket.Core.Utils
                                 var id = item.KeyId.KeyId.ToBase64();
                                 var keyData = new AppStateSyncKeyStructure(item.KeyData);
                                 keyStore.Set<AppStateSyncKeyStructure>(id, keyData);
-                                //repository.Storage.AppStateSyncKeyStore.Set(id, keyData);
                                 newAppStateSyncKeyId = id;
                             }
                             creds.MyAppStateKeyId = newAppStateSyncKeyId;
@@ -136,7 +136,7 @@ namespace WhatsSocket.Core.Utils
                 || Constants.REAL_MSG_STUB_TYPES.Contains(message.MessageStubType)
                 || (Constants.REAL_MSG_REQ_ME_STUB_TYPES.Contains(message.MessageStubType) & message.MessageStubParameters.Any(x => JidUtils.AreJidsSameUser(meId, x)))
                 )
-                & hasSomeContent != null
+                & hasSomeContent 
                 & normalizedContent?.ProtocolMessage == null
                 & normalizedContent?.ReactionMessage == null
                 & normalizedContent?.PollUpdateMessage == null;

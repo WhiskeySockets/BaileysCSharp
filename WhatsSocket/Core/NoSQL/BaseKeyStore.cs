@@ -4,7 +4,7 @@
     {
         protected BaseKeyStore(string path)
         {
-            Path = System.IO.Path.Combine(path, "data");
+            Path = path;
             Directory.CreateDirectory(Path);
         }
         public string Path { get; }

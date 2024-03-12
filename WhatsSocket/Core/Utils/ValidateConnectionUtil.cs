@@ -157,7 +157,7 @@ namespace WhatsSocket.Core.Utils
 
             creds.SignalIdentities = new SignalIdentity[] { identity };
             creds.Platform = platformNode.attrs["name"];
-            creds.Me = new Contact()
+            creds.Me = new ContactModel()
             {
                 ID = jid,
                 Name = bizName
