@@ -52,7 +52,7 @@ namespace WhatsSocket.Core.Utils
             if (content.SenderKeyDistributionMessage != null)
                 return false;
 
-            var keys = content.GetType().GetProperties().Where(x => x.Name == "HasConversation" || (x.Name.Contains("Message") && x.Name.StartsWith("Has"))).ToArray();
+            var keys = content.GetType().GetProperties().Where(x => x.Name == "HasConversation" || (x.Name.Contains("Message"))).ToArray();
             foreach (var key in keys)
             {
                 var value = key.GetValue(content, null);
@@ -61,6 +61,8 @@ namespace WhatsSocket.Core.Utils
                     if (hasValue)
                         return true;
                 }
+                if (value != null)
+                    return true;
             }
 
 

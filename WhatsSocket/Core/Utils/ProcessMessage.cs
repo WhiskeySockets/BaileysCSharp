@@ -88,7 +88,7 @@ namespace WhatsSocket.Core.Utils
                                 ev.Emit(creds);
 
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
-                                ev.Emit((data.contacts,data.chats,data.messages,isLatest));
+                                ev.Emit((data.contacts, data.chats, data.messages, isLatest));
                             }
                         }
                         break;
@@ -108,17 +108,115 @@ namespace WhatsSocket.Core.Utils
                         }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
-
+                        ev.EmitMessageUpdate(MessageUpdate.FromRevoke(message, protocolMsg));
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
-
+                        chat.EphemeralSettingTimestamp = message.MessageTimestamp;
+                        chat.EphemeralExpiration = protocolMsg.EphemeralExpiration;
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.PeerDataOperationRequestMessage:
-
+                        var response = protocolMsg.PeerDataOperationRequestResponseMessage;
+                        if (response != null)
+                        {
+                            var peerDataOperationResult = response.PeerDataOperationResult;
+                            foreach (var result in peerDataOperationResult)
+                            {
+                                var retryResponse = result.PlaceholderMessageResendResponse;
+                                if (retryResponse != null)
+                                {
+                                    var webMessageInfo = WebMessageInfo.Parser.ParseFrom(retryResponse.WebMessageInfoBytes);
+                                    ev.EmitMessageUpdate(new MessageUpdate()
+                                    {
+                                        Key = webMessageInfo.Key,
+                                        Update = new MessageUpdateModel()
+                                        {
+                                            Message = webMessageInfo.Message
+                                        }
+                                    });
+                                }
+                            }
+                        }
                         break;
-
                 }
             }
+            else if (content?.ReactionMessage != null)
+            {
+                ev.EmitMessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
+            }
+            else if (message.HasMessageStubType)
+            {
+                var jid = message.Key.RemoteJid;
+                var participants = new List<string>();
+
+                var emitParticipantsUpdate = new Action<string>(action =>
+                {
+                    ev.EmitGroupParticipantUpdate(jid, message.Participant, action);
+                });
+                var emitGroupUpdate = new Action<GroupMetadata>(update =>
+                {
+                    ev.EmitGroupUpdate(jid, update);
+                });
+
+                var participantsIncludesMe = new Func<bool>(() =>
+                {
+                    return participants.Any(x => JidUtils.AreJidsSameUser(meId, x));
+                });
+
+                switch (message.MessageStubType)
+                {
+                    case WebMessageInfo.Types.StubType.GroupParticipantLeave:
+                    case WebMessageInfo.Types.StubType.GroupParticipantRemove:
+                        emitParticipantsUpdate("remove");
+                        if (participantsIncludesMe())
+                        {
+                            chat.ReadOnly = true;
+                        }
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupParticipantAdd:
+                    case WebMessageInfo.Types.StubType.GroupParticipantInvite:
+                    case WebMessageInfo.Types.StubType.GroupParticipantAddRequestJoin:
+                        participants = message.MessageStubParameters.ToList();
+                        if (participantsIncludesMe())
+                        {
+                            chat.ReadOnly = true;
+                        }
+                        emitParticipantsUpdate("add");
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupParticipantDemote:
+                        emitParticipantsUpdate("demote");
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupParticipantPromote:
+                        emitParticipantsUpdate("promote");
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupChangeAnnounce:
+                        emitGroupUpdate(new GroupMetadata() { Announce = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupChangeRestrict:
+                        emitGroupUpdate(new GroupMetadata() { Restrict = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupChangeSubject:
+                        chat.Name = message.MessageStubParameters[0];
+                        emitGroupUpdate(new GroupMetadata() { Subject = chat.Name });
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupChangeInviteLink:
+                        emitGroupUpdate(new GroupMetadata() { InviteCode = message.MessageStubParameters[0] });
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupMemberAddMode:
+                        emitGroupUpdate(new GroupMetadata() { MemberAddMode = message.MessageStubParameters[0] == "all_member_add" });
+                        break;
+                    case WebMessageInfo.Types.StubType.GroupMembershipJoinApprovalMode:
+                        emitGroupUpdate(new GroupMetadata() { JoinApprovalMode = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else if (content?.PollUpdateMessage != null)
+            {
+
+            }
+
+            ev.ChatUpdate(chat);
         }
 
         private static bool ShouldIncrementChatUnread(WebMessageInfo message)
@@ -136,7 +234,7 @@ namespace WhatsSocket.Core.Utils
                 || Constants.REAL_MSG_STUB_TYPES.Contains(message.MessageStubType)
                 || (Constants.REAL_MSG_REQ_ME_STUB_TYPES.Contains(message.MessageStubType) & message.MessageStubParameters.Any(x => JidUtils.AreJidsSameUser(meId, x)))
                 )
-                & hasSomeContent 
+                & hasSomeContent
                 & normalizedContent?.ProtocolMessage == null
                 & normalizedContent?.ReactionMessage == null
                 & normalizedContent?.PollUpdateMessage == null;

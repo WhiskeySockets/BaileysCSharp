@@ -86,5 +86,27 @@ namespace WhatsSocket.Core.Delegates
         {
             OnHistorySync?.Invoke(Sender, data);
         }
+
+        public void EmitMessageUpdate(MessageUpdate model)
+        {
+        }
+
+        internal void EmitMessageReaction(Message.Types.ReactionMessage reactionMessage, MessageKey key)
+        {
+        }
+
+        internal void EmitGroupParticipantUpdate(string jid, string participant, string action)
+        {
+        }
+
+        internal void EmitGroupUpdate(string jid, GroupMetadata update)
+        {
+
+        }
+
+        internal void ChatUpdate(params ChatModel[] chat)
+        {
+
+        }
     }
 }
