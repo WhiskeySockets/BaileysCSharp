@@ -23,11 +23,17 @@ namespace WhatsSocket.Core
         private bool PendingAppStateSync { get; set; } = false;
         private bool NeedToFlushWithAppStateSync { get; set; } = false;
 
+        private async Task<bool> HandlePresenceUpdate(BinaryNode node)
+        {
+            return true;
+        }
+
 
         #region chats
 
-        private async Task UpsertMessage(WebMessageInfo msg, string v)
+        private async Task UpsertMessage(WebMessageInfo msg, string type)
         {
+            EV.MessageUpsert([msg], type);
             if (!string.IsNullOrWhiteSpace(msg.PushName))
             {
                 var jid = msg.Key.FromMe ? Creds.Me.ID : (msg.Key.Participant ?? msg.Key.RemoteJid);

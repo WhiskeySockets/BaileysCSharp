@@ -27,5 +27,13 @@ namespace WhatsSocket.Core.Utils
             return new BinaryNode[0];
         }
 
+        public static BinaryNode[] GetAllBinaryNodeChildren(BinaryNode? message)
+        {
+            if (message?.content is BinaryNode[] messages)
+            {
+                return messages.ToArray();
+            }
+            return new BinaryNode[0];
+        }
     }
 }

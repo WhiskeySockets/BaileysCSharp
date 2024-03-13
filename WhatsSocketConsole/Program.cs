@@ -17,6 +17,7 @@ using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
+using WhatsSocket.Core.Extensions;
 
 namespace WhatsSocketConsole
 {
@@ -31,9 +32,18 @@ namespace WhatsSocketConsole
 
 
             //This creds file comes from the nodejs sample    
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "test", "creds.json");
 
 
+
+
+
+            var config = new SocketConfig()
+            {
+                ID = "27665245067",
+            };
+
+
+            var credsFile = Path.Join(config.CacheRoot, "creds.json");
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {
@@ -41,17 +51,12 @@ namespace WhatsSocketConsole
             }
             authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
 
+            BaseKeyStore keys = new FileKeyStore(config.CacheRoot);
 
-            BaseKeyStore keys = new FileKeyStore(Path.Join(Directory.GetCurrentDirectory(), "test"));
-
-            var config = new SocketConfig()
+            config.Auth = new AuthenticationState()
             {
-                ID = "test",
-                Auth = new AuthenticationState()
-                {
-                    Creds = authentication,
-                    Keys = keys
-                }
+                Creds = authentication,
+                Keys = keys
             };
 
             socket = new BaseSocket(config);
@@ -60,6 +65,7 @@ namespace WhatsSocketConsole
             socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
             socket.EV.OnDisconnect += EV_OnDisconnect;
             socket.EV.OnQR += EV_OnQR;
+            socket.EV.OnMessageUpserted += EV_OnMessageUpserted;
 
 
             socket.MakeSocket();
@@ -67,6 +73,16 @@ namespace WhatsSocketConsole
             Console.ReadLine();
         }
 
+        private static void EV_OnMessageUpserted(BaseSocket sender, (WebMessageInfo[] newMessages, string type) args)
+        {
+            //Notify is nuut
+            //Append is oud (gewoonlik as service af was)
+            foreach (var item in args.newMessages)
+            {
+                var json = item.ToJson();
+                Console.WriteLine(json);
+            }
+        }
 
         private static void EV_OnQR(BaseSocket sender, QRData args)
         {
@@ -100,7 +116,8 @@ namespace WhatsSocketConsole
 
         private static void Socket_OnCredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds)
         {
-            var credsFile = Path.Join(Directory.GetCurrentDirectory(), "test", $"creds.json");
+
+            var credsFile = Path.Join(sender.SocketConfig.CacheRoot, $"creds.json");
             var json = AuthenticationCreds.Serialize(authenticationCreds);
             File.WriteAllText(credsFile, json);
         }

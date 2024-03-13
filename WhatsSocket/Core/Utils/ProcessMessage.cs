@@ -1,4 +1,5 @@
-﻿using Proto;
+﻿using Newtonsoft.Json.Linq;
+using Proto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,11 +7,14 @@ using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Signal;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
+using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -40,7 +44,36 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, Delegates.EventEmitter ev)
+        public static async Task<WebMessageInfo> ProcessNotifciation(BinaryNode node, EventEmitter ev, Logger logger)
+        {
+            var children = GetAllBinaryNodeChildren(node);
+            var type = node.attrs["type"];
+
+            switch (type)
+            {
+                case "privacy_token":
+                    var tokenList = GetBinaryNodeChildren(children[0], "token");
+                    foreach (var item in tokenList)
+                    {
+                        var jid = item.getattr("jid");
+                        ev.ChatUpdate([new ChatModel()
+                        {
+                            ID = jid,
+                            TcToken = item.content as byte[]
+                        }]);
+
+                        logger.Debug(new { jid }, "got privacy token update");
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            return null;
+        }
+
+        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, EventEmitter ev)
         {
             var meId = creds.Me.ID;
             var chat = new ChatModel()
@@ -76,7 +109,7 @@ namespace WhatsSocket.Core.Utils
                         {
                             var histNotification = content.ProtocolMessage.HistorySyncNotification;
                             var process = shouldProcessHistoryMsg;
-                            var isLatest = creds.ProcessedHistoryMessages.Count > 0;
+                            var isLatest = creds.ProcessedHistoryMessages.Count == 0;
 
                             if (process)
                             {
@@ -216,7 +249,7 @@ namespace WhatsSocket.Core.Utils
 
             }
 
-            ev.ChatUpdate(chat);
+            ev.ChatUpdate([chat]);
         }
 
         private static bool ShouldIncrementChatUnread(WebMessageInfo message)

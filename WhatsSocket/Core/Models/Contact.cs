@@ -1,27 +1,30 @@
-﻿using Newtonsoft.Json;
+﻿using LiteDB;
+using Newtonsoft.Json;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Models
 {
-    public class ContactModel
+    public class ContactModel : IMayHaveID
     {
-        [JsonProperty("id")]
+        [BsonId]
         public string ID { get; set; }
-        [JsonProperty("lid")]
         public string LID { get; set; }
-        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonProperty("notify")]
         public string Notify { get; set; }
 
-        [JsonProperty("verifiedName")]
         public string VerifiedName { get; set; }
-
-        [JsonProperty("imgUrl")]
         public string ImgUrl { get; set; }
-
-        [JsonProperty("status")]
         public string Status { get; set; }
-    }
 
+        public string GetID()
+        {
+            return ID;
+        }
+
+        public override string ToString()
+        {
+            return $"{ID} - {Name}";
+        }
+    }
 }

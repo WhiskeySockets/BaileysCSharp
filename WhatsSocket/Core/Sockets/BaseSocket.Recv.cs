@@ -35,9 +35,20 @@ namespace WhatsSocket.Core
             return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
         }
 
-        private Task HandleNotification(BinaryNode node)
+        private async Task HandleNotification(BinaryNode node)
         {
-            return Task.CompletedTask;
+            var remoteJid = node.attrs["from"];
+            if (SocketConfig.ShouldIgnoreJid(remoteJid))
+            {
+                Logger.Debug(new { remoteJid, id = node.attrs["id"] }, "ignored notification");
+                SendMessageAck(node);
+                return;
+            }
+
+            var msg = await ProcessMessageUtil.ProcessNotifciation(node, EV, Logger);
+
+            SendMessageAck(node);
+
         }
 
         private async Task<bool> OnReceipt(BinaryNode node)

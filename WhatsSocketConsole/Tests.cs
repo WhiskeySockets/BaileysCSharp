@@ -224,13 +224,6 @@ namespace WhatsSocketConsole
             Debug.Assert(node.attrs["id"] == "262780790");
         }
 
-        private static void StartServer()
-        {
-            //var server = new WebSocketSharp.Server.WebSocketServer(533);
-            //server.AddWebSocketService<Behaviour>("/ws/chat");
-            //server.Start();
-
-        }
 
         private static void TestEncoder()
         {

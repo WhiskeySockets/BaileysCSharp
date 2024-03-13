@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Signal;
 using WhatsSocket.Core.Stores;
 
@@ -41,7 +42,7 @@ namespace WhatsSocket.Core.Models
             return true;
         }
 
-        public bool ShouldIgnoreJid()
+        public bool ShouldIgnoreJid(string jid = "")
         {
             return false;
         }
@@ -55,8 +56,25 @@ namespace WhatsSocket.Core.Models
         }
         public SignalRepository MakeSignalRepository(EventEmitter ev)
         {
-            var path = Path.Combine(Root, ID);
             return new SignalRepository(Auth);
+        }
+
+        internal MemoryStore MakeStore(EventEmitter ev, Logger logger)
+        {
+            return new MemoryStore(CacheRoot, ev, logger);
+        }
+
+        public string CacheRoot
+        {
+            get
+            {
+                var path = Path.Combine(Root, ID);
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                return path;
+            }
         }
     }
 }

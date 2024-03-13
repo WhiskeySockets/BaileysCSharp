@@ -21,6 +21,7 @@ using WhatsSocket.Core.Signal;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.Core.NoSQL;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace WhatsSocket.Core
 {
@@ -73,6 +74,8 @@ namespace WhatsSocket.Core
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
+        MemoryStore Store { get; set; }
+
         public BaseSocket([NotNull] SocketConfig config)
         {
             if (config == null)
@@ -98,6 +101,10 @@ namespace WhatsSocket.Core
             events["CB:receipt"] = OnReceipt;
             events["CB:notification"] = OnNotification;
             events["CB:ack,class:message"] = OnHandleAck;
+            events["CB:presence"] = HandlePresenceUpdate;
+            events["CB:chatstate"] = HandlePresenceUpdate;
+
+
         }
 
 
@@ -653,7 +660,7 @@ namespace WhatsSocket.Core
         private void InitStores()
         {
             Repository = SocketConfig.MakeSignalRepository(EV);
-
+            Store = SocketConfig.MakeStore(EV, Logger);
 
         }
     }

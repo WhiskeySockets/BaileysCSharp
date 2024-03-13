@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocket.Core.Delegates
 {
@@ -14,14 +15,9 @@ namespace WhatsSocket.Core.Delegates
     public class EventEmitter
     {
         public event EventEmitterHandler<QRData> OnQR;
-        //public event EventEmitterHandler<SessionStore> OnSessionStoreChange;
-        //public event EventEmitterHandler<KeyStore> OnKeyStoreChange;
         public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
         public event EventEmitterHandler<DisconnectReason> OnDisconnect;
         public event EventEmitterHandler<ContactModel> OnContactChange;
-        //public event EventEmitterHandler<AppStateSyncKeyStore> OnAppStateSyncKeyStoreChange;
-        //public event EventEmitterHandler<AppStateSyncVersionStore> OnAppStateSyncVersionStoreChange;
-        //public event EventEmitterHandler<SenderKeyStore> OnSenderKeyStoreChange;
         public event EventEmitterHandler<(List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest)> OnHistorySync;
 
         public EventEmitter(BaseSocket sender)
@@ -87,26 +83,47 @@ namespace WhatsSocket.Core.Delegates
             OnHistorySync?.Invoke(Sender, data);
         }
 
+        public event EventEmitterHandler<MessageUpdate> OnMessageUpdated;
         public void EmitMessageUpdate(MessageUpdate model)
         {
+            OnMessageUpdated?.Invoke(Sender, model);
         }
 
+        public event EventEmitterHandler<(Message.Types.ReactionMessage reactionMessage, MessageKey key)> OnMessageReaction;
         internal void EmitMessageReaction(Message.Types.ReactionMessage reactionMessage, MessageKey key)
         {
+            OnMessageReaction?.Invoke(Sender, (reactionMessage, key));
         }
 
+        public event EventEmitterHandler<(string jid, string participant, string action)> OnGroupParticipantUpdated;
         internal void EmitGroupParticipantUpdate(string jid, string participant, string action)
         {
+            OnGroupParticipantUpdated?.Invoke(Sender, (jid, participant, action));
         }
 
+        public event EventEmitterHandler<(string jid, GroupMetadata update)> OnGroupUpdated;
         internal void EmitGroupUpdate(string jid, GroupMetadata update)
         {
-
+            OnGroupUpdated?.Invoke(Sender, (jid, update));
         }
 
-        internal void ChatUpdate(params ChatModel[] chat)
+        public event EventEmitterHandler<ChatModel[]> OnChatUpdated;
+        public void ChatUpdate(ChatModel[] chat)
         {
-
+            OnChatUpdated?.Invoke(Sender, chat);
         }
+
+        public event EventEmitterHandler<ChatModel[]> OnChatUpserted;
+        public void ChatUpsert(ChatModel[] chat)
+        {
+            OnChatUpserted?.Invoke(Sender, chat);
+        }
+
+        public event EventEmitterHandler<(WebMessageInfo[] newMessages, string type)> OnMessageUpserted;
+        internal void MessageUpsert(WebMessageInfo[] newMessages, string type)
+        {
+            OnMessageUpserted?.Invoke(Sender, (newMessages, type));
+        }
+
     }
 }
