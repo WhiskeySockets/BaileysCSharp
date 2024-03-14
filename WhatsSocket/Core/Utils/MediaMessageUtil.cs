@@ -107,5 +107,24 @@ namespace WhatsSocket.Core.Utils
         {
             return (number / AES_CHUNK_SIZE) * AES_CHUNK_SIZE;
         }
+
+
+        public static object GetStatusCodeForMediaRetry(string errorCode)
+        {
+            switch (errorCode)
+            {
+                case "1":
+                    return 200;
+                case "2":
+                    return 404;
+                case "3":
+                    return 412;
+                case "0":
+                    return 418;
+                default:
+                    return 418;
+            }
+        }
+
     }
 }

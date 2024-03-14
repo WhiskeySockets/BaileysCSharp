@@ -137,5 +137,17 @@ namespace WhatsSocket.Core.Delegates
         {
             OnGroupInserted?.Invoke(Sender, value);
         }
+
+        public event EventEmitterHandler<RetryNode[]> OnMessagesMediaUpdate;
+        internal void MessagesMediaUpdate(RetryNode[] value)
+        {
+            OnMessagesMediaUpdate?.Invoke(Sender, value);
+        }
+
+        public event EventEmitterHandler<(string[] blocklist, string type)> OnBlockListUpdate;
+        internal void BlockListUpdate(string[] blocklist, string type)
+        {
+            OnBlockListUpdate?.Invoke(Sender, (blocklist, type));
+        }
     }
 }

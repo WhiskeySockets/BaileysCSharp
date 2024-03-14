@@ -130,6 +130,9 @@ namespace WhatsSocket.Core.NoSQL
             EV.OnGroupInserted += EV_OnGroupInserted;
             EV.OnGroupUpdated += EV_OnGroupUpdated;
 
+            EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
+            EV.OnBlockListUpdate += EV_OnBlockListUpdate;
+
             chats = new Store<ChatModel>(database);
             contacts = new Store<ContactModel>(database);
             messages = new Store<MessageModel>(database);
@@ -137,6 +140,16 @@ namespace WhatsSocket.Core.NoSQL
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void EV_OnBlockListUpdate(BaseSocket sender, (string[] blocklist, string type) args)
+        {
+            //TODO:
+        }
+
+        private void EV_OnMessagesMediaUpdate(BaseSocket sender, RetryNode[] args)
+        {
+            //TODO:
         }
 
         private void EV_OnGroupUpdated(BaseSocket sender, (string jid, GroupMetadataModel update) args)

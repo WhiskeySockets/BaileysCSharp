@@ -14,7 +14,7 @@ namespace WhatsSocket.Core.Models
         public string Notify { get; set; }
 
         public string VerifiedName { get; set; }
-        public string ImgUrl { get; set; }
+        public string? ImgUrl { get; set; }
         public string Status { get; set; }
 
         public string GetID()

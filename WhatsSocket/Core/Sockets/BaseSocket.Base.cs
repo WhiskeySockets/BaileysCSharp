@@ -18,10 +18,10 @@ using System.Linq;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Sockets.Client;
 using WhatsSocket.Core.Signal;
-using static WhatsSocket.Core.Utils.GenericUtils;
 using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.Core.NoSQL;
-using static System.Formats.Asn1.AsnWriter;
+using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.WABinary.Constants;
 
 namespace WhatsSocket.Core
 {

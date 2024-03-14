@@ -45,7 +45,13 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-
+        public static byte[]? GetBinaryNodeChildBuffer(BinaryNode node, string tag)
+        {
+            var child = GetBinaryNodeChild(node, tag);
+            if (child != null)
+                return child.ToByteArray();
+            return null;
+        }
 
         public static BinaryNode? GetBinaryNodeChild(BinaryNode? message, string tag)
         {

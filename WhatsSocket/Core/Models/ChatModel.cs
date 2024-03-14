@@ -3,6 +3,7 @@ using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Models
 {
+
     public class ChatModel : IMayHaveID
     {
         public ChatModel()

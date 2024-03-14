@@ -1,6 +1,8 @@
-﻿using Proto;
+﻿using Google.Protobuf.WellKnownTypes;
+using Proto;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +12,9 @@ using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Utils;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.WABinary.Constants;
 
 namespace WhatsSocket.Core
 {
@@ -49,6 +53,19 @@ namespace WhatsSocket.Core
 
             var msg = await ProcessNotifciation(node);
 
+            if (msg != null)
+            {
+                var fromMe = JidUtils.AreJidsSameUser(node.getattr("participant") ?? remoteJid, Creds.Me.ID);
+                msg.Key = msg.Key ?? new MessageKey();
+                msg.Key.RemoteJid = remoteJid;
+                msg.Key.FromMe = fromMe;
+                msg.Key.Participant = node.getattr("participant");
+                msg.Key.Id = node.getattr("id");
+                msg.Participant = msg.Key.Participant;
+                msg.MessageTimestamp = node.getattr("t").ToUInt64();
+                await UpsertMessage(msg, "append");
+            }
+
             SendMessageAck(node);
 
         }
@@ -59,9 +76,10 @@ namespace WhatsSocket.Core
             var result = new WebMessageInfo();
             var child = GetAllBinaryNodeChildren(node).FirstOrDefault();
 
-            var type = node.attrs["type"];
+            var nodeType = node.attrs["type"];
+            var from = JidUtils.JidNormalizedUser(node.getattr("from"));
 
-            switch (type)
+            switch (nodeType)
             {
                 case "privacy_token":
                     var tokenList = GetBinaryNodeChildren(child, "token");
@@ -78,11 +96,14 @@ namespace WhatsSocket.Core
                     }
                     break;
                 case "w:gp2":
-                    await HandleGroupNotification(node.attrs["participant"], child, result);
+                    HandleGroupNotification(node.attrs["participant"], child, result);
                     break;
                 case "mediaretry":
+                    var @event = DecodeMediaRetryNode(node);
+                    EV.MessagesMediaUpdate([@event]);
                     break;
                 case "encrypt":
+                    await HandleEncryptNotification(node);
                     break;
                 case "devices":
                     var devices = GetBinaryNodeChildren(child, "device");
@@ -101,21 +122,125 @@ namespace WhatsSocket.Core
                     }
                     break;
                 case "picture":
+                    var setPicture = GetBinaryNodeChild(node, "set");
+                    var delPicture = GetBinaryNodeChild(node, "delete");
+
+                    EV.ContactUpdated([new ContactModel() { ID = from, ImgUrl = setPicture != null ? "changed" : null }]);
+
+                    if (JidUtils.IsJidGroup(from))
+                    {
+                        var gnode = setPicture ?? delPicture;
+                        result.MessageStubType = WebMessageInfo.Types.StubType.GroupChangeIcon;
+
+                        if (setPicture != null)
+                        {
+                            result.MessageStubParameters.Add(setPicture.attrs["id"]);
+                        }
+
+                        result.Participant = node.getattr("author");
+                        result.Key = result.Key ?? new MessageKey();
+                        result.Key.Participant = setPicture?.getattr("author");
+                    }
+
                     break;
                 case "account_sync":
+                    if (child.tag == "disappearing_mode")
+                    {
+                        var newDuration = child.attrs["duration"].ToUInt64();
+                        var timestamp = child.attrs["t"].ToUInt64();
+
+                        Logger.Info(new { newDuration }, "updated account disappearing mode");
+                        Creds.AccountSettings.DefaultDissapearingMode = Creds.AccountSettings.DefaultDissapearingMode ?? new DissapearingMode();
+                        Creds.AccountSettings.DefaultDissapearingMode.EphemeralExpiration = newDuration;
+                        Creds.AccountSettings.DefaultDissapearingMode.EphemeralSettingTimestamp = timestamp;
+                        EV.Emit(Creds);
+                    }
+                    else if (child.tag == "blocklist")
+                    {
+                        var blocklists = GetBinaryNodeChildren(child, "item");
+
+                        foreach (var item in blocklists)
+                        {
+                            var jid = item.getattr("jid");
+                            var type = item.getattr("action") == "block" ? "add" : "remove";
+                            EV.BlockListUpdate([jid], type);
+
+                        }
+
+                    }
+
                     break;
                 case "link_code_companion_reg":
+                    //Not sure if this is needed yet.
                     break;
 
                 default:
                     break;
             }
 
-            return null;
+            return result;
         }
 
+        private async Task HandleEncryptNotification(BinaryNode node)
+        {
+            var from = node.attrs["from"];
+            if (from == S_WHATSAPP_NET)
+            {
+                var countChild = GetBinaryNodeChild(node, "count");
+                var count = countChild?.getattr("value").ToUInt32();
+                var shouldUploadMorePreKeys = count < MIN_PREKEY_COUNT;
+                if (shouldUploadMorePreKeys)
+                {
+                    await UploadPreKeys();
+                }
+            }
+            else
+            {
+                var identityNode = GetBinaryNodeChild(node, "identity");
+                if (identityNode != null)
+                {
+                    Logger.Info(new { jid = from }, "identity changed");
+                    // not handling right now
+                    // signal will override new identity anyway
+                }
+                else
+                {
+                    Logger.Info(new { node }, "unknown encrypt notification");
+                }
+            }
+        }
 
-        private async Task HandleGroupNotification(string participant, BinaryNode child, WebMessageInfo msg)
+        private RetryNode DecodeMediaRetryNode(BinaryNode node)
+        {
+            var rmrNode = GetBinaryNodeChild(node, "rmr");
+
+            var @event = new RetryNode();
+
+            var errorNode = GetBinaryNodeChild(node, "error");
+            if (errorNode != null)
+            {
+                var errorCode = errorNode.attrs["code"];
+                @event.Error = new Boom($"Failed to re-upload media ({errorCode})", new { data = errorNode.attrs, statusCode = MediaMessageUtil.GetStatusCodeForMediaRetry(errorCode) });
+            }
+            else
+            {
+                var encryptedInfoNode = GetBinaryNodeChild(node, "encrypt");
+                var ciphertext = GetBinaryNodeChildBuffer(encryptedInfoNode, "enc_p");
+                var iv = GetBinaryNodeChildBuffer(encryptedInfoNode, "enc_iv");
+
+                if (ciphertext != null && iv != null)
+                {
+                    @event.Media = new RetryMedia { CipherText = ciphertext, IV = iv };
+                }
+                else
+                {
+                    @event.Error = new Boom("Failed to re-upload media (missing ciphertext)", new { statusCode = 404 });
+                }
+            }
+
+            return @event;
+        }
+        private void HandleGroupNotification(string participant, BinaryNode child, WebMessageInfo msg)
         {
             switch (child.tag)
             {
