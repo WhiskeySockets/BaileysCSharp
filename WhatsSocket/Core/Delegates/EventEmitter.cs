@@ -149,5 +149,11 @@ namespace WhatsSocket.Core.Delegates
         {
             OnBlockListUpdate?.Invoke(Sender, (blocklist, type));
         }
+
+        public event EventEmitterHandler<MessageModel[]> OnMessagesDeleted;
+        internal void MessagesDelete(MessageModel[] value)
+        {
+            OnMessagesDeleted?.Invoke(Sender, value);
+        }
     }
 }

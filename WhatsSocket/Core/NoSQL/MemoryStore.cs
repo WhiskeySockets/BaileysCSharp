@@ -1,8 +1,8 @@
 ﻿using LiteDB;
+using Newtonsoft.Json;
 using Org.BouncyCastle.Bcpg.Sig;
 using Proto;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,94 +10,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocket.Core.NoSQL
 {
-    public interface IMayHaveID
-    {
-        string GetID();
-    }
-
-
-    public class Store<T> : IEnumerable<T> where T : IMayHaveID
-    {
-        private ILiteCollection<T> collection;
-        private List<T> list;
-        public Store(LiteDatabase database)
-        {
-            collection = database.GetCollection<T>();
-            list = collection.FindAll().ToList();
-        }
-
-
-        public void Add(T item)
-        {
-            Upsert([item]);
-        }
-
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return list.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return list.GetEnumerator();
-        }
-
-        public bool Delete(T item)
-        {
-            list.Remove(item);
-            return collection.Delete(item.GetID());
-
-        }
-
-        public void DeleteAll()
-        {
-            collection.DeleteAll();
-            list.Clear();
-        }
-
-        public void InsertBulk(IEnumerable<T> toAdd)
-        {
-            InsertIfAbsent(toAdd);
-        }
-
-        public void Upsert(IEnumerable<T> toAdd)
-        {
-            InsertIfAbsent(toAdd);
-        }
-
-        public T[] InsertIfAbsent(IEnumerable<T> @new)
-        {
-            List<T> result = new List<T>();
-            foreach (var item in @new)
-            {
-                if (list.Any(x => x.GetID() == item.GetID()))
-                {
-                    continue;
-                }
-                list.Add(item);
-                collection.Insert(item);
-                result.Add(item);
-            }
-            return result.ToArray();
-        }
-
-        internal T? FindByID(string iD)
-        {
-            return list.FirstOrDefault(x => x.GetID() == iD);
-        }
-
-        internal void Update(T existing)
-        {
-            collection.Update(existing);
-        }
-    }
 
     public class MemoryStore
     {
@@ -123,6 +42,7 @@ namespace WhatsSocket.Core.NoSQL
 
             EV.OnMessageUpserted += EV_OnMessageUpserted;
             EV.OnMessageUpdated += EV_OnMessageUpdated;
+            EV.OnMessagesDeleted += EV_OnMessagesDeleted;
 
             EV.OnChatUpserted += EV_OnChatUpserted;
             EV.OnChatUpdated += EV_OnChatUpdated;
@@ -137,9 +57,17 @@ namespace WhatsSocket.Core.NoSQL
             contacts = new Store<ContactModel>(database);
             messages = new Store<MessageModel>(database);
             groupMetaData = new Store<GroupMetadataModel>(database);
+
+            var json = JsonConvert.SerializeObject(contacts.ToArray());
+
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void EV_OnMessagesDeleted(BaseSocket sender, MessageModel[] args)
+        {
+            //TODO:
         }
 
         private void EV_OnBlockListUpdate(BaseSocket sender, (string[] blocklist, string type) args)
@@ -154,7 +82,7 @@ namespace WhatsSocket.Core.NoSQL
 
         private void EV_OnGroupUpdated(BaseSocket sender, (string jid, GroupMetadataModel update) args)
         {
-            // TODO:
+            //TODO:
         }
 
         private void EV_OnGroupInserted(BaseSocket sender, GroupMetadataModel[] args)
@@ -177,9 +105,7 @@ namespace WhatsSocket.Core.NoSQL
                     var existing = chats.FindByID(update.ID);
                     if (existing != null)
                     {
-                        existing.UnreadCount += update.UnreadCount;
-                        existing.Name = update.Name ?? existing.Name;
-                        existing.TcToken = update.TcToken ?? existing.TcToken;
+                        existing.Update(update);
                         chats.Update(existing);
                     }
                 }
@@ -225,7 +151,19 @@ namespace WhatsSocket.Core.NoSQL
 
         private void EV_OnContactUpdated(BaseSocket sender, ContactModel[] args)
         {
-
+            lock (locker)
+            {
+                changes = true;
+                foreach (var update in args)
+                {
+                    var existing = contacts.FindByID(update.ID);
+                    if (existing != null)
+                    {
+                        existing.Update(update);
+                        contacts.Update(existing);
+                    }
+                }
+            }
         }
 
         private void EV_OnContactUpserted(BaseSocket sender, ContactModel[] args)

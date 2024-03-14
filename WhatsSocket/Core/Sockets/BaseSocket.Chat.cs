@@ -261,8 +261,22 @@ namespace WhatsSocket.Core
                     }
                 }
             }
+
+
+            var onMutation = NewAppStateChunkHandler(isInitialSync);
+            foreach (var key in globalMutationMap.Keys)
+            {
+                onMutation(globalMutationMap[key]);
+            }
         }
 
+        private Action<ChatMutation> NewAppStateChunkHandler(bool isInitialSync)
+        {
+            return new Action<ChatMutation>((syncAction) =>
+            {
+                ProcessSyncAction(syncAction, EV, Creds.Me, isInitialSync ? Creds.AccountSettings : null, Logger);
+            });
+        }
 
         private bool ShouldSyncHistoryMessage(Message.Types.HistorySyncNotification historyMsg)
         {

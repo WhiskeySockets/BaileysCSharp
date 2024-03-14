@@ -12,6 +12,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
@@ -354,6 +355,111 @@ namespace WhatsSocket.Core.Utils
             return stream;
         }
 
+        internal static void ProcessSyncAction(ChatMutation syncAction, EventEmitter eV, AuthenticationCreds creds, AccountSettings? accountSettings, Logger logger)
+        {
+            var isInitialSync = accountSettings == null;
 
+            logger?.Trace(new { syncAction, initialSync = isInitialSync }, "processing sync action");
+
+            var action = syncAction.SyncAction.Value;
+
+            var type = syncAction.Index[0];
+            var id = syncAction.Index[1];
+            var msgId = syncAction.Index[2];
+            var fromMe = syncAction.Index[3];
+
+            if (action.MuteAction != null)
+            {
+                eV.ChatUpdate([new ChatModel {
+                    ID = id,
+                    MuteEndTime = action.MuteAction.Muted == true ? action.MuteAction.MuteEndTimestamp : 0
+                    //conditional
+                }]);
+            }
+            else if (action.ArchiveChatAction != null || type == "archive" || type == "unarchive")
+            {
+                // okay so we've to do some annoying computation here
+                // when we're initially syncing the app state
+                // there are a few cases we need to handle
+                // 1. if the account unarchiveChats setting is true
+                //   a. if the chat is archived, and no further messages have been received -- simple, keep archived
+                //   b. if the chat was archived, and the user received messages from the other person afterwards
+                //		then the chat should be marked unarchved --
+                //		we compare the timestamp of latest message from the other person to determine this
+                // 2. if the account unarchiveChats setting is false -- then it doesn't matter,
+                //	it'll always take an app state action to mark in unarchived -- which we'll get anyway
+                var archiveAction = action?.ArchiveChatAction;
+                var isArchived = archiveAction != null
+                    ? archiveAction.Archived
+                    : type == "archive";
+
+                //var msgRange = accountSettings?.UnarchiveChats == true ? 0 : archiveAction?.MessageRange
+                eV.ChatUpdate([new ChatModel {
+                    ID = id,
+                    Archived = isArchived
+                    //conditional: getChatUpdateConditional(id, msgRange)
+                }]);
+            }
+            else if (action.MarkChatAsReadAction != null)
+            {
+                var markReadAction = action.MarkChatAsReadAction;
+                // basically we don't need to fire an "read" update if the chat is being marked as read
+                // because the chat is read by default
+                // this only applies for the initial sync
+                var isNullUpdate = isInitialSync && markReadAction.Read;
+
+                eV.ChatUpdate([new ChatModel {
+                    ID = id,
+                    UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L))
+                    //conditional: getChatUpdateConditional(id, markReadAction?.messageRange)
+                }]);
+            }
+            else if (action.DeleteMessageForMeAction != null || type == "deleteMessageForMe")
+            {
+                eV.MessagesDelete([new MessageModel()
+                {
+                    ID = msgId,
+                    RemoteJid = id,
+                    FromMe = fromMe == "1"
+                }]);
+            }
+            else if (action.ContactAction != null)
+            {
+                eV.ContactUpsert([new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
+            }
+            else if (action.PushNameSetting != null)
+            {
+                var name = action.PushNameSetting.Name;
+                if (creds.Me.Name != name)
+                {
+                    creds.Me.Name = name;
+                    eV.Emit(creds);
+                }
+            }
+            else if (action.PinAction != null)
+            {
+
+            }
+            else if (action.UnarchiveChatsSetting != null)
+            {
+
+            }
+            else if (action.StarAction != null)
+            {
+
+            }
+            else if (action.DeleteChatAction != null)
+            {
+
+            }
+            else if (action.LabelEditAction != null)
+            {
+
+            }
+            else if (action.LabelAssociationAction != null)
+            {
+
+            }
+        }
     }
 }

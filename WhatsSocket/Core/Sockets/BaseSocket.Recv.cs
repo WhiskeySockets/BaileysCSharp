@@ -71,9 +71,9 @@ namespace WhatsSocket.Core
         }
 
 
-        public async Task<WebMessageInfo> ProcessNotifciation(BinaryNode node)
+        public async Task<WebMessageInfo?> ProcessNotifciation(BinaryNode node)
         {
-            var result = new WebMessageInfo();
+            WebMessageInfo? result = default(WebMessageInfo);
             var child = GetAllBinaryNodeChildren(node).FirstOrDefault();
 
             var nodeType = node.attrs["type"];
@@ -96,6 +96,7 @@ namespace WhatsSocket.Core
                     }
                     break;
                 case "w:gp2":
+                    result = new WebMessageInfo();
                     HandleGroupNotification(node.attrs["participant"], child, result);
                     break;
                 case "mediaretry":
@@ -107,7 +108,7 @@ namespace WhatsSocket.Core
                     break;
                 case "devices":
                     var devices = GetBinaryNodeChildren(child, "device");
-                    if (JidUtils.AreJidsSameUser(child?.attrs["jid"], Creds?.Me.ID))
+                    if (JidUtils.AreJidsSameUser(child?.getattr("jid"), Creds?.Me.ID))
                     {
                         var deviceJids = devices.Select(x => x.attrs["jid"]).ToArray();
                         Logger.Info(new { deviceJids }, "got my own devices");
@@ -129,6 +130,7 @@ namespace WhatsSocket.Core
 
                     if (JidUtils.IsJidGroup(from))
                     {
+                        result = new WebMessageInfo();
                         var gnode = setPicture ?? delPicture;
                         result.MessageStubType = WebMessageInfo.Types.StubType.GroupChangeIcon;
 
@@ -170,7 +172,14 @@ namespace WhatsSocket.Core
                     //Not sure if this is needed yet.
                     break;
 
+                case "status":
+                    var newStatus = GetBinaryNodeChildString(node, "set");
+                    EV.ContactUpdated([new ContactModel() { ID = from, Status = newStatus }]);
+                    break;
+
                 default:
+                    Logger.Warn(new { nodeType }, "Node type in Process Notification has not been implemented");
+
                     break;
             }
 

@@ -23,6 +23,7 @@ namespace WhatsSocket.Core.Models
         public string Name { get; set; }
 
         public byte[] TcToken { get; set; }
+        public long MuteEndTime { get;  set; }
 
         public string GetID()
         {

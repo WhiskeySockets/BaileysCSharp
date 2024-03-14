@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
+using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Extensions
 {
@@ -57,6 +58,25 @@ namespace WhatsSocket.Core.Extensions
                 return 0;
             }
             return Convert.ToUInt32(info);
+        }
+
+
+        public static void Update<T>(this T existing, T value) where T : IMayHaveID
+        {
+            if (existing?.GetID() != value?.GetID())
+            {
+                //Only update if ID's matches
+                return;
+            }
+
+            var properties = typeof(T).GetProperties();
+            foreach (var property in properties)
+            {
+                var old = property.GetValue(existing);
+                var @new = property.GetValue(value);
+                var toSave = @new ?? old;
+                property.SetValue(existing, toSave);
+            }
         }
     }
 }

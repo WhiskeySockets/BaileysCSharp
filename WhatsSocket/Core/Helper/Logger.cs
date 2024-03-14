@@ -168,6 +168,23 @@ namespace WhatsSocket.Core.Helper
             Console.WriteLine(json + "\n");
         }
 
+        internal void Warn(object? obj, string message)
+        {
+            if (Level >= LogLevel.Warn)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Warn,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
+                    message
+                };
+
+                Write(logEntry);
+            }
+        }
+
         internal void Warn(string message)
         {
             var logEntry = new

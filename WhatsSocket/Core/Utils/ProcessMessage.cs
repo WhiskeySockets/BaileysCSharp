@@ -86,7 +86,7 @@ namespace WhatsSocket.Core.Utils
             {
                 return Encoding.UTF8.GetString(buffer);
             }
-            return child.ToString();
+            return child?.ToString();
         }
 
         internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, EventEmitter ev)
