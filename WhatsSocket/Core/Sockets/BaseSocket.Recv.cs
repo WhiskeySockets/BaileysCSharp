@@ -279,7 +279,7 @@ namespace WhatsSocket.Core
                 case "add":
                 case "leave":
                     Dictionary<string, WebMessageInfo.Types.StubType> WAMessageStubType = new Dictionary<string, WebMessageInfo.Types.StubType>();
-                    foreach (WebMessageInfo.Types.StubType value in Enum.GetValues(typeof(WebMessageInfo.Types.StubType)))
+                    foreach (WebMessageInfo.Types.StubType value in System.Enum.GetValues(typeof(WebMessageInfo.Types.StubType)))
                     {
                         WAMessageStubType.Add(value.ToString(), value);
                     }
