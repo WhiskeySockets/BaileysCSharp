@@ -21,8 +21,8 @@ using WhatsSocket.Exceptions;
 using static Google.Protobuf.WellKnownTypes.Field.Types;
 using static Proto.ContextInfo.Types.AdReplyInfo.Types;
 using static Proto.Message.Types;
-using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.Utils.MediaMessageUtil;
+using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 
 namespace WhatsSocket.Core.Utils
 {

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Proto.ClientPayload.Types;
-using static WhatsSocket.Core.Utils.GenericUtils;
 using WhatsSocket.Core.Helper;
 using Google.Protobuf;
 using WhatsSocket.Core.Events;
@@ -14,6 +13,7 @@ using WhatsSocket.Exceptions;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.NoSQL;
+using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 
 namespace WhatsSocket.Core.Utils
 {

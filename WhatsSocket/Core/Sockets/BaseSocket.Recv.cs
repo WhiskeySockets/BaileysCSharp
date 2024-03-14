@@ -158,17 +158,13 @@ namespace WhatsSocket.Core
                     else if (child.tag == "blocklist")
                     {
                         var blocklists = GetBinaryNodeChildren(child, "item");
-
                         foreach (var item in blocklists)
                         {
                             var jid = item.getattr("jid");
                             var type = item.getattr("action") == "block" ? "add" : "remove";
                             EV.BlockListUpdate([jid], type);
-
                         }
-
                     }
-
                     break;
                 case "link_code_companion_reg":
                     //Not sure if this is needed yet.
