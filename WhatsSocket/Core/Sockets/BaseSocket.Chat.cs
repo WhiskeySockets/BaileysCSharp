@@ -41,12 +41,12 @@ namespace WhatsSocket.Core
 
                 if (!msg.Key.FromMe)
                 {
-                    EV.Emit(new ContactModel()
+                    EV.ContactUpdated([new ContactModel()
                     {
                         ID = jid,
                         Notify = msg.PushName,
                         VerifiedName = msg.VerifiedBizName
-                    });
+                    }]);
                 }
 
                 if (msg.Key.FromMe && !string.IsNullOrEmpty(msg.PushName) && Creds.Me.Name != msg.PushName)

@@ -39,5 +39,24 @@ namespace WhatsSocket.Core.Extensions
             string jsonString = formatter.Format(proto);
             return jsonString;
         }
+
+
+        public static uint ToUInt32(this string? info)
+        {
+            if (!string.IsNullOrEmpty(info))
+            {
+                return 0;
+            }
+            return Convert.ToUInt32(info);
+        }
+
+        public static ulong ToUInt64(this string? info)
+        {
+            if (!string.IsNullOrEmpty(info))
+            {
+                return 0;
+            }
+            return Convert.ToUInt32(info);
+        }
     }
 }

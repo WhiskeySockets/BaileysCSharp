@@ -6,15 +6,16 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Signal;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
-using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -44,33 +45,42 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        public static async Task<WebMessageInfo> ProcessNotifciation(BinaryNode node, EventEmitter ev, Logger logger)
+
+
+        public static BinaryNode? GetBinaryNodeChild(BinaryNode? message, string tag)
         {
-            var children = GetAllBinaryNodeChildren(node);
-            var type = node.attrs["type"];
-
-            switch (type)
+            if (message?.content is BinaryNode[] messages)
             {
-                case "privacy_token":
-                    var tokenList = GetBinaryNodeChildren(children[0], "token");
-                    foreach (var item in tokenList)
-                    {
-                        var jid = item.getattr("jid");
-                        ev.ChatUpdate([new ChatModel()
-                        {
-                            ID = jid,
-                            TcToken = item.content as byte[]
-                        }]);
-
-                        logger.Debug(new { jid }, "got privacy token update");
-                    }
-                    break;
-
-                default:
-                    break;
+                return messages.FirstOrDefault(x => x.tag == tag);
             }
-
             return null;
+        }
+        public static BinaryNode[] GetBinaryNodeChildren(BinaryNode? message, string tag)
+        {
+            if (message?.content is BinaryNode[] messages)
+            {
+                return messages.Where(x => x.tag == tag).ToArray();
+            }
+            return new BinaryNode[0];
+        }
+
+        public static BinaryNode[] GetAllBinaryNodeChildren(BinaryNode? message)
+        {
+            if (message?.content is BinaryNode[] messages)
+            {
+                return messages.ToArray();
+            }
+            return new BinaryNode[0];
+        }
+
+        public static string GetBinaryNodeChildString(BinaryNode node, string childTag)
+        {
+            var child = GetBinaryNodeChild(node, childTag)?.content;
+            if (child is byte[] buffer)
+            {
+                return Encoding.UTF8.GetString(buffer);
+            }
+            return child.ToString();
         }
 
         internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, EventEmitter ev)
@@ -121,7 +131,7 @@ namespace WhatsSocket.Core.Utils
                                 ev.Emit(creds);
 
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
-                                ev.Emit((data.contacts, data.chats, data.messages, isLatest));
+                                ev.MessageHistorySet((data.contacts, data.chats, data.messages, isLatest));
                             }
                         }
                         break;
@@ -141,7 +151,7 @@ namespace WhatsSocket.Core.Utils
                         }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
-                        ev.EmitMessageUpdate(MessageUpdate.FromRevoke(message, protocolMsg));
+                        ev.MessageUpdated(MessageUpdate.FromRevoke(message, protocolMsg));
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
                         chat.EphemeralSettingTimestamp = message.MessageTimestamp;
@@ -158,7 +168,7 @@ namespace WhatsSocket.Core.Utils
                                 if (retryResponse != null)
                                 {
                                     var webMessageInfo = WebMessageInfo.Parser.ParseFrom(retryResponse.WebMessageInfoBytes);
-                                    ev.EmitMessageUpdate(new MessageUpdate()
+                                    ev.MessageUpdated(new MessageUpdate()
                                     {
                                         Key = webMessageInfo.Key,
                                         Update = new MessageUpdateModel()
@@ -174,7 +184,7 @@ namespace WhatsSocket.Core.Utils
             }
             else if (content?.ReactionMessage != null)
             {
-                ev.EmitMessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
+                ev.MessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
             }
             else if (message.HasMessageStubType)
             {
@@ -183,11 +193,11 @@ namespace WhatsSocket.Core.Utils
 
                 var emitParticipantsUpdate = new Action<string>(action =>
                 {
-                    ev.EmitGroupParticipantUpdate(jid, message.Participant, action);
+                    ev.GroupParticipantUpdate(jid, message.Participant, action);
                 });
-                var emitGroupUpdate = new Action<GroupMetadata>(update =>
+                var emitGroupUpdate = new Action<GroupMetadataModel>(update =>
                 {
-                    ev.EmitGroupUpdate(jid, update);
+                    ev.GroupUpdate(jid, update);
                 });
 
                 var participantsIncludesMe = new Func<bool>(() =>
@@ -222,23 +232,23 @@ namespace WhatsSocket.Core.Utils
                         emitParticipantsUpdate("promote");
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeAnnounce:
-                        emitGroupUpdate(new GroupMetadata() { Announce = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        emitGroupUpdate(new GroupMetadataModel() { Announce = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeRestrict:
-                        emitGroupUpdate(new GroupMetadata() { Restrict = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        emitGroupUpdate(new GroupMetadataModel() { Restrict = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeSubject:
                         chat.Name = message.MessageStubParameters[0];
-                        emitGroupUpdate(new GroupMetadata() { Subject = chat.Name });
+                        emitGroupUpdate(new GroupMetadataModel() { Subject = chat.Name });
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeInviteLink:
-                        emitGroupUpdate(new GroupMetadata() { InviteCode = message.MessageStubParameters[0] });
+                        emitGroupUpdate(new GroupMetadataModel() { InviteCode = message.MessageStubParameters[0] });
                         break;
                     case WebMessageInfo.Types.StubType.GroupMemberAddMode:
-                        emitGroupUpdate(new GroupMetadata() { MemberAddMode = message.MessageStubParameters[0] == "all_member_add" });
+                        emitGroupUpdate(new GroupMetadataModel() { MemberAddMode = message.MessageStubParameters[0] == "all_member_add" });
                         break;
                     case WebMessageInfo.Types.StubType.GroupMembershipJoinApprovalMode:
-                        emitGroupUpdate(new GroupMetadata() { JoinApprovalMode = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        emitGroupUpdate(new GroupMetadataModel() { JoinApprovalMode = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
                         break;
                     default:
                         break;

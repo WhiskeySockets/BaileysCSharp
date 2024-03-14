@@ -17,7 +17,6 @@ namespace WhatsSocket.Core.Delegates
         public event EventEmitterHandler<QRData> OnQR;
         public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
         public event EventEmitterHandler<DisconnectReason> OnDisconnect;
-        public event EventEmitterHandler<ContactModel> OnContactChange;
         public event EventEmitterHandler<(List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest)> OnHistorySync;
 
         public EventEmitter(BaseSocket sender)
@@ -53,9 +52,17 @@ namespace WhatsSocket.Core.Delegates
             OnDisconnect?.Invoke(Sender, reason);
         }
 
-        internal void Emit(ContactModel contact)
+        public event EventEmitterHandler<ContactModel[]> OnContactUpdated;
+        internal void ContactUpdated(ContactModel[] contacts)
         {
-            OnContactChange?.Invoke(Sender, contact);
+            OnContactUpdated?.Invoke(Sender, contacts);
+        }
+
+
+        public event EventEmitterHandler<ContactModel[]> OnContactUpserted;
+        internal void ContactUpsert(ContactModel[] contacts)
+        {
+            OnContactUpserted?.Invoke(Sender, contacts);
         }
 
         //internal void Emit(AppStateSyncKeyStore appStateSyncKeyStore)
@@ -78,31 +85,31 @@ namespace WhatsSocket.Core.Delegates
             //what to do here
         }
 
-        public void Emit((List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest) data)
+        public void MessageHistorySet((List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest) data)
         {
             OnHistorySync?.Invoke(Sender, data);
         }
 
         public event EventEmitterHandler<MessageUpdate> OnMessageUpdated;
-        public void EmitMessageUpdate(MessageUpdate model)
+        public void MessageUpdated(MessageUpdate model)
         {
             OnMessageUpdated?.Invoke(Sender, model);
         }
 
         public event EventEmitterHandler<(Message.Types.ReactionMessage reactionMessage, MessageKey key)> OnMessageReaction;
-        internal void EmitMessageReaction(Message.Types.ReactionMessage reactionMessage, MessageKey key)
+        internal void MessageReaction(Message.Types.ReactionMessage reactionMessage, MessageKey key)
         {
             OnMessageReaction?.Invoke(Sender, (reactionMessage, key));
         }
 
         public event EventEmitterHandler<(string jid, string participant, string action)> OnGroupParticipantUpdated;
-        internal void EmitGroupParticipantUpdate(string jid, string participant, string action)
+        internal void GroupParticipantUpdate(string jid, string participant, string action)
         {
             OnGroupParticipantUpdated?.Invoke(Sender, (jid, participant, action));
         }
 
-        public event EventEmitterHandler<(string jid, GroupMetadata update)> OnGroupUpdated;
-        internal void EmitGroupUpdate(string jid, GroupMetadata update)
+        public event EventEmitterHandler<(string jid, GroupMetadataModel update)> OnGroupUpdated;
+        internal void GroupUpdate(string jid, GroupMetadataModel update)
         {
             OnGroupUpdated?.Invoke(Sender, (jid, update));
         }
@@ -125,5 +132,10 @@ namespace WhatsSocket.Core.Delegates
             OnMessageUpserted?.Invoke(Sender, (newMessages, type));
         }
 
+        public event EventEmitterHandler<GroupMetadataModel[]> OnGroupInserted;
+        internal void GroupInsert(GroupMetadataModel[] value)
+        {
+            OnGroupInserted?.Invoke(Sender, value);
+        }
     }
 }

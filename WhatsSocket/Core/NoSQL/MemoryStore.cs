@@ -62,7 +62,7 @@ namespace WhatsSocket.Core.NoSQL
             list.Clear();
         }
 
-        public void InsertBulk(List<T> toAdd)
+        public void InsertBulk(IEnumerable<T> toAdd)
         {
             InsertIfAbsent(toAdd);
         }
@@ -107,6 +107,7 @@ namespace WhatsSocket.Core.NoSQL
         Store<ChatModel> chats;
         Store<MessageModel> messages;
         Store<ContactModel> contacts;
+        Store<GroupMetadataModel> groupMetaData;
 
         Dictionary<string, List<WebMessageInfo>> messageList;
 
@@ -116,18 +117,36 @@ namespace WhatsSocket.Core.NoSQL
             Logger = logger;
             database = new LiteDB.LiteDatabase($"{root}\\store.db");
             EV.OnHistorySync += EV_OnHistorySync;
-            EV.OnContactChange += EV_OnContactChange;
+
+            EV.OnContactUpdated += EV_OnContactUpdated;
+            EV.OnContactUpserted += EV_OnContactUpserted;
+
             EV.OnMessageUpserted += EV_OnMessageUpserted;
             EV.OnMessageUpdated += EV_OnMessageUpdated;
-            EV.OnChatUpdated += EV_OnChatUpdated;
+
             EV.OnChatUpserted += EV_OnChatUpserted;
+            EV.OnChatUpdated += EV_OnChatUpdated;
+
+            EV.OnGroupInserted += EV_OnGroupInserted;
+            EV.OnGroupUpdated += EV_OnGroupUpdated;
 
             chats = new Store<ChatModel>(database);
             contacts = new Store<ContactModel>(database);
             messages = new Store<MessageModel>(database);
+            groupMetaData = new Store<GroupMetadataModel>(database);
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void EV_OnGroupUpdated(BaseSocket sender, (string jid, GroupMetadataModel update) args)
+        {
+            // TODO:
+        }
+
+        private void EV_OnGroupInserted(BaseSocket sender, GroupMetadataModel[] args)
+        {
+            groupMetaData.InsertBulk(args);
         }
 
         private void EV_OnChatUpserted(BaseSocket sender, ChatModel[] args)
@@ -191,10 +210,16 @@ namespace WhatsSocket.Core.NoSQL
 
         }
 
-        private void EV_OnContactChange(BaseSocket sender, ContactModel args)
+        private void EV_OnContactUpdated(BaseSocket sender, ContactModel[] args)
         {
 
         }
+
+        private void EV_OnContactUpserted(BaseSocket sender, ContactModel[] args)
+        {
+            contacts.InsertBulk(args);
+        }
+
 
         bool changes = true;
         private void OnCheckpoint(object? state)
