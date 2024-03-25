@@ -54,7 +54,10 @@ namespace WhatsSocket.Core.Utils
             if (operation == SyncdMutation.Types.SyncdOperation.Remove)
             {
                 if (prevOp == null)
-                    throw new Boom("tried remove, but no previous op", new { data = new { indexMac, valueMac } });
+                {
+                    var data = new Dictionary<string, string>() { [indexMacBase64] = Encoding.UTF8.GetString(valueMac) };
+                    throw new Boom("tried remove, but no previous op", new BoomData(data));
+                }
 
                 InitialState.IndexValueMap.Remove(indexMacBase64);
             }

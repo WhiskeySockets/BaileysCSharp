@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.Remoting;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,29 +30,59 @@ namespace WhatsSocket.Core.NoSQL
         Store<GroupMetadataModel> groupMetaData;
 
         Dictionary<string, List<WebMessageInfo>> messageList;
+        public ConnectionState State { get; set; }
 
         public MemoryStore(string root, EventEmitter ev, Logger logger)
         {
+            State = new ConnectionState();
             EV = ev;
             Logger = logger;
             database = new LiteDB.LiteDatabase($"{root}\\store.db");
-            EV.OnHistorySync += EV_OnHistorySync;
+            //EV.OnHistorySync += EV_OnHistorySync;
 
-            EV.OnContactUpdated += EV_OnContactUpdated;
-            EV.OnContactUpserted += EV_OnContactUpserted;
+            var historyEvent = EV.On<MessageHistoryModel>(EmitType.Set);
+            historyEvent.Emit += HistoryEvent_Emit;
 
-            EV.OnMessageUpserted += EV_OnMessageUpserted;
-            EV.OnMessageUpdated += EV_OnMessageUpdated;
-            EV.OnMessagesDeleted += EV_OnMessagesDeleted;
+            var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
+            connectionEvent.Emit += ConnectionEvent_Emit;
 
-            EV.OnChatUpserted += EV_OnChatUpserted;
-            EV.OnChatUpdated += EV_OnChatUpdated;
+            var contactUpdateEvent = EV.On<ContactModel>(EmitType.Update);
+            contactUpdateEvent.Emit += ContactUpdateEvent_Emit;
+            var contactUpsert = EV.On<ContactModel>(EmitType.Upsert);
+            contactUpsert.Emit += ContactUpsert_Emit;
+            //EV.OnContactUpdated += EV_OnContactUpdated;
+            //EV.ContactsUpsert.OnEmit += ContactsUpsert_OnEmit;
 
-            EV.OnGroupInserted += EV_OnGroupInserted;
-            EV.OnGroupUpdated += EV_OnGroupUpdated;
+            var messageUpdateEvent = EV.On<WebMessageInfo>(EmitType.Update);
+            messageUpdateEvent.Emit += MessageUpdateEvent_Emit;
+            var messageUpsert = EV.On<MessageUpsertModel>(EmitType.Upsert);
+            messageUpsert.Emit += MessageUpsert_Emit;
+            var messageDelete = EV.On<MessageUpdate>(EmitType.Delete);
+            messageDelete.Emit += MessageDelete_Emit;
+            //EV.OnMessageUpserted += EV_OnMessageUpserted;
+            //EV.OnMessageUpdated += EV_OnMessageUpdated;
+            //EV.OnMessagesDeleted += EV_OnMessagesDeleted;
 
-            EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
-            EV.OnBlockListUpdate += EV_OnBlockListUpdate;
+            var chatUpsertEvent = EV.On<ChatModel>(EmitType.Upsert);
+            chatUpsertEvent.Emit += ChatUpsertEvent_Emit;
+            var chatUpdateEvent = EV.On<ChatModel>(EmitType.Update);
+            chatUpdateEvent.Emit += ChatUpdateEvent_Emit;
+            var chatDeleteEvent = EV.On<ChatModel>(EmitType.Delete);
+            chatDeleteEvent.Emit += ChatDeleteEvent_Emit;
+            //EV.OnChatUpserted += EV_OnChatUpserted;
+            //EV.OnChatUpdated += EV_OnChatUpdated;
+            //EV.OnChatDeleted += EV_OnChatDeleted;
+
+
+            var groupUpdateEvent = EV.On<GroupMetadataModel>(EmitType.Update);
+            groupUpdateEvent.Emit += GroupUpdateEvent_Emit;
+            var groupUpsertEvent = EV.On<GroupMetadataModel>(EmitType.Upsert);
+            groupUpsertEvent.Emit += GroupUpsertEvent_Emit;
+            //EV.OnGroupsUpsert += EV_OnGroupInserted;
+            //EV.OnGroupUpdated += EV_OnGroupUpdated;
+
+            //EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
+            //EV.OnBlockListUpdate += EV_OnBlockListUpdate;
 
             chats = new Store<ChatModel>(database);
             contacts = new Store<ContactModel>(database);
@@ -65,37 +96,36 @@ namespace WhatsSocket.Core.NoSQL
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
         }
 
-        private void EV_OnMessagesDeleted(BaseSocket sender, MessageModel[] args)
+        private void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
         {
-            //TODO:
+            State.Connection = args[0].Connection;
+            State.QR = args[0].QR;
+            State.LastDisconnect = args[0].LastDisconnect;
+            State.IsOnline = args[0].IsOnline;
+            State.ReceivedPendingNotifications = args[0].ReceivedPendingNotifications;
+            State.IsNewLogin = args[0].IsNewLogin;
         }
 
-        private void EV_OnBlockListUpdate(BaseSocket sender, (string[] blocklist, string type) args)
+        private void GroupUpsertEvent_Emit(BaseSocket sender, GroupMetadataModel[] args)
         {
-            //TODO:
+            lock (locker)
+            {
+                groupMetaData.InsertBulk(args);
+            }
         }
 
-        private void EV_OnMessagesMediaUpdate(BaseSocket sender, RetryNode[] args)
+
+        private void GroupUpdateEvent_Emit(BaseSocket sender, GroupMetadataModel[] args)
         {
-            //TODO:
+            ///
         }
 
-        private void EV_OnGroupUpdated(BaseSocket sender, (string jid, GroupMetadataModel update) args)
+        private void ChatDeleteEvent_Emit(BaseSocket sender, ChatModel[] args)
         {
-            //TODO:
+            ///TODO
         }
 
-        private void EV_OnGroupInserted(BaseSocket sender, GroupMetadataModel[] args)
-        {
-            groupMetaData.InsertBulk(args);
-        }
-
-        private void EV_OnChatUpserted(BaseSocket sender, ChatModel[] args)
-        {
-            chats.Upsert(args);
-        }
-
-        private void EV_OnChatUpdated(BaseSocket sender, ChatModel[] args)
+        private void ChatUpdateEvent_Emit(BaseSocket sender, ChatModel[] args)
         {
             lock (locker)
             {
@@ -112,63 +142,134 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void EV_OnMessageUpserted(BaseSocket sender, (WebMessageInfo[] newMessages, string type) args)
+        private void ChatUpsertEvent_Emit(BaseSocket sender, ChatModel[] args)
         {
             lock (locker)
             {
                 changes = true;
-                switch (args.type)
-                {
-                    case "append":
-                    case "notify":
-                        foreach (var msg in args.newMessages)
-                        {
-                            var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
-                            if (messageList.ContainsKey(jid) == false)
-                            {
-                                messageList[jid] = new List<WebMessageInfo>();
-                            }
-                            messageList[jid].Add(msg);
-                            messages.Add(new MessageModel(msg));
-                            EV.ChatUpsert([new ChatModel()
-                            {
-                                ID= jid,
-                                ConversationTimestamp = msg.MessageTimestamp,
-                                UnreadCount=1
-                            }]);
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                chats.Upsert(args);
             }
         }
 
-        private void EV_OnMessageUpdated(BaseSocket sender, MessageUpdate args)
+        private void ContactUpsert_Emit(BaseSocket sender, ContactModel[] args)
         {
-
+            ContactsUpsert(args.ToList());
         }
 
-        private void EV_OnContactUpdated(BaseSocket sender, ContactModel[] args)
+        private void ContactUpdateEvent_Emit(BaseSocket sender, ContactModel[] args)
+        {
+            ///TODO
+        }
+
+
+        private ContactModel[] ContactsUpsert(List<ContactModel> newContacts)
+        {
+            var oldContacts = newContacts.ToList();
+            List<ContactModel> toAdd = new List<ContactModel>();
+            foreach (var item in newContacts)
+            {
+                if (!toAdd.Any(x => x.ID == item.ID))
+                {
+                    toAdd.Add(item);
+                }
+                oldContacts.Remove(item);
+            }
+            contacts.InsertBulk(toAdd);
+            return oldContacts.ToArray();
+        }
+
+        private void MessageDelete_Emit(BaseSocket sender, MessageUpdate[] args)
+        {
+            ///TODO
+        }
+
+        private void MessageUpsert_Emit(BaseSocket sender, MessageUpsertModel[] args)
         {
             lock (locker)
             {
-                changes = true;
-                foreach (var update in args)
+                foreach (var item in args)
                 {
-                    var existing = contacts.FindByID(update.ID);
-                    if (existing != null)
+
+                    changes = true;
+                    switch (item.Type)
                     {
-                        existing.Update(update);
-                        contacts.Update(existing);
+                        case MessageUpsertType.Append:
+                        case MessageUpsertType.Notify:
+                            foreach (var msg in item.Messages)
+                            {
+                                var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
+                                if (messageList.ContainsKey(jid) == false)
+                                {
+                                    messageList[jid] = new List<WebMessageInfo>();
+                                }
+                                messageList[jid].Add(msg);
+                                messages.Add(new MessageModel(msg));
+                                EV.Emit(EmitType.Upsert, [new ChatModel()
+                            {
+                                ID = jid,
+                                ConversationTimestamp = msg.MessageTimestamp,
+                                UnreadCount = 1
+                            }]);
+                                //EV.ChatsUpsert();
+                            }
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
         }
 
-        private void EV_OnContactUpserted(BaseSocket sender, ContactModel[] args)
+        private void MessageUpdateEvent_Emit(BaseSocket sender, WebMessageInfo[] args)
         {
-            contacts.InsertBulk(args);
+            ///TODO
+        }
+
+        private void HistoryEvent_Emit(BaseSocket sender, MessageHistoryModel[] args)
+        {
+            foreach (var item in args)
+            {
+
+                lock (locker)
+                {
+                    changes = true;
+                    if (item.IsLatest)
+                    {
+                        chats.DeleteAll();
+                        messages.DeleteAll();
+                    }
+                    var chatsAdded = chats.InsertIfAbsent(item.Chats);
+                    Logger.Debug(new { chatsAdded }, "synced chats");
+
+                    var oldContacts = ContactsUpsert(item.Contacts);
+                    if (item.IsLatest)
+                    {
+                        foreach (var contact in oldContacts)
+                        {
+                            var deleted = contacts.Delete(contact);
+                        }
+                    }
+
+                    Logger.Debug(new { deletedContacts = item.IsLatest ? oldContacts.Length : 0, item.Contacts }, "synced contacts");
+
+                    var newMessages = new List<MessageModel>();
+                    foreach (var msg in item.Messages)
+                    {
+                        var storeMessage = new MessageModel(msg);
+                        var jid = msg.Key.RemoteJid;
+                        if (messageList.ContainsKey(jid) == false)
+                        {
+                            messageList[jid] = new List<WebMessageInfo>();
+                        }
+                        messageList[jid].Insert(0, msg);
+                        newMessages.Add(storeMessage);
+
+                    }
+                    messages.InsertIfAbsent(newMessages);
+
+                    Logger.Debug(new { messages = item.Messages.Count }, "synced messages");
+                }
+            }
         }
 
 
@@ -192,66 +293,6 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void EV_OnHistorySync(BaseSocket sender, (List<Models.ContactModel> newContacts, List<Models.ChatModel> chats, List<Proto.WebMessageInfo> newMessages, bool isLatest) args)
-        {
-            lock (locker)
-            {
-                changes = true;
-                if (args.isLatest)
-                {
-                    chats.DeleteAll();
-                    messages.DeleteAll();
-                }
-                var chatsAdded = chats.InsertIfAbsent(args.chats);
-                Logger.Debug(new { chatsAdded }, "synced chats");
-
-                var oldContacts = ContactsUpsert(args.newContacts);
-                if (args.isLatest)
-                {
-                    foreach (var item in oldContacts)
-                    {
-                        var deleted = contacts.Delete(item);
-                    }
-                }
-
-                Logger.Debug(new { deletedContacts = args.isLatest ? oldContacts.Length : 0, args.newContacts }, "synced contacts");
-
-                var newMessages = new List<MessageModel>();
-                foreach (var msg in args.newMessages)
-                {
-                    var storeMessage = new MessageModel(msg);
-                    var jid = msg.Key.RemoteJid;
-                    if (messageList.ContainsKey(jid) == false)
-                    {
-                        messageList[jid] = new List<WebMessageInfo>();
-                    }
-                    messageList[jid].Insert(0, msg);
-                    newMessages.Add(storeMessage);
-
-                }
-                messages.InsertIfAbsent(newMessages);
-
-                Logger.Debug(new { messages = args.newMessages.Count }, "synced messages");
-            }
-        }
-
-
-        private ContactModel[] ContactsUpsert(List<ContactModel> newContacts)
-        {
-            var oldContacts = newContacts.ToList();
-            List<ContactModel> toAdd = new List<ContactModel>();
-            foreach (var item in newContacts)
-            {
-                if (!toAdd.Any(x => x.ID == item.ID))
-                {
-                    toAdd.Add(item);
-                }
-                oldContacts.Remove(item);
-            }
-            contacts.InsertBulk(toAdd);
-
-            return oldContacts.ToArray();
-        }
 
         public EventEmitter EV { get; }
         public Logger Logger { get; }

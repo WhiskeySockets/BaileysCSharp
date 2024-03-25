@@ -23,12 +23,16 @@ namespace WhatsSocket.Core.Models
             ConnectTimeoutMs = 20000;
             KeepAliveIntervalMs = 30000;
             DefaultQueryTimeoutMs = 60000;
+            MarkOnlineOnConnect = true;
+            FireInitQueries = true;
         }
 
         public int ConnectTimeoutMs { get; set; }
         public int KeepAliveIntervalMs { get; set; }
         public int DefaultQueryTimeoutMs { get; set; }
         public int QrTimeout { get; set; }
+        public bool MarkOnlineOnConnect { get; set; }
+        public bool FireInitQueries { get; set; }
         public Logger Logger { get; set; }
         public bool Mobile => false;//For Now only multi device api
 

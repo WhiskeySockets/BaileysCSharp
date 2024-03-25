@@ -134,10 +134,12 @@ namespace WhatsSocket.Core.Utils
                                     Key = message.Key,
                                     MessageTimestamp = message.MessageTimestamp
                                 });
-                                ev.Emit(creds);
+                                ev.Emit(EmitType.Update, creds);
+                                //ev.CredsUpdate(creds);
 
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
-                                ev.MessageHistorySet((data.contacts, data.chats, data.messages, isLatest));
+                                ev.Emit(EmitType.Set, data);
+                                //ev.MessageHistorySet((data.contacts, data.chats, data.messages, isLatest));
                             }
                         }
                         break;
@@ -153,11 +155,13 @@ namespace WhatsSocket.Core.Utils
                                 newAppStateSyncKeyId = id;
                             }
                             creds.MyAppStateKeyId = newAppStateSyncKeyId;
-                            ev.Emit(creds);
+                            ev.Emit(EmitType.Update, creds);
+                            //ev.CredsUpdate(creds);
                         }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
-                        ev.MessageUpdated(MessageUpdate.FromRevoke(message, protocolMsg));
+                        ev.Emit(EmitType.Update, [MessageUpdate.FromRevoke(message, protocolMsg)]);
+                        //ev.MessageUpdated([MessageUpdate.FromRevoke(message, protocolMsg)]);
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
                         chat.EphemeralSettingTimestamp = message.MessageTimestamp;
@@ -174,14 +178,22 @@ namespace WhatsSocket.Core.Utils
                                 if (retryResponse != null)
                                 {
                                     var webMessageInfo = WebMessageInfo.Parser.ParseFrom(retryResponse.WebMessageInfoBytes);
-                                    ev.MessageUpdated(new MessageUpdate()
+                                    ev.Emit(EmitType.Update, [new MessageUpdate()
                                     {
                                         Key = webMessageInfo.Key,
                                         Update = new MessageUpdateModel()
                                         {
                                             Message = webMessageInfo.Message
                                         }
-                                    });
+                                    }]);
+                                    //ev.MessageUpdated([new MessageUpdate()
+                                    //{
+                                    //    Key = webMessageInfo.Key,
+                                    //    Update = new MessageUpdateModel()
+                                    //    {
+                                    //        Message = webMessageInfo.Message
+                                    //    }
+                                    //}]);
                                 }
                             }
                         }
@@ -190,7 +202,8 @@ namespace WhatsSocket.Core.Utils
             }
             else if (content?.ReactionMessage != null)
             {
-                ev.MessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
+                ev.Emit(EmitType.Reaction, new MessageReactionModel(content.ReactionMessage, content.ReactionMessage.Key));
+                //ev.MessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
             }
             else if (message.HasMessageStubType)
             {
@@ -199,11 +212,13 @@ namespace WhatsSocket.Core.Utils
 
                 var emitParticipantsUpdate = new Action<string>(action =>
                 {
-                    ev.GroupParticipantUpdate(jid, message.Participant, action);
+                    ev.Emit(EmitType.Update, new GroupParticipantUpdateModel(jid, message.Participant, action));
+                    //ev.GroupParticipantUpdate(jid, message.Participant, action);
                 });
                 var emitGroupUpdate = new Action<GroupMetadataModel>(update =>
                 {
-                    ev.GroupUpdate(jid, update);
+                    ev.Emit(EmitType.Update, new GroupUpdateModel(jid, update));
+                    //ev.GroupUpdate(jid, update);
                 });
 
                 var participantsIncludesMe = new Func<bool>(() =>
@@ -265,7 +280,8 @@ namespace WhatsSocket.Core.Utils
 
             }
 
-            ev.ChatUpdate([chat]);
+            ev.Emit(EmitType.Update, chat);
+            //ev.ChatsUpdate([chat]);
         }
 
         private static bool ShouldIncrementChatUnread(WebMessageInfo message)

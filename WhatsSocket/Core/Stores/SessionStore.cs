@@ -21,18 +21,6 @@ namespace WhatsSocket.Core.Stores
 
     public class SessionStore
     {
-        //[JsonIgnore]
-        //public KeyStore Keys { get; set; }
-        //[JsonIgnore]
-        //public SenderKeyStore SenderKeys { get; }
-
-
-        //[JsonIgnore]
-        //public AppStateSyncVersionStore AppStateSyncVersionStore { get; }
-
-        //[JsonIgnore]
-        //public AppStateSyncKeyStore AppStateSyncKeyStore { get; }
-
         public EventEmitter Ev { get; }
         [JsonIgnore]
         public AuthenticationCreds? Creds { get; set; }
@@ -53,10 +41,6 @@ namespace WhatsSocket.Core.Stores
 
             }
             Ev = ev;
-            //SenderKeys = new SenderKeyStore(Path.Combine(path, "data", "sender-keys"), ev);
-            //Keys = new KeyStore(Path.Combine(path, "keys"), Config, ev);
-            //AppStateSyncVersionStore = new AppStateSyncVersionStore(Path.Combine(path, "data", "app-state-sync-version"), ev);
-            //AppStateSyncKeyStore = new AppStateSyncKeyStore(Path.Combine(path, "data", "app-state-sync-key"), ev);
 
         }
 

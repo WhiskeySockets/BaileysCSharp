@@ -21,4 +21,10 @@ namespace WhatsSocket.Core.Models
         public ulong EphemeralSettingTimestamp { get; set; }
 
     }
+
+
+    public class MessagingHistory
+    {
+
+    }
 }

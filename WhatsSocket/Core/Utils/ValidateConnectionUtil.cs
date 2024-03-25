@@ -300,14 +300,5 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-
-        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-        public static async Task<bool> ProcessNodeWithBuffer(BinaryNode node, string identifier, Func<BinaryNode, Task> action)
-        {
-            await semaphoreSlim.WaitAsync();
-            await action(node);
-            semaphoreSlim.Release();
-            return true;
-        }
     }
 }

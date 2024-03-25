@@ -1,11 +1,7 @@
-﻿using Google.Protobuf.WellKnownTypes;
+﻿using Google.Protobuf;
 using Proto;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading.Tasks;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
@@ -16,18 +12,56 @@ using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.WABinary.Constants;
 
-namespace WhatsSocket.Core
+namespace WhatsSocket.Core.Sockets
 {
-    public partial class BaseSocket
+    public abstract class MessagesRecvSocket : MessagesSocket
     {
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+        public bool SendActiveReceipts;
 
+        protected MessagesRecvSocket([NotNull] SocketConfig config) : base(config)
+        {
+            events["CB:message"] = OnMessage;
+            events["CB:call"] = OnCall;
+            events["CB:receipt"] = OnReceipt;
+            events["CB:notification"] = OnNotification;
+            events["CB:ack,class:message"] = OnHandleAck;
+            var connectionEvent = EV.On<ConnectionState>(EmitType.Upsert);
+            connectionEvent.Emit += ConnectionEvent_Emit;
+        }
+
+        private void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        {
+            if (args[0].IsOnline.HasValue)
+            {
+                SendActiveReceipts = args[0].IsOnline.Value;
+                Logger.Trace($"sendActiveReceipts set to '{SendActiveReceipts}'");
+            }
+        }
 
         #region messages-recv
 
 
+        public async Task<bool> ProcessNodeWithBuffer(BinaryNode node, string identifier, Func<BinaryNode, Task> action)
+        {
+            await semaphoreSlim.WaitAsync();
+            EV.Buffer();
+            try
+            {
+                await action(node);
+            }
+            catch (Exception ex)
+            {
+                OnUnexpectedError(ex, identifier);
+            }
+            EV.Flush();
+            semaphoreSlim.Release();
+            return true;
+        }
+
         private async Task<bool> OnHandleAck(BinaryNode node)
         {
-            return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "handling ack", HandleAck);
+            return await ProcessNodeWithBuffer(node, "handling ack", HandleAck);
         }
 
         private Task<bool> HandleAck(BinaryNode node)
@@ -38,7 +72,7 @@ namespace WhatsSocket.Core
 
         private async Task<bool> OnNotification(BinaryNode node)
         {
-            return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
+            return await ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
         }
 
         private async Task HandleNotification(BinaryNode node)
@@ -63,7 +97,7 @@ namespace WhatsSocket.Core
                 msg.Key.Id = node.getattr("id");
                 msg.Participant = msg.Key.Participant;
                 msg.MessageTimestamp = node.getattr("t").ToUInt64();
-                await UpsertMessage(msg, "append");
+                await UpsertMessage(msg, MessageUpsertType.Append);
             }
 
             SendMessageAck(node);
@@ -86,11 +120,12 @@ namespace WhatsSocket.Core
                     foreach (var item in tokenList)
                     {
                         var jid = item.getattr("jid");
-                        EV.ChatUpdate([new ChatModel()
+                        EV.Emit(EmitType.Update, [new ChatModel()
                         {
                             ID = jid,
-                            TcToken = item.content as byte[]
+                            TcToken = item.ToByteArray(),
                         }]);
+                        //EV.ChatsUpdate();
 
                         Logger.Debug(new { jid }, "got privacy token update");
                     }
@@ -101,7 +136,7 @@ namespace WhatsSocket.Core
                     break;
                 case "mediaretry":
                     var @event = DecodeMediaRetryNode(node);
-                    EV.MessagesMediaUpdate([@event]);
+                    ///TODO MEDIA RETRY
                     break;
                 case "encrypt":
                     await HandleEncryptNotification(node);
@@ -126,7 +161,7 @@ namespace WhatsSocket.Core
                     var setPicture = GetBinaryNodeChild(node, "set");
                     var delPicture = GetBinaryNodeChild(node, "delete");
 
-                    EV.ContactUpdated([new ContactModel() { ID = from, ImgUrl = setPicture != null ? "changed" : null }]);
+                    EV.Emit(EmitType.Update, [new ContactModel() { ID = from, ImgUrl = setPicture != null ? "changed" : null }]);
 
                     if (JidUtils.IsJidGroup(from))
                     {
@@ -146,25 +181,30 @@ namespace WhatsSocket.Core
 
                     break;
                 case "account_sync":
-                    if (child.tag == "disappearing_mode")
+                    if (child?.tag == "disappearing_mode")
                     {
                         var newDuration = child.attrs["duration"].ToUInt64();
                         var timestamp = child.attrs["t"].ToUInt64();
 
                         Logger.Info(new { newDuration }, "updated account disappearing mode");
-                        Creds.AccountSettings.DefaultDissapearingMode = Creds.AccountSettings.DefaultDissapearingMode ?? new DissapearingMode();
-                        Creds.AccountSettings.DefaultDissapearingMode.EphemeralExpiration = newDuration;
-                        Creds.AccountSettings.DefaultDissapearingMode.EphemeralSettingTimestamp = timestamp;
-                        EV.Emit(Creds);
+                        if (Creds != null)
+                        {
+                            Creds.AccountSettings.DefaultDissapearingMode = Creds.AccountSettings.DefaultDissapearingMode ?? new DissapearingMode();
+                            Creds.AccountSettings.DefaultDissapearingMode.EphemeralExpiration = newDuration;
+                            Creds.AccountSettings.DefaultDissapearingMode.EphemeralSettingTimestamp = timestamp;
+                            EV.Emit(EmitType.Update, Creds);
+                        }
                     }
-                    else if (child.tag == "blocklist")
+                    else if (child?.tag == "blocklist")
                     {
                         var blocklists = GetBinaryNodeChildren(child, "item");
                         foreach (var item in blocklists)
                         {
                             var jid = item.getattr("jid");
                             var type = item.getattr("action") == "block" ? "add" : "remove";
-                            EV.BlockListUpdate([jid], type);
+
+                            ///TODO: BLOCKLIST UPDATE
+                            //EV.BlockListUpdate([jid], type);
                         }
                     }
                     break;
@@ -174,7 +214,7 @@ namespace WhatsSocket.Core
 
                 case "status":
                     var newStatus = GetBinaryNodeChildString(node, "set");
-                    EV.ContactUpdated([new ContactModel() { ID = from, Status = newStatus }]);
+                    EV.Emit(EmitType.Update, [new ContactModel() { ID = from, Status = newStatus }]);
                     break;
 
                 default:
@@ -225,7 +265,7 @@ namespace WhatsSocket.Core
             if (errorNode != null)
             {
                 var errorCode = errorNode.attrs["code"];
-                @event.Error = new Boom($"Failed to re-upload media ({errorCode})", new { data = errorNode.attrs, statusCode = MediaMessageUtil.GetStatusCodeForMediaRetry(errorCode) });
+                @event.Error = new Boom($"Failed to re-upload media ({errorCode})", new BoomData(MediaMessageUtil.GetStatusCodeForMediaRetry(errorCode), errorNode.attrs));
             }
             else
             {
@@ -239,7 +279,7 @@ namespace WhatsSocket.Core
                 }
                 else
                 {
-                    @event.Error = new Boom("Failed to re-upload media (missing ciphertext)", new { statusCode = 404 });
+                    @event.Error = new Boom("Failed to re-upload media (missing ciphertext)", new BoomData(404));
                 }
             }
 
@@ -258,14 +298,15 @@ namespace WhatsSocket.Core
                     {
                         Participant = metadata.Owner,
                     };
-                    EV.ChatUpsert([new ChatModel()
+
+                    EV.Emit(EmitType.Upsert, [new ChatModel()
                     {
                         ID = metadata.ID,
                         Name = metadata.Subject ?? "",
                         ConversationTimestamp = metadata.Creation
                     }]);
+                    EV.Emit(EmitType.Upsert, [metadata]);
 
-                    EV.GroupInsert([metadata]);
                     break;
                 case "ephemeral":
                 case "not_ephemeral":
@@ -385,7 +426,7 @@ namespace WhatsSocket.Core
 
         private async Task<bool> OnReceipt(BinaryNode node)
         {
-            return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "handling receipt", HandleReceipt);
+            return await ProcessNodeWithBuffer(node, "handling receipt", HandleReceipt);
         }
 
         private Task HandleReceipt(BinaryNode node)
@@ -395,7 +436,7 @@ namespace WhatsSocket.Core
 
         private async Task<bool> OnCall(BinaryNode node)
         {
-            return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "handling call", HandleCall);
+            return await ProcessNodeWithBuffer(node, "handling call", HandleCall);
         }
 
         private Task HandleCall(BinaryNode node)
@@ -405,13 +446,12 @@ namespace WhatsSocket.Core
 
         private async Task<bool> OnMessage(BinaryNode node)
         {
-            return await ValidateConnectionUtil.ProcessNodeWithBuffer(node, "processing message", HandleMessage);
+            return await ProcessNodeWithBuffer(node, "processing message", HandleMessage);
         }
-        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+
+
         private async Task HandleMessage(BinaryNode node)
         {
-            await semaphoreSlim.WaitAsync();
-
             var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
             result.Decrypt();
 
@@ -448,7 +488,7 @@ namespace WhatsSocket.Core
                 }
 
                 //When upsert works this is to be implemented
-                //SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
+                SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
 
                 var isAnyHistoryMsg = HistoryUtil.GetHistoryMsg(result.Msg.Message);
                 if (isAnyHistoryMsg != null)
@@ -458,14 +498,13 @@ namespace WhatsSocket.Core
                 }
             }
 
-            ProcessMessageUtil.CleanMessage(result.Msg, Creds.Me.ID);
+            CleanMessage(result.Msg, Creds.Me.ID);
 
 
-            await UpsertMessage(result.Msg, node.getattr("offline") != null ? "append" : "notify");
+            await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageUpsertType.Append : MessageUpsertType.Notify);
 
             //When upsert works this is to be implemented
             SendMessageAck(node);
-            semaphoreSlim.Release();
         }
 
 
@@ -572,6 +611,5 @@ namespace WhatsSocket.Core
 
 
         #endregion
-
     }
 }

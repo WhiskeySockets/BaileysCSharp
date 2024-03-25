@@ -109,7 +109,7 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static object GetStatusCodeForMediaRetry(string errorCode)
+        public static int GetStatusCodeForMediaRetry(string errorCode)
         {
             switch (errorCode)
             {

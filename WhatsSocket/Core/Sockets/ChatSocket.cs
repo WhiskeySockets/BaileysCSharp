@@ -1,6 +1,7 @@
 ﻿using Proto;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,13 +13,104 @@ using WhatsSocket.Core.Utils;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ChatUtils;
+using static WhatsSocket.Core.Models.ChatConstants;
+using static WhatsSocket.Core.WABinary.Constants;
 
 namespace WhatsSocket.Core
 {
-    public partial class BaseSocket
+    public abstract class ChatSocket : BaseSocket
     {
 
-        public static string[] ALL_WA_PATCH_NAMES = ["critical_block", "critical_unblock_low", "regular_high", "regular_low", "regular"];
+
+
+
+        public ChatSocket([NotNull] SocketConfig config) : base(config)
+        {
+            events["CB:presence"] = HandlePresenceUpdate;
+            events["CB:chatstate"] = HandlePresenceUpdate;
+            events["CB:ib,,dirty"] = HandleDirtyUpdate;
+
+            var connectionUpdateEvent = EV.On<ConnectionState>(EmitType.Update);
+            connectionUpdateEvent.Emit += ConnectionUpdateEvent_Emit;
+        }
+
+        private void ConnectionUpdateEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        {
+            var arg = args[0];
+            if (arg.Connection == WAConnectionState.Open)
+            {
+                if (SocketConfig.FireInitQueries)
+                {
+                    ///TODO:
+                }
+
+                SendPresenceUpdate(SocketConfig.MarkOnlineOnConnect ? WAPresence.Available : WAPresence.Unavailable);
+
+            }
+            if (arg.ReceivedPendingNotifications)
+            {
+                // if we don't have the app state key
+                // we keep buffering events until we finally have
+                // the key and can sync the messages
+                if (Creds?.MyAppStateKeyId != null && !SocketConfig.Mobile)
+                {
+                    EV.Buffer();
+                    NeedToFlushWithAppStateSync = true;
+                }
+            }
+        }
+
+        private void SendPresenceUpdate(WAPresence type, string toJid = "")
+        {
+            var me = Creds.Me;
+            if (type == WAPresence.Available || type == WAPresence.Unavailable)
+            {
+                if (me?.Name == null)
+                {
+                    Logger.Warn("no name present, ignoring presence update requests...");
+                    return;
+                }
+                EV.Emit(EmitType.Update, new ConnectionState() { IsOnline = type == WAPresence.Available });
+
+                SendNode(new BinaryNode()
+                {
+                    tag = "presence",
+                    attrs =
+                    {
+                        { "name", me.Name },
+                        { "type" , type.ToString().ToLowerInvariant() }
+                    }
+                });
+            }
+            else
+            {
+                var childNode = new BinaryNode()
+                {
+                    tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
+                };
+                if (type == WAPresence.Recording)
+                {
+                    childNode = new BinaryNode()
+                    {
+                        tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
+                        attrs = {
+                            {"media" ,"audio" }
+                        }
+                    };
+                }
+                SendNode(new BinaryNode()
+                {
+                    tag = "chatstate",
+                    attrs =
+                    {
+                        {"from", me.ID },
+                        {"to", toJid}
+                    },
+                    content = new BinaryNode[] { childNode }
+                });
+
+            }
+        }
 
         private bool PendingAppStateSync { get; set; } = false;
         private bool NeedToFlushWithAppStateSync { get; set; } = false;
@@ -28,12 +120,18 @@ namespace WhatsSocket.Core
             return true;
         }
 
+        protected virtual async Task<bool> HandleDirtyUpdate(BinaryNode node)
+        {
+            return true;
+        }
+
 
         #region chats
 
-        private async Task UpsertMessage(WebMessageInfo msg, string type)
+        protected async Task UpsertMessage(WebMessageInfo msg, MessageUpsertType type)
         {
-            EV.MessageUpsert([msg], type);
+            EV.Emit(EmitType.Upsert, new MessageUpsertModel(type, msg));
+            //EV.MessageUpsert([msg], type);
             if (!string.IsNullOrWhiteSpace(msg.PushName))
             {
                 var jid = msg.Key.FromMe ? Creds.Me.ID : (msg.Key.Participant ?? msg.Key.RemoteJid);
@@ -41,18 +139,20 @@ namespace WhatsSocket.Core
 
                 if (!msg.Key.FromMe)
                 {
-                    EV.ContactUpdated([new ContactModel()
+                    EV.Emit(EmitType.Update, [new ContactModel()
                     {
                         ID = jid,
                         Notify = msg.PushName,
                         VerifiedName = msg.VerifiedBizName
                     }]);
+                    //EV.ContactUpdated();
                 }
 
                 if (msg.Key.FromMe && !string.IsNullOrEmpty(msg.PushName) && Creds.Me.Name != msg.PushName)
                 {
                     Creds.Me.Name = msg.PushName;
-                    EV.Emit(Creds);
+                    EV.Emit(EmitType.Update, Creds);
+                    //EV.CredsUpdate(Creds);
                 }
 
             }
@@ -102,7 +202,7 @@ namespace WhatsSocket.Core
                 await ResyncAppState(ALL_WA_PATCH_NAMES, true);
 
                 Creds.AccountSyncCounter++;
-                EV.Emit(Creds);
+                EV.Emit(EmitType.Update, Creds);
 
                 if (NeedToFlushWithAppStateSync)
                 {
@@ -113,7 +213,7 @@ namespace WhatsSocket.Core
 
         }
 
-        private async Task ResyncAppState(string[] collections, bool isInitialSync)
+        protected async Task ResyncAppState(string[] collections, bool isInitialSync)
         {
 
             Dictionary<string, ulong> initialVersionMap = new Dictionary<string, ulong>();
@@ -121,7 +221,7 @@ namespace WhatsSocket.Core
 
             Dictionary<string, int> attemptsMap = new Dictionary<string, int>();
 
-            Dictionary<string, ChatMutation> globalMutationMap = new Dictionary<string, ChatMutation>();
+            ChatMutationMap globalMutationMap = new ChatMutationMap();
             foreach (var collection in collections)
             {
                 attemptsMap[collection] = 0;
@@ -212,10 +312,7 @@ namespace WhatsSocket.Core
                             var newState = decodedSnapshot.state;
                             states[name] = newState;
                             Logger.Info($"restored state of {name} from snapshot to v{newState.Version} with mutations");
-                            foreach (var map in decodedSnapshot.mutationMap)
-                            {
-                                globalMutationMap[map.Key] = map.Value;
-                            }
+                            globalMutationMap.Assign(decodedSnapshot.mutationMap);
                             Keys.Set<AppStateSyncVersion>(name, newState);
                             //Repository.Storage.AppStateSyncVersionStore.Set(name, newState);
                         }
@@ -232,10 +329,7 @@ namespace WhatsSocket.Core
 
                             Logger.Info($"synced {name} to v{decodePatches.state.Version}");
                             initialVersionMap[name] = decodePatches.state.Version;
-                            foreach (var map in decodePatches.mutationMap)
-                            {
-                                globalMutationMap[map.Key] = map.Value;
-                            }
+                            globalMutationMap.Assign(decodePatches.mutationMap);
                         }
 
                         if (keyPair.Value.HasMorePatches)
@@ -264,7 +358,7 @@ namespace WhatsSocket.Core
 
 
             var onMutation = NewAppStateChunkHandler(isInitialSync);
-            foreach (var key in globalMutationMap.Keys)
+            foreach (var key in globalMutationMap)
             {
                 onMutation(globalMutationMap[key]);
             }
@@ -274,13 +368,40 @@ namespace WhatsSocket.Core
         {
             return new Action<ChatMutation>((syncAction) =>
             {
-                ProcessSyncAction(syncAction, EV, Creds.Me, isInitialSync ? Creds.AccountSettings : null, Logger);
+                ProcessSyncAction(syncAction, EV, Creds, isInitialSync ? Creds.AccountSettings : null, Logger);
             });
         }
 
         private bool ShouldSyncHistoryMessage(Message.Types.HistorySyncNotification historyMsg)
         {
             return true;
+        }
+
+        internal async Task CleanDirtyBits(string type)
+        {
+            Logger.Info(new { DateTime.Now }, "clean dirty bits " + type);
+            SendNode(new BinaryNode(type)
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to",S_WHATSAPP_NET },
+                    {"type" ,"set" },
+                    {"xmlns", "urn:xmpp:whatsapp:dirty"  },
+                    {"id", GenerateMessageTag() },
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "clean",
+                        attrs = 
+                        {
+                            {"type", type }
+                        }
+                    }
+                }
+            });
         }
 
         #endregion

@@ -18,6 +18,9 @@ using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Extensions;
+using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Sockets;
+using WhatsSocket.Exceptions;
 
 namespace WhatsSocketConsole
 {
@@ -59,13 +62,26 @@ namespace WhatsSocketConsole
                 Keys = keys
             };
 
-            socket = new BaseSocket(config);
+            socket = new WASocket(config);
 
 
-            socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
-            socket.EV.OnDisconnect += EV_OnDisconnect;
-            socket.EV.OnQR += EV_OnQR;
-            socket.EV.OnMessageUpserted += EV_OnMessageUpserted;
+            var authEvent = socket.EV.On<AuthenticationCreds>(EmitType.Update);
+            authEvent.Emit += AuthEvent_OnEmit;
+
+            var connectionEvent = socket.EV.On<ConnectionState>(EmitType.Update);
+            connectionEvent.Emit += ConnectionEvent_Emit;
+
+
+            var messageEvent = socket.EV.On<MessageUpsertModel>(EmitType.Upsert);
+            messageEvent.Emit += MessageEvent_Emit;
+
+            var history = socket.EV.On<MessageHistoryModel>(EmitType.Set);
+            history.Emit += History_Emit;
+
+            //socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
+            //socket.EV.OnDisconnect += EV_OnDisconnect;
+            //socket.EV.OnQR += EV_OnQR;
+            //socket.EV.OnMessageUpserted += EV_OnMessageUpserted;
 
 
             socket.MakeSocket();
@@ -73,27 +89,64 @@ namespace WhatsSocketConsole
             Console.ReadLine();
         }
 
-        private static void EV_OnMessageUpserted(BaseSocket sender, (WebMessageInfo[] newMessages, string type) args)
+        private static void History_Emit(BaseSocket sender, MessageHistoryModel[] args)
         {
-            //Notify is nuut
-            //Append is oud (gewoonlik as service af was)
-            foreach (var item in args.newMessages)
+            messages.AddRange(args[0].Messages);
+            var jsons = messages.Select(x => x.ToJson()).ToArray();
+            var array = $"[\n{string.Join(",", jsons)}\n]";
+            Debug.WriteLine(array);
+        }
+
+        static List<WebMessageInfo> messages = new List<WebMessageInfo>();
+
+        private static void MessageEvent_Emit(BaseSocket sender, MessageUpsertModel[] args)
+        {
+            messages.AddRange(args[0].Messages);
+            var jsons = messages.Select(x => x.ToJson()).ToArray();
+            var array = $"[\n{string.Join(",", jsons)}\n]";
+            Debug.WriteLine(array);
+        }
+
+        private static void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        {
+            var connection = args[0];
+            Debug.WriteLine(JsonConvert.SerializeObject(connection, Formatting.Indented));
+            if (connection.QR != null)
             {
-                var json = item.ToJson();
-                Console.WriteLine(json);
+                QRCodeGenerator QrGenerator = new QRCodeGenerator();
+                QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(connection.QR, QRCodeGenerator.ECCLevel.L);
+                AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
+                var data = qrCode.GetGraphic(1);
+                Console.WriteLine(data);
+            }
+            if (connection.Connection == WAConnectionState.Close)
+            {
+                if (connection.LastDisconnect.Error is Boom boom && boom.Data?.StatusCode != (int)DisconnectReason.LoggedOut)
+                {
+                    try
+                    {
+                        Thread.Sleep(1000);
+                        sender.MakeSocket();
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("You are logged out");
+                }
             }
         }
 
-        private static void EV_OnQR(BaseSocket sender, QRData args)
+        private static void AuthEvent_OnEmit(BaseSocket sender, AuthenticationCreds[] args)
         {
-
-            QRCodeGenerator QrGenerator = new QRCodeGenerator();
-            QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(args.Data, QRCodeGenerator.ECCLevel.L);
-            AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
-            var data = qrCode.GetGraphic(1);
-
-            Console.WriteLine(data);
+            var credsFile = Path.Join(sender.SocketConfig.CacheRoot, $"creds.json");
+            var json = AuthenticationCreds.Serialize(args[0]);
+            File.WriteAllText(credsFile, json);
         }
+
 
 
 
@@ -113,14 +166,6 @@ namespace WhatsSocketConsole
         }
 
 
-
-        private static void Socket_OnCredentialsChangeArgs(BaseSocket sender, AuthenticationCreds authenticationCreds)
-        {
-
-            var credsFile = Path.Join(sender.SocketConfig.CacheRoot, $"creds.json");
-            var json = AuthenticationCreds.Serialize(authenticationCreds);
-            File.WriteAllText(credsFile, json);
-        }
 
 
     }

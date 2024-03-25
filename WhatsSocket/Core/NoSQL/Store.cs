@@ -56,6 +56,7 @@ namespace WhatsSocket.Core.NoSQL
         public T[] InsertIfAbsent(IEnumerable<T> @new)
         {
             List<T> result = new List<T>();
+            List<T> toAdd = new List<T>();
             foreach (var item in @new)
             {
                 if (list.Any(x => x.GetID() == item.GetID()))
@@ -63,9 +64,10 @@ namespace WhatsSocket.Core.NoSQL
                     continue;
                 }
                 list.Add(item);
-                collection.Insert(item);
+                toAdd.Add(item);
                 result.Add(item);
             }
+            collection.InsertBulk(toAdd);
             return result.ToArray();
         }
 

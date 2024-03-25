@@ -1,6 +1,7 @@
 ﻿using Proto;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,149 +12,107 @@ using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocket.Core.Delegates
 {
+    public enum EmitType
+    {
+        Set = 1,
+        Upsert = 2,
+        Update = 4,
+        Delete = 8,
+        Reaction = 16,
+    }
+
+
+
     public delegate void EventEmitterHandler<T>(BaseSocket sender, T args);
     public class EventEmitter
     {
-        public event EventEmitterHandler<QRData> OnQR;
-        public event EventEmitterHandler<AuthenticationCreds> OnCredsChange;
-        public event EventEmitterHandler<DisconnectReason> OnDisconnect;
-        public event EventEmitterHandler<(List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest)> OnHistorySync;
+
+        Dictionary<string, Dictionary<EmitType, IEventStore>> GroupedEvents;
+
 
         public EventEmitter(BaseSocket sender)
         {
             Sender = sender;
+            GroupedEvents = new Dictionary<string, Dictionary<EmitType, IEventStore>>();
         }
 
         public BaseSocket Sender { get; }
 
-
-        internal void EmitQR(QRData qr)
-        {
-            OnQR?.Invoke(Sender, qr);
-        }
-
-        //internal void Emit(SessionStore store)
-        //{
-        //    OnSessionStoreChange?.Invoke(Sender, store);
-        //}
-
-        //internal void Emit(KeyStore store)
-        //{
-        //    OnKeyStoreChange?.Invoke(Sender, store);
-        //}
-
-        internal void Emit(AuthenticationCreds creds)
-        {
-            OnCredsChange.Invoke(Sender, creds);
-        }
-
-        internal void Emit(DisconnectReason reason)
-        {
-            OnDisconnect?.Invoke(Sender, reason);
-        }
-
-        public event EventEmitterHandler<ContactModel[]> OnContactUpdated;
-        internal void ContactUpdated(ContactModel[] contacts)
-        {
-            OnContactUpdated?.Invoke(Sender, contacts);
-        }
-
-
-        public event EventEmitterHandler<ContactModel[]> OnContactUpserted;
-        internal void ContactUpsert(ContactModel[] contacts)
-        {
-            OnContactUpserted?.Invoke(Sender, contacts);
-        }
-
-        //internal void Emit(AppStateSyncKeyStore appStateSyncKeyStore)
-        //{
-        //    OnAppStateSyncKeyStoreChange?.Invoke(Sender, appStateSyncKeyStore);
-        //}
-
-        //internal void Emit(AppStateSyncVersionStore appStateSyncVersionStore)
-        //{
-        //    OnAppStateSyncVersionStoreChange?.Invoke(Sender, appStateSyncVersionStore);
-        //}
-
-        //internal void Emit(SenderKeyStore senderKeyStore)
-        //{
-        //    OnSenderKeyStoreChange?.Invoke(Sender, senderKeyStore);
-        //}
-
         public void Flush()
         {
-            //what to do here
+            foreach (var item in GroupedEvents)
+            {
+                foreach (var store in item.Value)
+                {
+                    store.Value.Flush();
+                }
+            }
         }
 
-        public void MessageHistorySet((List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages, bool isLatest) data)
+        public void Buffer()
         {
-            OnHistorySync?.Invoke(Sender, data);
+
         }
 
-        public event EventEmitterHandler<MessageUpdate> OnMessageUpdated;
-        public void MessageUpdated(MessageUpdate model)
+
+        public string[] BufferableEvent = [
+
+
+            $"{typeof(MessagingHistory)}.{EmitType.Set}",
+
+            $"{typeof(ChatModel)}.{EmitType.Upsert}",
+            $"{typeof(ChatModel)}.{EmitType.Upsert}",
+            $"{typeof(ChatModel)}.{EmitType.Delete}",
+
+            $"{typeof(ContactModel)}.{EmitType.Upsert}",
+            $"{typeof(ContactModel)}.{EmitType.Update}",
+
+            $"{typeof(MessageModel)}.{EmitType.Upsert}",
+            $"{typeof(MessageModel)}.{EmitType.Update}",
+            $"{typeof(MessageModel)}.{EmitType.Delete}",
+            $"{typeof(MessageModel)}.{EmitType.Reaction}",
+
+            //$"MessageReceipt.{EmitType.Update}",
+            //$"Group.{EmitType.Reaction}",
+
+            ];
+
+        public bool Emit<T>(EmitType type, params T[] args)
         {
-            OnMessageUpdated?.Invoke(Sender, model);
+            var eventkey = $"{typeof(T)}.{type}";
+            if (!GroupedEvents.ContainsKey(eventkey))
+            {
+                GroupedEvents[eventkey] = new Dictionary<EmitType, IEventStore>();
+            }
+            var events = GroupedEvents[eventkey];
+            if (!events.ContainsKey(type))
+            {
+                events[type] = new EventStore<T>(Sender, BufferableEvent.Contains($"{typeof(T)}.{type}"));
+            }
+            var store = (EventStore<T>)events[type];
+            store.Append(args);
+            return true;
         }
 
-        public event EventEmitterHandler<(Message.Types.ReactionMessage reactionMessage, MessageKey key)> OnMessageReaction;
-        internal void MessageReaction(Message.Types.ReactionMessage reactionMessage, MessageKey key)
+        public EventStore<T> On<T>(EmitType type)
         {
-            OnMessageReaction?.Invoke(Sender, (reactionMessage, key));
+            var eventkey = $"{typeof(T)}.{type}";
+            if (!GroupedEvents.ContainsKey(eventkey))
+            {
+                GroupedEvents[eventkey] = new Dictionary<EmitType, IEventStore>();
+            }
+            var events = GroupedEvents[eventkey];
+            if (!events.ContainsKey(type))
+            {
+                events[type] = new EventStore<T>(Sender, BufferableEvent.Contains($"{typeof(T)}.{type}"));
+            }
+            var store = (EventStore<T>)events[type];
+            return store;
         }
 
-        public event EventEmitterHandler<(string jid, string participant, string action)> OnGroupParticipantUpdated;
-        internal void GroupParticipantUpdate(string jid, string participant, string action)
-        {
-            OnGroupParticipantUpdated?.Invoke(Sender, (jid, participant, action));
-        }
-
-        public event EventEmitterHandler<(string jid, GroupMetadataModel update)> OnGroupUpdated;
-        internal void GroupUpdate(string jid, GroupMetadataModel update)
-        {
-            OnGroupUpdated?.Invoke(Sender, (jid, update));
-        }
-
-        public event EventEmitterHandler<ChatModel[]> OnChatUpdated;
-        public void ChatUpdate(ChatModel[] chat)
-        {
-            OnChatUpdated?.Invoke(Sender, chat);
-        }
-
-        public event EventEmitterHandler<ChatModel[]> OnChatUpserted;
-        public void ChatUpsert(ChatModel[] chat)
-        {
-            OnChatUpserted?.Invoke(Sender, chat);
-        }
-
-        public event EventEmitterHandler<(WebMessageInfo[] newMessages, string type)> OnMessageUpserted;
-        internal void MessageUpsert(WebMessageInfo[] newMessages, string type)
-        {
-            OnMessageUpserted?.Invoke(Sender, (newMessages, type));
-        }
-
-        public event EventEmitterHandler<GroupMetadataModel[]> OnGroupInserted;
-        internal void GroupInsert(GroupMetadataModel[] value)
-        {
-            OnGroupInserted?.Invoke(Sender, value);
-        }
-
-        public event EventEmitterHandler<RetryNode[]> OnMessagesMediaUpdate;
-        internal void MessagesMediaUpdate(RetryNode[] value)
-        {
-            OnMessagesMediaUpdate?.Invoke(Sender, value);
-        }
-
-        public event EventEmitterHandler<(string[] blocklist, string type)> OnBlockListUpdate;
-        internal void BlockListUpdate(string[] blocklist, string type)
-        {
-            OnBlockListUpdate?.Invoke(Sender, (blocklist, type));
-        }
-
-        public event EventEmitterHandler<MessageModel[]> OnMessagesDeleted;
-        internal void MessagesDelete(MessageModel[] value)
-        {
-            OnMessagesDeleted?.Invoke(Sender, value);
-        }
+        /** Receive an update on a call, including when the call was received, rejected, accepted */
+        //'call': WACallEvent[]
+        //'labels.edit': Label
+        //'labels.association': { association: LabelAssociation, type: 'add' | 'remove' }
     }
 }

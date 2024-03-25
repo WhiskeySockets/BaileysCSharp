@@ -89,13 +89,13 @@ namespace WhatsSocket.Core.Utils
 
 
 
-        internal static async Task<(AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static async Task<(AppStateSyncVersion state, ChatMutationMap mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = appStateSyncVersion.Version;
             newState.IndexValueMap = appStateSyncVersion.IndexValueMap;
 
-            var mutationMap = new Dictionary<string, ChatMutation>();
+            var mutationMap = new ChatMutationMap();
             for (int i = 0; i < syncds.Count; i++)
             {
                 var syncd = syncds[i];
@@ -119,10 +119,11 @@ namespace WhatsSocket.Core.Utils
                 {
                     if (mutation != null)
                     {
-                        var index = mutation.SyncAction.Index.ToString();
+                        var indexStr = Encoding.UTF8.GetString(mutation.SyncAction.Index.ToByteArray());
+                        var index = JsonConvert.DeserializeObject<string[]>(indexStr);
                         if (index != null)
                         {
-                            mutationMap[index] = mutation;
+                            mutationMap[index[0]] = mutation;
                         }
                     }
                 };
@@ -206,22 +207,23 @@ namespace WhatsSocket.Core.Utils
             return SyncdMutations.Parser.ParseFrom(buffer);
         }
 
-        internal static (AppStateSyncVersion state, Dictionary<string, ChatMutation> mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static (AppStateSyncVersion state, ChatMutationMap mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = snapshot.Version.Version;
 
-            var mutationMap = new Dictionary<string, ChatMutation>();
+            var mutationMap = new ChatMutationMap();
             bool areMutationsRequired = minimumVersionNumber == 0 || newState.Version > minimumVersionNumber;
 
             var onChatMutation = (ChatMutation mutation) =>
             {
                 if (areMutationsRequired)
                 {
-                    var index = mutation.SyncAction.Index.ToString();
+                    var indexStr = Encoding.UTF8.GetString(mutation.SyncAction.Index.ToByteArray());
+                    var index = JsonConvert.DeserializeObject<string[]>(indexStr);
                     if (index != null)
                     {
-                        mutationMap[index] = mutation;
+                        mutationMap[index[0]] = mutation;
                     }
                 }
             };
@@ -363,20 +365,28 @@ namespace WhatsSocket.Core.Utils
 
             var action = syncAction.SyncAction.Value;
 
+            if (syncAction.Index.Length < 4)
+            {
+                var index = syncAction.Index;
+                Array.Resize(ref index, 4);
+                syncAction.Index = index;
+            }
+
             var type = syncAction.Index[0];
             var id = syncAction.Index[1];
             var msgId = syncAction.Index[2];
             var fromMe = syncAction.Index[3];
 
-            if (action.MuteAction != null)
+            if (action?.MuteAction != null)
             {
-                eV.ChatUpdate([new ChatModel {
+                eV.Emit(EmitType.Update, [new ChatModel {
                     ID = id,
                     MuteEndTime = action.MuteAction.Muted == true ? action.MuteAction.MuteEndTimestamp : 0
                     //conditional
                 }]);
+                //eV.ChatsUpdate();
             }
-            else if (action.ArchiveChatAction != null || type == "archive" || type == "unarchive")
+            else if (action?.ArchiveChatAction != null || type == "archive" || type == "unarchive")
             {
                 // okay so we've to do some annoying computation here
                 // when we're initially syncing the app state
@@ -394,13 +404,18 @@ namespace WhatsSocket.Core.Utils
                     : type == "archive";
 
                 //var msgRange = accountSettings?.UnarchiveChats == true ? 0 : archiveAction?.MessageRange
-                eV.ChatUpdate([new ChatModel {
+                eV.Emit(EmitType.Update, [new ChatModel {
                     ID = id,
                     Archived = isArchived
-                    //conditional: getChatUpdateConditional(id, msgRange)
+                    //conditional
                 }]);
+                //eV.ChatsUpdate([new ChatModel {
+                //ID = id,
+                //    Archived = isArchived
+                //    //conditional: getChatUpdateConditional(id, msgRange)
+                //}]);
             }
-            else if (action.MarkChatAsReadAction != null)
+            else if (action?.MarkChatAsReadAction != null)
             {
                 var markReadAction = action.MarkChatAsReadAction;
                 // basically we don't need to fire an "read" update if the chat is being marked as read
@@ -408,55 +423,97 @@ namespace WhatsSocket.Core.Utils
                 // this only applies for the initial sync
                 var isNullUpdate = isInitialSync && markReadAction.Read;
 
-                eV.ChatUpdate([new ChatModel {
+                eV.Emit(EmitType.Update, [new ChatModel {
                     ID = id,
                     UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L))
-                    //conditional: getChatUpdateConditional(id, markReadAction?.messageRange)
+                    //conditional
                 }]);
+                //eV.ChatsUpdate([new ChatModel {
+                //    ID = id,
+                //    UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L))
+                //    //conditional: getChatUpdateConditional(id, markReadAction?.messageRange)
+                //}]);
             }
-            else if (action.DeleteMessageForMeAction != null || type == "deleteMessageForMe")
+            else if (action?.DeleteMessageForMeAction != null || type == "deleteMessageForMe")
             {
-                eV.MessagesDelete([new MessageModel()
+                eV.Emit(EmitType.Delete, [new MessageModel()
                 {
                     ID = msgId,
                     RemoteJid = id,
                     FromMe = fromMe == "1"
                 }]);
+                //eV.MessagesDelete();
             }
-            else if (action.ContactAction != null)
+            else if (action?.ContactAction != null)
             {
-                eV.ContactUpsert([new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
+
+                eV.Emit(EmitType.Upsert, [new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
+                //eV.ContactUpsert([new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
             }
-            else if (action.PushNameSetting != null)
+            else if (action?.PushNameSetting != null)
             {
                 var name = action.PushNameSetting.Name;
                 if (creds.Me.Name != name)
                 {
                     creds.Me.Name = name;
-                    eV.Emit(creds);
+                    eV.Emit(EmitType.Update, creds);
+                    //eV.CredsUpdate(creds);
                 }
             }
-            else if (action.PinAction != null)
+            else if (action?.PinAction != null)
+            {
+                eV.Emit(EmitType.Update, [new ChatModel {
+                    ID = id,
+                    Pinned = action.PinAction.Pinned ? action.Timestamp : 0,
+                    //conditional: getChatUpdateConditional(id, undefined)
+                }]);
+                //eV.ChatsUpdate([new ChatModel {
+                //    ID = id,
+                //    Pinned = action.PinAction.Pinned ? action.Timestamp : 0,
+                //    //conditional: getChatUpdateConditional(id, undefined)
+                //}]);
+            }
+            else if (action?.UnarchiveChatsSetting != null)
+            {
+                var unarchiveChats = action.UnarchiveChatsSetting.UnarchiveChats;
+                creds.AccountSettings.UnarchiveChats = unarchiveChats;
+                eV.Emit(EmitType.Update, creds);
+                //eV.CredsUpdate(creds);
+            }
+            else if (action?.StarAction != null)
+            {
+                var starred = action.StarAction.Starred;
+                eV.Emit(EmitType.Update, [new MessageUpdate() {
+                    Key = new MessageKey(){
+                        RemoteJid = id,
+                        Id = msgId,
+                        FromMe = fromMe == "1"
+                    },
+                    Update = new MessageUpdateModel(){
+                        Starred = starred,
+                    }
+                }]);
+                //eV.MessageUpdated([new MessageUpdate() {
+                //    Key = new MessageKey(){
+                //        RemoteJid = id,
+                //        Id = msgId,
+                //        FromMe = fromMe == "1"
+                //    },
+                //    Update = new MessageUpdateModel(){
+                //        Starred = starred,
+                //    }
+                //}]);
+            }
+            else if (action?.DeleteChatAction != null)
+            {
+                eV.Emit(EmitType.Delete, new ChatModel() { ID = id });
+                //eV.ChatsDelete([id]);
+            }
+            else if (action?.LabelEditAction != null)
             {
 
             }
-            else if (action.UnarchiveChatsSetting != null)
-            {
-
-            }
-            else if (action.StarAction != null)
-            {
-
-            }
-            else if (action.DeleteChatAction != null)
-            {
-
-            }
-            else if (action.LabelEditAction != null)
-            {
-
-            }
-            else if (action.LabelAssociationAction != null)
+            else if (action?.LabelAssociationAction != null)
             {
 
             }

@@ -65,7 +65,17 @@ namespace WhatsSocket.Core.Sockets.Client
         {
             if (socket.State == WebSocketState.Open)
             {
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Bey", CancellationToken.None);
+                try
+                {
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Bey", CancellationToken.None);
+                }
+                catch (OperationCanceledException ex)
+                {
+
+                }
+                catch (WebSocketException ex)
+                {
+                }
                 OnDisconnected(Events.DisconnectReason.ConnectionClosed);
             }
         }

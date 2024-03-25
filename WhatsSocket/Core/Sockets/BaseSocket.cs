@@ -22,27 +22,26 @@ using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.Core.NoSQL;
 using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.WABinary.Constants;
+using WhatsSocket.Core.Extensions;
 
 namespace WhatsSocket.Core
 {
 
 
-    public partial class BaseSocket
+    public abstract class BaseSocket
     {
 
         public EventEmitter EV { get; set; }
-
-
-        Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
-        Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
-
+        //protected ConnectionState State { get; set; }
+        protected Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
+        protected Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
+        protected SignalRepository Repository { get; set; }
         private string[] Browser = { "Baileys 2.0", "Chrome", "4.0.0" };
 
         AbstractSocketClient Client;
         NoiseHandler noise;
         public long Epoch { get; set; }
         public Logger Logger { get; }
-        private SignalRepository Repository { get; set; }
 
         Thread keepAliveThread;
         CancellationTokenSource keepAliveToken;
@@ -52,7 +51,7 @@ namespace WhatsSocket.Core
         public string UniqueTagId { get; set; }
         CancellationTokenSource qrTimerToken;
 
-        Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
+        protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
 
         public bool SendActiveReceipts { get; set; }
 
@@ -83,6 +82,7 @@ namespace WhatsSocket.Core
 
             SocketConfig = config;
             EV = new EventEmitter(this);
+            //EV.OnPendingNotifications += EV_OnPendingNotifications;
             Creds = config.Auth.Creds;
             Keys = config.Auth.Keys;
             Logger = config.Logger;
@@ -96,15 +96,26 @@ namespace WhatsSocket.Core
             events["CB:success"] = OnSuccess;
             events["CB:failure"] = OnFailure;
             events["CB:ib,,downgrade_webclient"] = DowngradeWebClient;
-            events["CB:message"] = OnMessage; ;
-            events["CB:call"] = OnCall;
-            events["CB:receipt"] = OnReceipt;
-            events["CB:notification"] = OnNotification;
-            events["CB:ack,class:message"] = OnHandleAck;
-            events["CB:presence"] = HandlePresenceUpdate;
-            events["CB:chatstate"] = HandlePresenceUpdate;
+            events["CB:ib,,offline"] = HandleOfflineSynceDone;
 
 
+        }
+
+        private bool DidStartBuffer { get; set; }
+        private Task<bool> HandleOfflineSynceDone(BinaryNode node)
+        {
+            var child = GetBinaryNodeChild(node, "offline");
+            var offlineNotifs = child?.getattr("count").ToUInt32();
+            Logger.Info($"handled {offlineNotifs} offline messages/notifications");
+
+            if (DidStartBuffer)
+            {
+                EV.Flush();
+                Logger.Trace("flushed events for initial buffer");
+            }
+
+            EV.Emit(EmitType.Update, new ConnectionState() { ReceivedPendingNotifications = true });
+            return Task.FromResult(true);
         }
 
 
@@ -139,7 +150,7 @@ namespace WhatsSocket.Core
                     attrs = new Dictionary<string, string>()
                     {
                         {"id", GenerateMessageTag() },
-                        {"to",Constants.S_WHATSAPP_NET },
+                        {"to",S_WHATSAPP_NET },
                         {"type","get" },
                         {"xmlns" ,"w:p" }
                     },
@@ -257,13 +268,15 @@ namespace WhatsSocket.Core
 
         private Task<bool> OnFailure(BinaryNode node)
         {
+            var reason = node.getattr("reason") ?? "500";
             if (node.attrs["reason"] == "401")
             {
                 Client.Opened -= Client_Opened;
                 Client.Disconnected -= Client_Disconnected;
 
-                EV.Emit(DisconnectReason.LoggedOut);
             }
+
+            End(new Boom("Connection Failure", new BoomData(Convert.ToInt32(reason), node.attrs)));
 
             return Task.FromResult(true);
         }
@@ -301,9 +314,7 @@ namespace WhatsSocket.Core
                     var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
 
 
-                    //File.WriteAllBytes("qr.png", data);
-
-                    EV.EmitQR(new QRData(qr));
+                    EV.Emit(EmitType.Update, new ConnectionState() { QR = qr });
 
 
                     //await Console.Out.WriteLineAsync(qr);
@@ -334,9 +345,13 @@ namespace WhatsSocket.Core
 
                 var reply = ValidateConnectionUtil.ConfigureSuccessfulPairing(Creds, node);
 
-                EV.Emit(Creds);
 
-                Console.Clear();
+                Logger.Info(Creds, "pairing configured successfully, expect to restart the connection...");
+
+                EV.Emit(EmitType.Update, Creds);
+
+                EV.Emit(EmitType.Update, new ConnectionState() { QR = null, IsNewLogin = true });
+
                 SendNode(reply);
             }
             catch (Boom ex)
@@ -353,13 +368,14 @@ namespace WhatsSocket.Core
             await SendPassiveIq("active");
 
             Logger.Info("opened connection to WA");
+            EV.Emit(EmitType.Update, new ConnectionState() { Connection = WAConnectionState.Open });
 
             return true;
         }
         private async Task<bool> StreamEnd(BinaryNode node)
         {
             await Task.Yield();
-            End("Connection Terminated by Server", DisconnectReason.ConnectionClosed);
+            End(new Boom("Connection Terminated by Server", new BoomData(DisconnectReason.ConnectionLost)));
             return true;
         }
 
@@ -368,7 +384,7 @@ namespace WhatsSocket.Core
         #region Sending
 
         /** send a binary node */
-        private void SendNode(BinaryNode iq)
+        protected void SendNode(BinaryNode iq)
         {
             var buffer = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
             SendRawMessage(buffer);
@@ -381,7 +397,7 @@ namespace WhatsSocket.Core
             Client.Send(toSend);
         }
 
-        private Task<BinaryNode> Query(BinaryNode iq)
+        protected Task<BinaryNode> Query(BinaryNode iq)
         {
             if (!iq.attrs.ContainsKey("id"))
             {
@@ -431,7 +447,6 @@ namespace WhatsSocket.Core
             Client.Opened -= Client_Opened;
             Client.Disconnected -= Client_Disconnected;
 
-            EV.Emit(reason);
         }
         private async Task<bool> Emit(string key, BinaryNode e)
         {
@@ -475,15 +490,16 @@ namespace WhatsSocket.Core
             }
         }
 
-        private async Task UploadPreKeys()
+        protected async Task UploadPreKeys()
         {
             if (Creds == null)
             {
                 throw new ArgumentNullException(nameof(Creds));
             }
             var node = ValidateConnectionUtil.GetNextPreKeysNode(Creds, Keys, Constants.INITIAL_PREKEY_COUNT);
-            var result = await Query(node);
-            EV.Emit(Creds);
+            await Query(node);
+
+            EV.Emit(EmitType.Update, Creds);
         }
 
         private async Task<int> GetAvailablePreKeysOnServer()
@@ -630,13 +646,66 @@ namespace WhatsSocket.Core
             UniqueTagId = GenerateMdTagPrefix();
             Epoch = 1;
 
+            BeforeConnect();
             Client.Connect();
+            closed = false;
         }
 
+        bool closed = false;
+        private void BeforeConnect()
+        {
+            if (Creds.Me != null)
+            {
+                // start buffering important events
+                // if we're logged in
+                EV.Buffer();
+                DidStartBuffer = true;
+            }
+            EV.Emit(EmitType.Upsert, new ConnectionState() { Connection = WAConnectionState.Connecting, ReceivedPendingNotifications = false, QR = null });
+        }
 
         private NoiseHandler MakeNoiseHandler()
         {
             return new NoiseHandler(EphemeralKeyPair, Logger);
+        }
+
+
+        public void OnUnexpectedError(Exception error, string message)
+        {
+            Logger.Error(error, $"unexpected error in '{message}'");
+        }
+
+        private void End(Boom error)
+        {
+            if (closed)
+            {
+                Logger.Trace(new { trace = error.StackTrace }, "connection already closed");
+                return;
+            }
+
+            Logger.Trace(new { trace = error.StackTrace }, "connection closed");
+            keepAliveToken?.Cancel();
+            qrTimerToken?.Cancel();
+
+            //try
+            //{
+            //    Client.Disconnect();
+            //}
+            //catch (Exception)
+            //{
+            //}
+
+            closed = true;
+
+            EV.Emit(EmitType.Update, new ConnectionState()
+            {
+                Connection = WAConnectionState.Close,
+                LastDisconnect = new LastDisconnect()
+                {
+                    Date = DateTime.Now,
+                    Error = error
+                }
+            });
         }
 
         private void End(string reason, DisconnectReason connectionLost)

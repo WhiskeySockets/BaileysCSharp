@@ -21,13 +21,13 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static async Task<(List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages)> DownloadAndProcessHistorySyncNotification(Message.Types.HistorySyncNotification msg)
+        public static async Task<MessageHistoryModel> DownloadAndProcessHistorySyncNotification(Message.Types.HistorySyncNotification msg)
         {
             var historyMsg = await DownloadHistory(msg);
             return ProcessHistoryMessage(historyMsg);
         }
 
-        private static (List<ContactModel> contacts, List<ChatModel> chats, List<WebMessageInfo> messages) ProcessHistoryMessage(HistorySync item)
+        private static MessageHistoryModel ProcessHistoryMessage(HistorySync item)
         {
             List<WebMessageInfo> messages = new List<WebMessageInfo>();
             List<ContactModel> contacts = new List<ContactModel>();
@@ -92,7 +92,7 @@ namespace WhatsSocket.Core.Utils
                 default:
                     break;
             }
-            return (contacts, chats, messages);
+            return new MessageHistoryModel(contacts, chats, messages,false);
         }
 
         private static async Task<HistorySync> DownloadHistory(Message.Types.HistorySyncNotification msg)
