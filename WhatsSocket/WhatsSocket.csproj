@@ -33,8 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\WAProto.2.proto" />
-    <Protobuf Include="Proto\WAProto.3.proto" />
+    <Protobuf Include="Proto\WAProto.proto" />
     <Protobuf Include="Proto\WhisperTextProtocol.proto" />
   </ItemGroup>
 
