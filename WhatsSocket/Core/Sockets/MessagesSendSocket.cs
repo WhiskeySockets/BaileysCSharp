@@ -3,9 +3,9 @@ using WhatsSocket.Core.Models;
 
 namespace WhatsSocket.Core.Sockets
 {
-    public abstract class MessagesSocket : GroupSocket
+    public abstract class MessagesSendSocket : GroupSocket
     {
-        public MessagesSocket([NotNull] SocketConfig config) : base(config)
+        public MessagesSendSocket([NotNull] SocketConfig config) : base(config)
         {
         }
     }

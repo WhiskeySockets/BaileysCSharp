@@ -446,7 +446,6 @@ namespace WhatsSocket.Core.Utils
             }
             else if (action?.ContactAction != null)
             {
-
                 eV.Emit(EmitType.Upsert, [new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
                 //eV.ContactUpsert([new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
             }

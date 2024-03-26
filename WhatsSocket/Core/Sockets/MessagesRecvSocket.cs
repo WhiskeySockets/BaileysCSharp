@@ -14,7 +14,7 @@ using static WhatsSocket.Core.WABinary.Constants;
 
 namespace WhatsSocket.Core.Sockets
 {
-    public abstract class MessagesRecvSocket : MessagesSocket
+    public abstract class MessagesRecvSocket : MessagesSendSocket
     {
         static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
         public bool SendActiveReceipts;
