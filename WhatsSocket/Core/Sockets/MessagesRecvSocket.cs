@@ -26,7 +26,7 @@ namespace WhatsSocket.Core.Sockets
             events["CB:receipt"] = OnReceipt;
             events["CB:notification"] = OnNotification;
             events["CB:ack,class:message"] = OnHandleAck;
-            var connectionEvent = EV.On<ConnectionState>(EmitType.Upsert);
+            var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
             connectionEvent.Emit += ConnectionEvent_Emit;
         }
 

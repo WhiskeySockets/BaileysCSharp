@@ -72,6 +72,23 @@ namespace WhatsSocket.Core.Helper
                 Write(logEntry);
             }
         }
+        public void Error(object? obj, string message)
+        {
+            if (Level >= LogLevel.Error)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Error,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
+                    message
+                };
+
+
+                Write(logEntry);
+            }
+        }
 
         public void Error(Exception ex, string message)
         {

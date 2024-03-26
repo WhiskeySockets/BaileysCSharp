@@ -15,6 +15,7 @@ using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ChatUtils;
 using static WhatsSocket.Core.Models.ChatConstants;
 using static WhatsSocket.Core.WABinary.Constants;
+using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 
 namespace WhatsSocket.Core
 {
@@ -117,11 +118,79 @@ namespace WhatsSocket.Core
 
         private async Task<bool> HandlePresenceUpdate(BinaryNode node)
         {
+            await Task.Yield();
+            PresenceData presence = null;
+            var jid = node.getattr("from");
+            var participant = node.getattr("participant") ?? jid;
+            var tag = node.tag;
+
+            if (SocketConfig.ShouldIgnoreJid(jid))
+            {
+                return false;
+            }
+
+            if (tag == "presence")
+            {
+                presence = new PresenceData()
+                {
+                    LastKnownPresence = node.getattr("type") == "unavailable" ? WAPresence.Unavailable : WAPresence.Available,
+                    LastSeen = node.getattr("last") != "deny" ? Convert.ToUInt32(node.getattr("last")) : null
+                };
+            }
+            else if (node.content is BinaryNode[] children)
+            {
+                var firstChild = children[0];
+                var type = PresenceModel.Map(firstChild.tag);
+                if (type == WAPresence.Paused)
+                {
+                    type = WAPresence.Available;
+                }
+
+                if (firstChild.getattr("media") == "audio")
+                {
+                    type = WAPresence.Recording;
+                }
+                presence = new PresenceData()
+                {
+                    LastKnownPresence = type
+                };
+            }
+
+            if (presence != null)
+            {
+                EV.Emit(EmitType.Update, new PresenceModel()
+                {
+                    ID = jid,
+                    Presences =
+                    {
+                        { participant, presence }
+                    }
+                });
+            }
             return true;
         }
 
         protected virtual async Task<bool> HandleDirtyUpdate(BinaryNode node)
         {
+            await Task.Yield();
+            var dirtyNode = GetBinaryNodeChild(node, "dirty");
+            var type = dirtyNode?.getattr("type");
+            switch (type)
+            {
+                case "account_sync":
+                    var lastAccountTypeSync = Creds.LastAccountTypeSync;
+                    if (lastAccountTypeSync != null)
+                    {
+                        await CleanDirtyBits("account_sync", lastAccountTypeSync);
+                    }
+                    break;
+                case "groups":
+                    //Will be handled inside groups
+                    return false;
+                default:
+                    Logger.Info(new { node }, $"received unknown sync '{type}'");
+                    break;
+            }
             return true;
         }
 
@@ -377,9 +446,19 @@ namespace WhatsSocket.Core
             return true;
         }
 
-        internal async Task CleanDirtyBits(string type)
+        internal async Task CleanDirtyBits(string type, ulong? fromTimestamp = null)
         {
             Logger.Info(new { DateTime.Now }, "clean dirty bits " + type);
+
+            var attrs = new Dictionary<string, string>()
+            {
+                {"type", type }
+            };
+            if (fromTimestamp != null)
+            {
+                attrs["timestamp"] = $"{fromTimestamp}";
+            }
+
             SendNode(new BinaryNode(type)
             {
                 tag = "iq",
@@ -395,10 +474,7 @@ namespace WhatsSocket.Core
                     new BinaryNode()
                     {
                         tag = "clean",
-                        attrs = 
-                        {
-                            {"type", type }
-                        }
+                        attrs = attrs
                     }
                 }
             });

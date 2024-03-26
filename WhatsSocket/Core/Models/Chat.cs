@@ -20,6 +20,36 @@ namespace WhatsSocket.Core.Models
 
     }
 
+    public class PresenceData
+    {
+        public WAPresence LastKnownPresence { get; set; }
+        public ulong? LastSeen { get; set; }
+    }
+
+    public class PresenceModel
+    {
+        public string ID { get; set; }
+        public PresenceModel()
+        {
+            Presences = new Dictionary<string, PresenceData>();
+        }
+
+        public Dictionary<string,PresenceData> Presences { get; set; }
+
+        internal static WAPresence Map(string tag)
+        {
+            var dict = new Dictionary<string, WAPresence>()
+            {
+                {"unavailable", WAPresence.Unavailable },
+                {"available", WAPresence.Available },
+                {"composing", WAPresence.Composing },
+                {"recording", WAPresence.Recording },
+                {"paused", WAPresence.Paused },
+            };
+            return dict[tag];
+        }
+    }
+
     public class ChatConstants
     {
         public static string[] ALL_WA_PATCH_NAMES = ["critical_block", "critical_unblock_low", "regular_high", "regular_low", "regular"];

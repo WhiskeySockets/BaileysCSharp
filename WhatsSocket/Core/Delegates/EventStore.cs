@@ -37,7 +37,6 @@ namespace WhatsSocket.Core.Delegates
             {
                 if (IsBufferable)
                 {
-                    //
                     Items.AddRange(item);
                 }
                 else
@@ -60,9 +59,12 @@ namespace WhatsSocket.Core.Delegates
         {
             if (args.Length > 0)
             {
-                Debug.WriteLine($"Flushed {Items.Count} of type {typeof(T).Name}");
-                Emit?.Invoke(Sender, args.ToArray());
-                return true;
+                if (Emit != null)
+                {
+                    Debug.WriteLine($"Flushed {args.Length} of type {typeof(T).Name}");
+                    Emit.Invoke(Sender, args.ToArray());
+                    return true;
+                }
             }
             return false;
         }

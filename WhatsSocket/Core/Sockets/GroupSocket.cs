@@ -16,12 +16,11 @@ namespace WhatsSocket.Core.Sockets
 
         protected override async Task<bool> HandleDirtyUpdate(BinaryNode node)
         {
-            await base.HandleDirtyUpdate(node);
             var dirtyNode = GetBinaryNodeChild(node, "dirty");
             if (dirtyNode?.getattr("type") == "groups")
             {
                 await GroupFetchAllParticipating();
-                await base.CleanDirtyBits("groups");
+                await CleanDirtyBits("groups");
             }
 
             return true;

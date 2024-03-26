@@ -30,34 +30,30 @@ namespace WhatsSocket.Core
 
     public abstract class BaseSocket
     {
+        private string[] Browser = { "Baileys 2.0", "Chrome", "4.0.0" };
+        protected AbstractSocketClient WS;
+        private NoiseHandler noise;
+        private CancellationTokenSource qrTimerToken;
+        public Thread keepAliveThread;
+        public CancellationTokenSource keepAliveToken;
+        public DateTime lastReceived;
+        public KeyPair EphemeralKeyPair { get; set; }
 
-        public EventEmitter EV { get; set; }
-        //protected ConnectionState State { get; set; }
+        protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
         protected Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
         protected Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
         protected SignalRepository Repository { get; set; }
-        private string[] Browser = { "Baileys 2.0", "Chrome", "4.0.0" };
+        protected MemoryStore Store { get; set; }
 
-        AbstractSocketClient Client;
-        NoiseHandler noise;
-        public long Epoch { get; set; }
-        public Logger Logger { get; }
-
-        Thread keepAliveThread;
-        CancellationTokenSource keepAliveToken;
-        DateTime lastReceived;
-
-        KeyPair EphemeralKeyPair { get; set; }
         public string UniqueTagId { get; set; }
-        CancellationTokenSource qrTimerToken;
 
-        protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
-
+        public long Epoch { get; set; }
         public bool SendActiveReceipts { get; set; }
 
+        public Logger Logger { get; }
+        public EventEmitter EV { get; set; }
         public AuthenticationCreds? Creds { get; set; }
         public SocketConfig SocketConfig { get; }
-
         public BaseKeyStore Keys { get; }
 
 
@@ -67,13 +63,13 @@ namespace WhatsSocket.Core
         {
             return $"{UniqueTagId}{Epoch++}";
         }
+
         private string GenerateMdTagPrefix()
         {
             var bytes = AuthenticationUtils.RandomBytes(4);
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
-        MemoryStore Store { get; set; }
 
         public BaseSocket([NotNull] SocketConfig config)
         {
@@ -87,6 +83,7 @@ namespace WhatsSocket.Core
             Keys = config.Auth.Keys;
             Logger = config.Logger;
 
+            WS = new WebSocketClient(this);
             InitStores();
             events["frame"] = OnFrame;
             events["CB:stream:error"] = OnStreamError;
@@ -171,47 +168,74 @@ namespace WhatsSocket.Core
             }
         }
 
+        //private async void OnFrameDeecoded2(BinaryNode message)
+        //{
+        //    lastReceived = DateTime.Now;
+        //    var anyTriggered = false;
+
+        //    var msgId = message.getattr("id");
+        //    /* Check if this is a response to a message we sent */
+        //    anyTriggered = anyTriggered || WS.Emit($"{DEF_TAG_PREFIX}{msgId}", message);
+
+        //    var l0 = message.tag;
+        //    var l1 = message.attrs;
+        //    var l2 = "";
+        //    if (message.content is BinaryNode[] children)
+        //    {
+        //        l2 = children[0].tag;
+        //    }
+
+        //    foreach (var item in l1)
+        //    {
+        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
+        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
+        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
+        //    }
+        //    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},,{l2}", message);
+        //    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0}", message);
+
+        //    if (!anyTriggered)
+        //    {
+        //        Logger.Debug(new { unhandled = true, msgId, fromMe = false, message }, "communication recv");
+        //    }
+        //}
 
         //Binary Node Received from WA
         private async void OnFrameDeecoded(BinaryNode message)
         {
             bool fired = await Emit("frame", message);
 
-            if (!fired)
+            if (message.tag != "handshake")
             {
-
-                if (message.tag != "handshake")
+                if (message.attrs.ContainsKey("id"))
                 {
-                    if (message.attrs.ContainsKey("id"))
-                    {
-                        var msgId = message.attrs["id"];
-                        /* Check if this is a response to a message we sent */
-                        fired = fired || await Emit($"{Constants.DEF_TAG_PREFIX}{msgId}", message);
-
-                    }
-
-                    /* Check if this is a response to a message we are expecting */
-                    var l0 = message.tag;
-                    var l1 = message.attrs;
-
-                    var l2 = "";
-                    if (message.content is BinaryNode[] children)
-                    {
-                        l2 = children[0].tag;
-                    }
-
-                    foreach (var item in l1)
-                    {
-                        fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
-                        fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
-                        fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
-                    }
-                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},,{l2}", message) || fired;
-                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0}", message) || fired;
-
+                    var msgId = message.attrs["id"];
+                    /* Check if this is a response to a message we sent */
+                    fired = fired || await Emit($"{Constants.DEF_TAG_PREFIX}{msgId}", message);
                 }
 
+                /* Check if this is a response to a message we are expecting */
+                var l0 = message.tag;
+                var l1 = message.attrs;
+
+                var l2 = "";
+                if (message.content is BinaryNode[] children)
+                {
+                    l2 = children[0].tag;
+                }
+
+                foreach (var item in l1)
+                {
+                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
+                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
+                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
+                }
+                fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},,{l2}", message) || fired;
+                fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0}", message) || fired;
+
             }
+
+
         }
 
         #endregion
@@ -271,8 +295,8 @@ namespace WhatsSocket.Core
             var reason = node.getattr("reason") ?? "500";
             if (node.attrs["reason"] == "401")
             {
-                Client.Opened -= Client_Opened;
-                Client.Disconnected -= Client_Disconnected;
+                WS.Opened -= Client_Opened;
+                WS.Disconnected -= Client_Disconnected;
 
             }
 
@@ -305,7 +329,7 @@ namespace WhatsSocket.Core
             qrTimerToken = new CancellationTokenSource();
             while (!qrTimerToken.IsCancellationRequested)
             {
-                if (!Client.IsConnected)
+                if (!WS.IsConnected)
                     return true;
 
                 if (refNodes.TryDequeue(out var refNode))
@@ -394,7 +418,7 @@ namespace WhatsSocket.Core
         {
             var toSend = noise.EncodeFrame(bytes);
             Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
-            Client.Send(toSend);
+            WS.Send(toSend);
         }
 
         protected Task<BinaryNode> Query(BinaryNode iq)
@@ -411,7 +435,7 @@ namespace WhatsSocket.Core
 
         public async Task<byte[]> NextMessage(byte[] bytes)
         {
-            if (!Client.IsConnected)
+            if (!WS.IsConnected)
             {
                 throw new Exception("Connection Closed");
             }
@@ -444,8 +468,8 @@ namespace WhatsSocket.Core
         }
         private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
         {
-            Client.Opened -= Client_Opened;
-            Client.Disconnected -= Client_Disconnected;
+            WS.Opened -= Client_Opened;
+            WS.Disconnected -= Client_Disconnected;
 
         }
         private async Task<bool> Emit(string key, BinaryNode e)
@@ -631,10 +655,10 @@ namespace WhatsSocket.Core
          */
         public void MakeSocket()
         {
-            Client = new WebSocketClient();
-            Client.Opened += Client_Opened;
-            Client.Disconnected += Client_Disconnected;
-            Client.MessageRecieved += Client_MessageRecieved;
+            WS.MakeSocket();
+            WS.Opened += Client_Opened;
+            WS.Disconnected += Client_Disconnected;
+            WS.MessageRecieved += Client_MessageRecieved;
 
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
             EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
@@ -647,7 +671,7 @@ namespace WhatsSocket.Core
             Epoch = 1;
 
             BeforeConnect();
-            Client.Connect();
+            WS.Connect();
             closed = false;
         }
 

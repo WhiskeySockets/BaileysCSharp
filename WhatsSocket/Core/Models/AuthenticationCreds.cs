@@ -109,6 +109,7 @@ namespace WhatsSocket.Core.Models
             return JsonConvert.DeserializeObject<AuthenticationCreds>(json, new BufferConverter());
         }
 
+        public ulong? LastAccountTypeSync { get; set; }
 
 
 

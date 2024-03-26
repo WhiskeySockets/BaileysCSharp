@@ -1,16 +1,22 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 namespace WhatsSocket.Core.Sockets.Client
 {
     public class WebSocketClient : AbstractSocketClient
     {
         ClientWebSocket socket;
-        public WebSocketClient()
+        public WebSocketClient(BaseSocket wasocket):base(wasocket)
+        {
+        }
+
+        public override void MakeSocket()
         {
             socket = new ClientWebSocket();
             socket.Options.SetRequestHeader("Origin", "https://web.whatsapp.com");
             socket.Options.SetRequestHeader("Host", "web.whatsapp.com");
             socket.Options.SetRequestHeader("Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bits");
         }
+
         public override void Connect()
         {
             IsConnected = false;
