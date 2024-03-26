@@ -116,60 +116,6 @@ namespace WhatsSocket.Core
         private bool PendingAppStateSync { get; set; } = false;
         private bool NeedToFlushWithAppStateSync { get; set; } = false;
 
-        private async Task<bool> HandlePresenceUpdate(BinaryNode node)
-        {
-            await Task.Yield();
-            PresenceData presence = null;
-            var jid = node.getattr("from");
-            var participant = node.getattr("participant") ?? jid;
-            var tag = node.tag;
-
-            if (SocketConfig.ShouldIgnoreJid(jid))
-            {
-                return false;
-            }
-
-            if (tag == "presence")
-            {
-                presence = new PresenceData()
-                {
-                    LastKnownPresence = node.getattr("type") == "unavailable" ? WAPresence.Unavailable : WAPresence.Available,
-                    LastSeen = node.getattr("last") != "deny" ? Convert.ToUInt32(node.getattr("last")) : null
-                };
-            }
-            else if (node.content is BinaryNode[] children)
-            {
-                var firstChild = children[0];
-                var type = PresenceModel.Map(firstChild.tag);
-                if (type == WAPresence.Paused)
-                {
-                    type = WAPresence.Available;
-                }
-
-                if (firstChild.getattr("media") == "audio")
-                {
-                    type = WAPresence.Recording;
-                }
-                presence = new PresenceData()
-                {
-                    LastKnownPresence = type
-                };
-            }
-
-            if (presence != null)
-            {
-                EV.Emit(EmitType.Update, new PresenceModel()
-                {
-                    ID = jid,
-                    Presences =
-                    {
-                        { participant, presence }
-                    }
-                });
-            }
-            return true;
-        }
-
         protected virtual async Task<bool> HandleDirtyUpdate(BinaryNode node)
         {
             await Task.Yield();
@@ -479,6 +425,269 @@ namespace WhatsSocket.Core
                 }
             });
         }
+
+
+        public async Task PrivacyQuery(string name, string value)
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"xmlns","privacy" },
+                    {"to",S_WHATSAPP_NET },
+                    {"type" ,"set" },
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "category",
+                        attrs =  { { name,value.ToLower() } }
+                    }
+                }
+            };
+            var result = await Query(node);
+        }
+
+
+        public async void UpdateLastSeenPrivacy(WAPrivacyValue value)
+        {
+            await PrivacyQuery("last", value.ToString());
+        }
+
+        public async void UpdateOnlinePrivacy(WAPrivacyOnlineValue value)
+        {
+            await PrivacyQuery("online", value.ToString());
+        }
+
+        public async void UpdateProfilePicturePrivacy(WAPrivacyValue value)
+        {
+            await PrivacyQuery("profile", value.ToString());
+        }
+
+        public async void UpdateStatusPrivacy(WAPrivacyValue value)
+        {
+            await PrivacyQuery("status", value.ToString());
+        }
+
+        public async void UpdateReadReceiptsPrivacy(WAReadReceiptsValue value)
+        {
+            await PrivacyQuery("readreceipts", value.ToString());
+        }
+
+        public async void UpdateGroupsAddPrivacy(WAPrivacyValue value)
+        {
+            await PrivacyQuery("groupadd", value.ToString());
+        }
+
+        public async void UpdateDefaultDisappearingMode(ulong duration)
+        {
+            await Query(new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"xmlns", "disappearing_mode" },
+                    {"to",S_WHATSAPP_NET },
+                    {"type","set" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "disappearing_mode",
+                        attrs =
+                        {
+                            {"duration",$"{duration}" }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        //TODO: THIS IS NOT WORKING
+        public async Task<BinaryNode[]> InteractiveQuery(BinaryNode[] userNodes, BinaryNode queryNode)
+        {
+            var result = await Query(new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to",S_WHATSAPP_NET },
+                    {"type","get" },
+                    {"xmlns","usync" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "usync",
+                        attrs =
+                        {
+                            {"sid",GenerateMessageTag() },
+                            {"mode","query" },
+                            {"last","true" },
+                            {"index","0" },
+                            {"context","interactive" }
+                        },
+                        content = new BinaryNode[]
+                        {
+                            new BinaryNode()
+                            {
+                                tag = "query",
+                                content = new BinaryNode[]{queryNode}
+                            },
+                            new BinaryNode()
+                            {
+                                tag = "list",
+                                content = userNodes
+                            }
+                        }
+                    }
+                }
+            });
+
+            var usyncNode = GetBinaryNodeChild(result, "usync");
+            var listNode = GetBinaryNodeChild(usyncNode, "list");
+            var users = GetBinaryNodeChildren(listNode, "users");
+            return users;
+        }
+
+
+        public async Task<OnWhatsAppResult[]> OnWhatsApp(params string[] jids)
+        {
+            var query = new BinaryNode()
+            {
+                tag = "contact",
+                attrs = { }
+            };
+            var list = jids.Select(x => new BinaryNode()
+            {
+                tag = "user",
+                attrs = { },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "contact",
+                        attrs = {},
+			            // insures only 1 + is there
+                        content = Encoding.UTF8.GetBytes( $"+{x.Replace("+","")}")
+                    }
+                }
+            }).ToArray();
+
+            var result = await InteractiveQuery(list, query);
+
+            return result.Select(x => new OnWhatsAppResult(x)).ToArray();
+        }
+
+
+        public async Task<StatusResult> FetchStatus(string jid)
+        {
+            var results = await InteractiveQuery(
+                [new BinaryNode()
+                {
+                    tag = "user",
+                    attrs = { {"jid",jid} }
+                }
+                ], new BinaryNode()
+                {
+                    tag = "status",
+                    attrs = { }
+                });
+            if (results.Length > 0)
+            {
+                var result = results[0];
+                var status = GetBinaryNodeChild(result, "status");
+                return new StatusResult()
+                {
+                    SetAt = Convert.ToUInt64(status.getattr("t") ?? "0"),
+                    Status = Encoding.UTF8.GetString(status.ToByteArray())
+                };
+            }
+            return new StatusResult();
+        }
+
+        //TODO updateProfilePicture
+        //TODO removeProfilePicture
+        //TODO updateProfileStatus
+        //TODO updateProfileName
+        //TODO fetchBlocklist
+        //TODO updateBlockStatus
+        //TODO getBusinessProfile
+        //TODO getBusinessProfile
+        //TODO profilePictureUrl
+        //TODO presenceSubscribe
+        //TODO presenceSubscribe
+
+        private async Task<bool> HandlePresenceUpdate(BinaryNode node)
+        {
+            await Task.Yield();
+            PresenceData presence = null;
+            var jid = node.getattr("from");
+            var participant = node.getattr("participant") ?? jid;
+            var tag = node.tag;
+
+            if (SocketConfig.ShouldIgnoreJid(jid))
+            {
+                return false;
+            }
+
+            if (tag == "presence")
+            {
+                presence = new PresenceData()
+                {
+                    LastKnownPresence = node.getattr("type") == "unavailable" ? WAPresence.Unavailable : WAPresence.Available,
+                    LastSeen = node.getattr("last") != "deny" ? Convert.ToUInt32(node.getattr("last")) : null
+                };
+            }
+            else if (node.content is BinaryNode[] children)
+            {
+                var firstChild = children[0];
+                var type = PresenceModel.Map(firstChild.tag);
+                if (type == WAPresence.Paused)
+                {
+                    type = WAPresence.Available;
+                }
+
+                if (firstChild.getattr("media") == "audio")
+                {
+                    type = WAPresence.Recording;
+                }
+                presence = new PresenceData()
+                {
+                    LastKnownPresence = type
+                };
+            }
+
+            if (presence != null)
+            {
+                EV.Emit(EmitType.Update, new PresenceModel()
+                {
+                    ID = jid,
+                    Presences =
+                    {
+                        { participant, presence }
+                    }
+                });
+            }
+            return true;
+        }
+
+
+        //TODO: appPatch
+        //TODO: fetchAbt
+        //TODO: fetchProps
+        //TODO: chatModify
+        //TODO: star
+        //TODO: addChatLabel
+        //TODO: removeChatLabel
+        //TODO: addMessageLabel
+        //TODO: removeMessageLabel
+        //TODO: executeInitQueries
 
         #endregion
     }

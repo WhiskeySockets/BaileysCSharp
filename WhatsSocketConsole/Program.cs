@@ -21,13 +21,14 @@ using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Sockets;
 using WhatsSocket.Exceptions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocketConsole
 {
     internal class Program
     {
 
-        static BaseSocket socket;
+        static WASocket socket;
         static void Main(string[] args)
         {
             Tests.RunTests();
@@ -78,6 +79,9 @@ namespace WhatsSocketConsole
             var history = socket.EV.On<MessageHistoryModel>(EmitType.Set);
             history.Emit += History_Emit;
 
+            var presence = socket.EV.On<PresenceModel>(EmitType.Update);
+            presence.Emit += Presence_Emit;
+
             //socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
             //socket.EV.OnDisconnect += EV_OnDisconnect;
             //socket.EV.OnQR += EV_OnQR;
@@ -87,6 +91,11 @@ namespace WhatsSocketConsole
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static void Presence_Emit(BaseSocket sender, PresenceModel[] args)
+        {
+            Console.WriteLine(JsonConvert.SerializeObject(args[0], Formatting.Indented));
         }
 
         private static void History_Emit(BaseSocket sender, MessageHistoryModel[] args)
@@ -99,15 +108,20 @@ namespace WhatsSocketConsole
 
         static List<WebMessageInfo> messages = new List<WebMessageInfo>();
 
-        private static void MessageEvent_Emit(BaseSocket sender, MessageUpsertModel[] args)
+        private static async void MessageEvent_Emit(BaseSocket sender, MessageUpsertModel[] args)
         {
             messages.AddRange(args[0].Messages);
             var jsons = messages.Select(x => x.ToJson()).ToArray();
             var array = $"[\n{string.Join(",", jsons)}\n]";
             Debug.WriteLine(array);
+
+            if (args[0]?.Messages[0]?.Message?.Conversation == "test")
+            {
+                var result = await socket.FetchStatus("27797798179@s.whatsapp.net");
+            }
         }
 
-        private static void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        private static async void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
         {
             var connection = args[0];
             Debug.WriteLine(JsonConvert.SerializeObject(connection, Formatting.Indented));
@@ -137,6 +151,12 @@ namespace WhatsSocketConsole
                 {
                     Console.WriteLine("You are logged out");
                 }
+            }
+
+
+            if (connection.Connection == WAConnectionState.Open)
+            {
+                //var result = await socket.OnWhatsApp("27797798179");
             }
         }
 

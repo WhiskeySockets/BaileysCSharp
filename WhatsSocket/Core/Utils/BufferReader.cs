@@ -16,10 +16,17 @@ namespace WhatsSocket.Core.Utils
     {
         public static BinaryNode DecodeDecompressedBinaryNode(byte[] buffer)
         {
-            buffer = DecompressIfRequired(buffer);
-            var reader = new BufferReader();
-            var node = reader.DecodeDecompressedBinaryNode(new MemoryStream(buffer));
-            return node;
+            try
+            {
+                buffer = DecompressIfRequired(buffer);
+                var reader = new BufferReader();
+                var node = reader.DecodeDecompressedBinaryNode(new MemoryStream(buffer));
+                return node;
+            }
+            catch (Exception rx)
+            {
+                return null;
+            }
         }
 
 

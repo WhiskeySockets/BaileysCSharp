@@ -7,10 +7,32 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.NoSQL;
+using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 
 namespace WhatsSocket.Core.Models
 {
-    public enum WAPresence 
+
+    public enum WAPrivacyValue
+    {
+        All,
+        Contacts,
+        Contact_Blacklist,
+        None
+    }
+
+    public enum WAPrivacyOnlineValue
+    {
+        All,
+        Match_Last_Seen
+    }
+
+    public enum WAReadReceiptsValue
+    {
+        All,
+        None
+    }
+
+    public enum WAPresence
     {
         Unavailable,
         Available,
@@ -18,6 +40,25 @@ namespace WhatsSocket.Core.Models
         Recording,
         Paused
 
+    }
+
+    public class StatusResult
+    {
+        public string Status { get; set; }
+        public ulong SetAt { get; set; }
+    }
+
+    public class OnWhatsAppResult
+    {
+        public bool Exists { get; set; }
+        public string Jid { get; set; }
+
+        public OnWhatsAppResult(BinaryNode node)
+        {
+            var contact = GetBinaryNodeChild(node, "contact");
+            Exists = contact?.getattr("type") == "ind";
+            Jid = node.getattr("jid") ?? "";
+        }
     }
 
     public class PresenceData
@@ -34,7 +75,7 @@ namespace WhatsSocket.Core.Models
             Presences = new Dictionary<string, PresenceData>();
         }
 
-        public Dictionary<string,PresenceData> Presences { get; set; }
+        public Dictionary<string, PresenceData> Presences { get; set; }
 
         internal static WAPresence Map(string tag)
         {

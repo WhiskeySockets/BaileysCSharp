@@ -301,6 +301,11 @@ namespace WhatsSocket.Core.Utils
 
         private void WriteString(string str)
         {
+            if (str == null)
+            {
+                return;
+            }
+
             if (TOKEN_MAP.ContainsKey(str))
             {
                 var tokenIndex = TOKEN_MAP[str];
