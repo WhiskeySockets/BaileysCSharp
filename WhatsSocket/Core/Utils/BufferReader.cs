@@ -25,6 +25,7 @@ namespace WhatsSocket.Core.Utils
             }
             catch (Exception rx)
             {
+                buffer = DecompressIfRequired(buffer);
                 return null;
             }
         }
@@ -34,7 +35,7 @@ namespace WhatsSocket.Core.Utils
         {
             if ((2 & buffer[0]) != 0)
             {
-                return Deflate(buffer.Skip(1).ToArray());
+                return Inflate(buffer.Skip(1).ToArray());
 
                 //using (MemoryStream memoryStream = new MemoryStream(buffer, 1, buffer.Length - 1))
                 //using (DeflateStream deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress))

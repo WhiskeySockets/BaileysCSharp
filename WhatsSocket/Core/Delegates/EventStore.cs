@@ -62,7 +62,7 @@ namespace WhatsSocket.Core.Delegates
                 if (Emit != null)
                 {
                     Debug.WriteLine($"Flushed {args.Length} of type {typeof(T).Name}");
-                    Emit.Invoke(Sender, args.ToArray());
+                    Emit.Invoke(args.ToArray());
                     return true;
                 }
             }

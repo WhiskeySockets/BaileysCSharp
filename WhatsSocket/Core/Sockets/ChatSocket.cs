@@ -35,14 +35,14 @@ namespace WhatsSocket.Core
             connectionUpdateEvent.Emit += ConnectionUpdateEvent_Emit;
         }
 
-        private void ConnectionUpdateEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        private void ConnectionUpdateEvent_Emit(ConnectionState[] args)
         {
             var arg = args[0];
             if (arg.Connection == WAConnectionState.Open)
             {
                 if (SocketConfig.FireInitQueries)
                 {
-                    ///TODO:
+                    ExecuteInitQueries();
                 }
 
                 SendPresenceUpdate(SocketConfig.MarkOnlineOnConnect ? WAPresence.Available : WAPresence.Unavailable);
@@ -60,6 +60,7 @@ namespace WhatsSocket.Core
                 }
             }
         }
+
 
         private void SendPresenceUpdate(WAPresence type, string toJid = "")
         {
@@ -615,7 +616,25 @@ namespace WhatsSocket.Core
         //TODO removeProfilePicture
         //TODO updateProfileStatus
         //TODO updateProfileName
-        //TODO fetchBlocklist
+        private async void FetchBlocklist()
+        {
+            var fetchBlocklist = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"xmlns", "blocklist" },
+                    {"to", S_WHATSAPP_NET },
+                    {"type", "get" }
+                },
+            };
+
+            var result = await Query(fetchBlocklist);
+            var listNode = GetBinaryNodeChild(result, "list");
+            var binary = GetBinaryNodeChildren(listNode, "item");
+            var count = binary.Count();
+
+        }
         //TODO updateBlockStatus
         //TODO getBusinessProfile
         //TODO getBusinessProfile
@@ -679,15 +698,121 @@ namespace WhatsSocket.Core
 
 
         //TODO: appPatch
-        //TODO: fetchAbt
-        //TODO: fetchProps
+        private async void FetchAbt()
+        {
+            var abtNode = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", S_WHATSAPP_NET },
+                    {"xmlns", "abt" },
+                    {"type", "get" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "props",
+                        attrs =
+                        {
+                            {"protocol","1" }
+                        }
+                    }
+                }
+
+            };
+            abtNode = await Query(abtNode);
+            var propsNode = GetBinaryNodeChild(abtNode, "props");
+
+            if (propsNode != null)
+            {
+                var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
+            }
+        }
+
+        Dictionary<string, string> privacySettings;
+        private async void FetchPrivacySettings()
+        {
+            if (privacySettings == null)
+            {
+                var fetchPrivacySettings = new BinaryNode()
+                {
+                    tag = "iq",
+                    attrs =
+                {
+                    {"xmlns", "privacy" },
+                    {"to", S_WHATSAPP_NET },
+                    {"type", "get" }
+                },
+                    content = new BinaryNode[]
+                    {
+                    new BinaryNode()
+                    {
+                        tag = "privacy",
+                        attrs ={ }
+
+                    }
+                    }
+
+                };
+                var result = await Query(fetchPrivacySettings);
+                result = (result.content as BinaryNode[])[0];
+                privacySettings = ReduceBinaryNodeToDictionary(result, "category");
+            }
+        }
+
+        private async void FetchProps()
+        {
+            var fetchProps = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", S_WHATSAPP_NET },
+                    {"xmlns", "w" },
+                    {"type", "get" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "props",
+                        attrs ={ }
+
+                    }
+                }
+
+            };
+            var resultNode = await Query(fetchProps);
+            var propsNode = GetBinaryNodeChild(resultNode, "props");
+
+            if (propsNode != null)
+            {
+                var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
+            }
+        }
+
         //TODO: chatModify
         //TODO: star
         //TODO: addChatLabel
         //TODO: removeChatLabel
         //TODO: addMessageLabel
         //TODO: removeMessageLabel
-        //TODO: executeInitQueries
+
+        private void ExecuteInitQueries()
+        {
+            FetchAbt();
+            FetchProps();
+            FetchBlocklist();
+            FetchPrivacySettings();
+        }
+
+
+
+
+
+
 
         #endregion
     }

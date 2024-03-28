@@ -23,16 +23,18 @@ namespace WhatsSocket.Core.Delegates
 
 
 
-    public delegate void EventEmitterHandler<T>(BaseSocket sender, T args);
+
+
+
+    public delegate void EventEmitterHandler<T>(T args);
     public class EventEmitter
     {
 
         Dictionary<string, Dictionary<EmitType, IEventStore>> GroupedEvents;
 
 
-        public EventEmitter(BaseSocket sender)
+        public EventEmitter()
         {
-            Sender = sender;
             GroupedEvents = new Dictionary<string, Dictionary<EmitType, IEventStore>>();
         }
 

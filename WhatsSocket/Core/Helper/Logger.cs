@@ -182,7 +182,7 @@ namespace WhatsSocket.Core.Helper
             settings.NullValueHandling = NullValueHandling.Ignore;
             var json = JsonConvert.SerializeObject(logEntry, settings);
             System.Diagnostics.Debug.WriteLine(json);
-            Console.WriteLine(json + "\n");
+            Console.WriteLine(json);
         }
 
         internal void Warn(object? obj, string message)

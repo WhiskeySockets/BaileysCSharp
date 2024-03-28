@@ -2,11 +2,6 @@
 {
     public abstract class BaseKeyStore : IDisposable
     {
-        protected BaseKeyStore(string path)
-        {
-            Path = path;
-            Directory.CreateDirectory(Path);
-        }
         public string Path { get; }
 
         public virtual void Dispose()

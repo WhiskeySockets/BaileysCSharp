@@ -293,7 +293,7 @@ namespace WhatsSocket.Core.Utils
         {
             var normalizedContent = MessageUtil.NormalizeMessageContent(message.Message);
 
-            var hasSomeContent = MessageUtil.GetContentType(normalizedContent);
+            var hasSomeContent = MessageUtil.GetContentType(normalizedContent) != null;
 
             return (normalizedContent != null
                 || Constants.REAL_MSG_STUB_TYPES.Contains(message.MessageStubType)
@@ -333,6 +333,24 @@ namespace WhatsSocket.Core.Utils
                 // set participant of the message
                 msgKey.Participant = msgKey.Participant ?? msgKey.RemoteJid;
             }
+        }
+
+
+
+        public static Dictionary<string,string> ReduceBinaryNodeToDictionary(BinaryNode node, string tag)
+        {
+            var nodes = GetBinaryNodeChildren(node, tag);
+            Dictionary<string, string> result = new Dictionary<string, string>();
+
+            foreach (var item in nodes)
+            {
+                var key = item.getattr("name") ?? item.getattr("config_code") ;
+                var value = item.getattr("value") ?? item.getattr("config_value");
+                result[key] = value;
+            }
+
+            return result;
+
         }
     }
 }

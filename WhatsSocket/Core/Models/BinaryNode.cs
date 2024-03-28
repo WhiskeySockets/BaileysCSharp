@@ -1,10 +1,13 @@
 ﻿
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace WhatsSocket.Core.Models
 {
     public class BinaryNode
     {
+        private object _content;
+
         public BinaryNode()
         {
             attrs = new Dictionary<string, string>();
@@ -23,7 +26,19 @@ namespace WhatsSocket.Core.Models
         }
         public string tag { get; set; }
         public Dictionary<string, string> attrs { get; set; }
-        public object content { get; set; }
+        public object content { get => _content; set => setContent(value); }
+
+        private void setContent(object value)
+        {
+            if (value is JArray array)
+            {
+                _content = array.ToObject<BinaryNode[]>();
+            }
+            else
+            {
+                _content = value;
+            }
+        }
 
         internal byte[] ToByteArray()
         {

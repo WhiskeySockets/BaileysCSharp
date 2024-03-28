@@ -30,7 +30,7 @@ namespace WhatsSocket.Core.Sockets
             connectionEvent.Emit += ConnectionEvent_Emit;
         }
 
-        private void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        private void ConnectionEvent_Emit(ConnectionState[] args)
         {
             if (args[0].IsOnline.HasValue)
             {

@@ -96,7 +96,7 @@ namespace WhatsSocket.Core.NoSQL
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
         }
 
-        private void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        private void ConnectionEvent_Emit( ConnectionState[] args)
         {
             State.Connection = args[0].Connection;
             State.QR = args[0].QR;
@@ -106,7 +106,7 @@ namespace WhatsSocket.Core.NoSQL
             State.IsNewLogin = args[0].IsNewLogin;
         }
 
-        private void GroupUpsertEvent_Emit(BaseSocket sender, GroupMetadataModel[] args)
+        private void GroupUpsertEvent_Emit( GroupMetadataModel[] args)
         {
             lock (locker)
             {
@@ -115,17 +115,17 @@ namespace WhatsSocket.Core.NoSQL
         }
 
 
-        private void GroupUpdateEvent_Emit(BaseSocket sender, GroupMetadataModel[] args)
+        private void GroupUpdateEvent_Emit( GroupMetadataModel[] args)
         {
             ///
         }
 
-        private void ChatDeleteEvent_Emit(BaseSocket sender, ChatModel[] args)
+        private void ChatDeleteEvent_Emit( ChatModel[] args)
         {
             ///TODO
         }
 
-        private void ChatUpdateEvent_Emit(BaseSocket sender, ChatModel[] args)
+        private void ChatUpdateEvent_Emit(ChatModel[] args)
         {
             lock (locker)
             {
@@ -142,7 +142,7 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void ChatUpsertEvent_Emit(BaseSocket sender, ChatModel[] args)
+        private void ChatUpsertEvent_Emit( ChatModel[] args)
         {
             lock (locker)
             {
@@ -151,12 +151,12 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void ContactUpsert_Emit(BaseSocket sender, ContactModel[] args)
+        private void ContactUpsert_Emit(ContactModel[] args)
         {
             ContactsUpsert(args.ToList());
         }
 
-        private void ContactUpdateEvent_Emit(BaseSocket sender, ContactModel[] args)
+        private void ContactUpdateEvent_Emit(ContactModel[] args)
         {
             ///TODO
         }
@@ -178,12 +178,12 @@ namespace WhatsSocket.Core.NoSQL
             return oldContacts.ToArray();
         }
 
-        private void MessageDelete_Emit(BaseSocket sender, MessageUpdate[] args)
+        private void MessageDelete_Emit(MessageUpdate[] args)
         {
             ///TODO
         }
 
-        private void MessageUpsert_Emit(BaseSocket sender, MessageUpsertModel[] args)
+        private void MessageUpsert_Emit( MessageUpsertModel[] args)
         {
             lock (locker)
             {
@@ -220,12 +220,12 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void MessageUpdateEvent_Emit(BaseSocket sender, WebMessageInfo[] args)
+        private void MessageUpdateEvent_Emit( WebMessageInfo[] args)
         {
             ///TODO
         }
 
-        private void HistoryEvent_Emit(BaseSocket sender, MessageHistoryModel[] args)
+        private void HistoryEvent_Emit(MessageHistoryModel[] args)
         {
             foreach (var item in args)
             {

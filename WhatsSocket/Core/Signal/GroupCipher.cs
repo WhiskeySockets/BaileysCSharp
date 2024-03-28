@@ -16,7 +16,6 @@ namespace WhatsSocket.Core.Signal
         }
 
         public BaseKeyStore Keys { get; }
-        SessionStore SessionStore { get; }
         public string SenderName { get; }
 
         public byte[] Decrypt(byte[] data)

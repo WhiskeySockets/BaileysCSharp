@@ -12,7 +12,6 @@
     <Compile Remove="Core\Stores\AppStateSyncVersionStore.cs" />
     <Compile Remove="Core\Stores\KeyStore.cs" />
     <Compile Remove="Core\Stores\SenderKeyStore.cs" />
-    <Compile Remove="Core\Utils\GenericUtils.cs" />
   </ItemGroup>
 
   <ItemGroup>

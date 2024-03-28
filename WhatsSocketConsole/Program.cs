@@ -22,6 +22,7 @@ using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Sockets;
 using WhatsSocket.Exceptions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using Google.Protobuf;
 
 namespace WhatsSocketConsole
 {
@@ -93,12 +94,12 @@ namespace WhatsSocketConsole
             Console.ReadLine();
         }
 
-        private static void Presence_Emit(BaseSocket sender, PresenceModel[] args)
+        private static void Presence_Emit(PresenceModel[] args)
         {
             Console.WriteLine(JsonConvert.SerializeObject(args[0], Formatting.Indented));
         }
 
-        private static void History_Emit(BaseSocket sender, MessageHistoryModel[] args)
+        private static void History_Emit(MessageHistoryModel[] args)
         {
             messages.AddRange(args[0].Messages);
             var jsons = messages.Select(x => x.ToJson()).ToArray();
@@ -108,7 +109,7 @@ namespace WhatsSocketConsole
 
         static List<WebMessageInfo> messages = new List<WebMessageInfo>();
 
-        private static async void MessageEvent_Emit(BaseSocket sender, MessageUpsertModel[] args)
+        private static async void MessageEvent_Emit(MessageUpsertModel[] args)
         {
             messages.AddRange(args[0].Messages);
             var jsons = messages.Select(x => x.ToJson()).ToArray();
@@ -117,11 +118,16 @@ namespace WhatsSocketConsole
 
             if (args[0]?.Messages[0]?.Message?.Conversation == "test")
             {
-                var result = await socket.FetchStatus("27797798179@s.whatsapp.net");
+                var msg = args[0].Messages[0];
+                var result = await socket.SendMessage(msg.Key.RemoteJid, 
+                    new ExtendedTextMessageModel() { Text = "oh hello there" }, 
+                    new MessageGenerationOptionsFromContent() { Quoted = msg });
+
             }
+
         }
 
-        private static async void ConnectionEvent_Emit(BaseSocket sender, ConnectionState[] args)
+        private static async void ConnectionEvent_Emit(ConnectionState[] args)
         {
             var connection = args[0];
             Debug.WriteLine(JsonConvert.SerializeObject(connection, Formatting.Indented));
@@ -140,7 +146,7 @@ namespace WhatsSocketConsole
                     try
                     {
                         Thread.Sleep(1000);
-                        sender.MakeSocket();
+                        socket.MakeSocket();
                     }
                     catch (Exception)
                     {
@@ -156,13 +162,12 @@ namespace WhatsSocketConsole
 
             if (connection.Connection == WAConnectionState.Open)
             {
-                //var result = await socket.OnWhatsApp("27797798179");
             }
         }
 
-        private static void AuthEvent_OnEmit(BaseSocket sender, AuthenticationCreds[] args)
+        private static void AuthEvent_OnEmit(AuthenticationCreds[] args)
         {
-            var credsFile = Path.Join(sender.SocketConfig.CacheRoot, $"creds.json");
+            var credsFile = Path.Join(socket.SocketConfig.CacheRoot, $"creds.json");
             var json = AuthenticationCreds.Serialize(args[0]);
             File.WriteAllText(credsFile, json);
         }

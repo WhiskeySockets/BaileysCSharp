@@ -1,10 +1,18 @@
-﻿using Proto;
+﻿using Org.BouncyCastle.Tls;
+using Proto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Extensions;
+using WhatsSocket.Core.Models;
+using WhatsSocket.Core.WABinary;
 using static Proto.Message.Types;
+using static WhatsSocket.Core.WABinary.JidUtils;
+using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -43,30 +51,136 @@ namespace WhatsSocket.Core.Utils
               content.EditedMessage;
         }
 
-        internal static bool GetContentType(Message content)
+        internal static PropertyInfo? GetContentType(Message content)
         {
             if (content == null)
             {
-                return false;
+                return null;
             }
             if (content.SenderKeyDistributionMessage != null)
-                return false;
+                return null;
 
-            var keys = content.GetType().GetProperties().Where(x => x.Name == "HasConversation" || (x.Name.Contains("Message"))).ToArray();
+            var type = content.GetType();
+            var keys = type.GetProperties().Where(x => (x.Name == "Conversation" || (x.Name.Contains("Message")))).ToArray();
             foreach (var key in keys)
             {
-                var value = key.GetValue(content, null);
-                if (value is bool hasValue)
+                if (key.PropertyType == typeof(bool))
                 {
-                    if (hasValue)
-                        return true;
+                    continue;
                 }
-                if (value != null)
-                    return true;
+
+                var value = key.GetValue(content, null);
+                if (value != null && value?.ToString() != "")
+                {
+                    var propertyName = key.Name.Replace("Has", "");
+                    var property = type.GetProperty(propertyName);
+                    return property;
+                }
             }
 
 
-            return false;
+            return null;
+        }
+
+
+        public static WebMessageInfo GenerateWAMessageFromContent(string jid, Message message, MessageGenerationOptionsFromContent? options = null)
+        {
+            var webmessage = new WebMessageInfo();
+            if (options?.Quoted != null)
+            {
+                var quoted = options.Quoted;
+                var participant = "";
+                if (quoted.Key.FromMe)
+                {
+                    participant = options.UserJid;
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(quoted.Participant))
+                    {
+                        participant = quoted.Participant;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(quoted.Key.Participant))
+                    {
+                        participant = quoted.Key.Participant;
+                    }
+                    else
+                    {
+                        participant = quoted.Key.RemoteJid;
+                    }
+                }
+
+                var quotedMsg = NormalizeMessageContent(quoted.Message);
+                var contentType = GetContentType(quotedMsg);
+
+                if (contentType != null)
+                {
+                    var valueToKeep = contentType.GetValue(quotedMsg, null);
+                    quotedMsg = new Message();
+                    contentType.SetValue(quotedMsg, valueToKeep);
+                }
+
+
+                var contextInfo = new ContextInfo()
+                {
+                    Participant = JidNormalizedUser(participant),
+                    StanzaId = quoted.Key.Id,
+                    QuotedMessage = quotedMsg,
+                };
+
+
+                // if a participant is quoted, then it must be a group
+                // hence, remoteJid of group must also be entered
+                if (jid != quoted?.Key?.RemoteJid)
+                {
+                    contextInfo.RemoteJid = quoted.Key.RemoteJid;
+                }
+
+
+                message.SetContextInfo(contextInfo);
+
+
+
+
+            }
+
+            webmessage.Key = new MessageKey()
+            {
+                FromMe = true,
+                Id = GenerateMessageID(),
+                RemoteJid = jid,
+            };
+            webmessage.Message = message;
+            webmessage.MessageTimestamp = (ulong)(DateTimeOffset.Now.ToUnixTimeSeconds());
+            webmessage.Status = WebMessageInfo.Types.Status.Pending;
+
+
+            return webmessage;
+        }
+
+
+        public static WebMessageInfo GenerateWAMessage(string jid, AnyContentMessageModel content, MessageGenerationOptions? options = null)
+        {
+            return GenerateWAMessageFromContent(jid, GenerateWAMessageContent(content, options));
+        }
+
+
+        public static Message GenerateWAMessageContent<T>(T message, MessageGenerationOptions? options = null) where T : AnyContentMessageModel
+        {
+            var m = new Message();
+
+            if (message is ExtendedTextMessageModel text)
+            {
+                m.ExtendedTextMessage = new ExtendedTextMessage()
+                {
+                    Text = text.Text,
+                };
+
+                ///TODO generateLinkPreviewIfRequired
+            }
+
+
+            return m;
         }
     }
 }

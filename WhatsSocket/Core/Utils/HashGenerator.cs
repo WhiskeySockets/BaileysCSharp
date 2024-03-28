@@ -64,7 +64,13 @@ namespace WhatsSocket.Core.Utils
             else
             {
                 addBuffs.Add(valueMac);
-                InitialState.IndexValueMap.Add(indexMacBase64, valueMac);
+
+                if (InitialState.IndexValueMap.ContainsKey(indexMacBase64))
+                {
+
+                }
+
+                InitialState.IndexValueMap[indexMacBase64] = valueMac;
             }
 
 

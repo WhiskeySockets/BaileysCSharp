@@ -77,7 +77,7 @@ namespace WhatsSocket.Core
                 throw new ArgumentNullException(nameof(config));
 
             SocketConfig = config;
-            EV = new EventEmitter(this);
+            EV = new EventEmitter();
             //EV.OnPendingNotifications += EV_OnPendingNotifications;
             Creds = config.Auth.Creds;
             Keys = config.Auth.Keys;
@@ -202,7 +202,7 @@ namespace WhatsSocket.Core
 
         //Binary Node Received from WA
         private async void OnFrameDeecoded(BinaryNode message)
-        {
+        {   
             bool fired = await Emit("frame", message);
 
             if (message.tag != "handshake")
@@ -297,6 +297,7 @@ namespace WhatsSocket.Core
             {
                 WS.Opened -= Client_Opened;
                 WS.Disconnected -= Client_Disconnected;
+                WS.MessageRecieved -= Client_MessageRecieved;
 
             }
 
@@ -470,6 +471,7 @@ namespace WhatsSocket.Core
         {
             WS.Opened -= Client_Opened;
             WS.Disconnected -= Client_Disconnected;
+            WS.MessageRecieved -= Client_MessageRecieved;
 
         }
         private async Task<bool> Emit(string key, BinaryNode e)

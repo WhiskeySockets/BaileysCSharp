@@ -14,8 +14,11 @@ namespace WhatsSocket.Core.NoSQL
 
     public class FileKeyStore : BaseKeyStore, IDisposable
     {
-        public FileKeyStore(string path) : base(path)
+        public string Path { get; set; }
+        public FileKeyStore(string path) 
         {
+            Path = path;
+            Directory.CreateDirectory(Path);
         }
 
 
@@ -36,7 +39,7 @@ namespace WhatsSocket.Core.NoSQL
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                var file = $"{path}\\{id}.json";
+                var file = $"{path}\\{id.Replace("/","__")}.json";
                 if (File.Exists(file))
                 {
                     var data = File.ReadAllText(file) ?? "";
@@ -82,7 +85,7 @@ namespace WhatsSocket.Core.NoSQL
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                var file = $"{path}\\{id}.json";
+                var file = $"{path}\\{id.Replace("/", "__")}.json";
 
                 if (value != null)
                 {

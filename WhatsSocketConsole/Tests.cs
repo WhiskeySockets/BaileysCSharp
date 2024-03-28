@@ -14,6 +14,7 @@ using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Utils;
 using Org.BouncyCastle.Bcpg;
+using Proto;
 
 namespace WhatsSocketConsole
 {
@@ -22,6 +23,8 @@ namespace WhatsSocketConsole
 
         public static void RunTests()
         {
+            TestSendMessageBuffer();
+            GenerateMessages();
             TestInflate();
             LtHashTest();
             TestSliceMinusEnd();
@@ -37,6 +40,126 @@ namespace WhatsSocketConsole
             TestSuccessSign();
             TestDeriveSecret();
 
+        }
+
+        private static void TestSendMessageBuffer()
+        {
+            var json = "{\"tag\":\"iq\",\"attrs\":{\"to\":\"@s.whatsapp.net\",\"type\":\"get\",\"xmlns\":\"usync\",\"id\":\"46858.8451-10\"},\"content\":[{\"tag\":\"usync\",\"attrs\":{\"sid\":\"46858.8451-9\",\"mode\":\"query\",\"last\":\"true\",\"index\":\"0\",\"context\":\"message\"},\"content\":[{\"tag\":\"query\",\"attrs\":{},\"content\":[{\"tag\":\"devices\",\"attrs\":{\"version\":\"2\"}}]},{\"tag\":\"list\",\"attrs\":{},\"content\":[{\"tag\":\"user\",\"attrs\":{\"jid\":\"27665245067@s.whatsapp.net\"}},{\"tag\":\"user\",\"attrs\":{\"jid\":\"27797798179@s.whatsapp.net\"}}]}]}]}";
+
+            var binaryNode = JsonConvert.DeserializeObject<BinaryNode>(json);
+
+            var endode = BufferWriter.EncodeBinaryNode(binaryNode);
+            var base64 = endode.ToByteArray().ToBase64();
+
+            Debug.Assert(base64 == "APgKHg76AAMEMRmyCP+HRoWLhFGhD/gB+Ayy/ANzaWT/BkaFi4RRqZGgWs/RT7cL+AL4AqD4AfgDKE0z+AJu+AL4AxAP+v+GJ2ZSRQZ/A/gDEA/6/4YneXeYF58D");
+
+
+
+            var iq = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", "@s.whatsapp.net" },
+                    {"type" , "get" },
+                    {"xmlns","usync" },
+                    {"id","7834.23612-8" }
+                },
+                content = new BinaryNode[]
+    {
+                    new BinaryNode()
+                    {
+                        tag = "usync",
+                        attrs =
+                        {
+                            {"sid", "7834.23612-7" },
+                            {"mode","usync" },
+                            {"last","true" },
+                            {"index","0" },
+                            {"context","message" }
+                        },
+                        content = new BinaryNode[]
+                        {
+                            new BinaryNode()
+                            {
+                                tag = "query",
+                                content = new BinaryNode[]
+                                {
+                                    new BinaryNode()
+                                    {
+                                        tag = "devices",
+                                        attrs =
+                                        {
+                                            {"version", "2" }
+                                        }
+                                    }
+                                },
+                            },
+                            new BinaryNode()
+                            {
+                                tag = "list",
+                                content = new BinaryNode[]
+                                {
+                                    new BinaryNode()
+                                    {
+                                        tag = "user",
+                                        attrs =
+                                        {
+                                            {"jid","27665245067@s.whatsapp.net" }
+                                        }
+                                    },
+                                    new BinaryNode()
+                                    {
+                                        tag = "user",
+                                        attrs =
+                                        {
+                                            {"jid","27797798179@s.whatsapp.net" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+    }
+            };
+            endode = BufferWriter.EncodeBinaryNode(iq);
+            var buffer = endode.ToByteArray();
+        }
+
+        private static void GenerateMessages()
+        {
+            var reply = @"{
+  ""key"": {
+    ""remoteJid"": ""27797798179@s.whatsapp.net"",
+    ""fromMe"": false,
+    ""id"": ""FBDBCD0EC4256FA59F2BF8C3B9439002"",
+    ""participant"": """"
+  },
+  ""message"": {
+    ""conversation"": ""Hello"",
+    ""messageContextInfo"": {
+      ""deviceListMetadata"": {
+        ""senderKeyHash"": ""qerq+rAf42paLA=="",
+        ""senderTimestamp"": ""1711460193"",
+        ""recipientKeyHash"": ""H/ksOwnzLPeHdg=="",
+        ""recipientTimestamp"": ""1711546000""
+      },
+      ""deviceListMetadataVersion"": 2
+    }
+  },
+  ""status"": ""SERVER_ACK"",
+  ""broadcast"": false,
+  ""pushName"": ""Donald Jansen""
+}";
+
+            var replyTo = WebMessageInfo.Parser.ParseJson(reply);
+            var options = new MessageGenerationOptionsFromContent()
+            {
+                Quoted = replyTo
+            };
+
+            var message = MessageUtil.GenerateWAMessageContent(new ExtendedTextMessageModel() { Text = "oh hello there" }, options);
+            var wamessage = MessageUtil.GenerateWAMessageFromContent(replyTo.Key.RemoteJid, message, options);
         }
 
         private static void TestInflate()
