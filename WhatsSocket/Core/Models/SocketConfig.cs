@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Proto;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
@@ -66,6 +67,11 @@ namespace WhatsSocket.Core.Models
         internal MemoryStore MakeStore(EventEmitter ev, Logger logger)
         {
             return new MemoryStore(CacheRoot, ev, logger);
+        }
+
+        internal Message PatchMessageBeforeSending(Message message, string[] jids)
+        {
+            return message;
         }
 
         public string CacheRoot

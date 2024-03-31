@@ -18,12 +18,12 @@ namespace WhatsSocket.Core.Models.SenderKeys
 
         internal SenderChainKey GetNext()
         {
-            var derivative = EncryptionHelper.GetDerivative(CHAIN_KEY_SEED, ChainKey);
+            var derivative = CryptoUtils.GetDerivative(CHAIN_KEY_SEED, ChainKey);
             return new SenderChainKey(Iteration + 1, derivative);
         }
         internal SenderMessageKey GetSenderMessageKey()
         {
-            var derivative = EncryptionHelper.GetDerivative(MESSAGE_KEY_SEED, ChainKey);
+            var derivative = CryptoUtils.GetDerivative(MESSAGE_KEY_SEED, ChainKey);
             return new SenderMessageKey(Iteration, derivative);
         }
     }

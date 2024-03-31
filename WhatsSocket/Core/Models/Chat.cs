@@ -7,10 +7,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.NoSQL;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Models
 {
+
 
     public enum WAPrivacyValue
     {

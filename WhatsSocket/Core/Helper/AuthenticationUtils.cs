@@ -4,18 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Models;
+using static WhatsSocket.Core.Helper.CryptoUtils;
+using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Helper
 {
 
     public static class AuthenticationUtils
     {
-        public static byte[] GenerateSignalPubKey(byte[] publicKey)
-        {
-            if (publicKey.Length == 33)
-                return publicKey;
-            return new byte[] { 5 }.Concat(publicKey).ToArray();
-        }
 
         public static AuthenticationCreds InitAuthCreds()
         {
@@ -44,9 +40,9 @@ namespace WhatsSocket.Core.Helper
             */
 
             var creds = new AuthenticationCreds();
-            creds.NoiseKey = EncryptionHelper.GenerateKeyPair();
-            creds.PairingEphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
-            creds.SignedIdentityKey = EncryptionHelper.GenerateKeyPair();
+            creds.NoiseKey = CryptoUtils.GenerateKeyPair();
+            creds.PairingEphemeralKeyPair = CryptoUtils.GenerateKeyPair();
+            creds.SignedIdentityKey = CryptoUtils.GenerateKeyPair();
             creds.SignedPreKey = SignedKeyPair(creds.SignedIdentityKey, 1);
             creds.RegistrationId = GenerateRegistrationId();
             creds.AdvSecretKey = RandomBytes(32).ToBase64();
@@ -75,7 +71,7 @@ namespace WhatsSocket.Core.Helper
         {
             if (creds != null)
             {
-                creds.NoiseKey = EncryptionHelper.GenerateKeyPair();
+                creds.NoiseKey = CryptoUtils.GenerateKeyPair();
                 creds.AdvSecretKey = RandomBytes(32).ToBase64();
             }
         }
@@ -96,35 +92,27 @@ namespace WhatsSocket.Core.Helper
             return base64Url;
         }
 
-
-        public static byte[] RandomBytes(int size)
-        {
-            Random rnd = new Random((short)DateTime.Now.Ticks);
-            byte[] buffer = new byte[size];
-            rnd.NextBytes(buffer);
-            return buffer;
-        }
-
         public static int GenerateRegistrationId()
         {
             var buffer = RandomBytes(2);
             return buffer[0] & 16383;
         }
 
-        public static SignedPreKey SignedKeyPair(KeyPair identityKeyPair, int keyId)
+        public static SignedPreKey SignedKeyPair(KeyPair identityKeyPair, uint keyId)
         {
-            var preKey = EncryptionHelper.GenerateKeyPair();
+            var preKey = GenerateKeyPair();
             var pubKey = GenerateSignalPubKey(preKey.Public);
 
 
 
 
 
-            var signature = EncryptionHelper.Sign(identityKeyPair.Private, pubKey);
+            var signature = Sign(identityKeyPair.Private, pubKey);
 
             return new SignedPreKey()
             {
-                KeyPair = preKey,
+                Public = preKey.Public,
+                Private = preKey.Private,
                 Signature = signature,
                 KeyId = keyId
             };

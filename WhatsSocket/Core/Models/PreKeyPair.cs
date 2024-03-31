@@ -6,9 +6,9 @@ namespace WhatsSocket.Core.Models
     [FolderPrefix("key-pair")]
     public class PreKeyPair : KeyPair
     {
-        public PreKeyPair(string id, KeyPair? key)
+        public PreKeyPair(uint id, KeyPair? key)
         {
-            Id = id;
+            KeyId = id;
             Public = key.Public;
             Private = key.Private;
         }
@@ -19,6 +19,6 @@ namespace WhatsSocket.Core.Models
         }
 
         [BsonId]
-        public string Id { get; }
+        public uint KeyId { get; set; }
     }
 }

@@ -5,31 +5,17 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
 
-namespace WhatsSocket.Core.Delegates
+namespace WhatsSocket.Core.Events
 {
-    public enum EmitType
-    {
-        Set = 1,
-        Upsert = 2,
-        Update = 4,
-        Delete = 8,
-        Reaction = 16,
-    }
-
-
-
-
-
 
     public delegate void EventEmitterHandler<T>(T args);
     public class EventEmitter
     {
-
+        private object locker = new object();
         Dictionary<string, Dictionary<EmitType, IEventStore>> GroupedEvents;
 
 
@@ -40,8 +26,26 @@ namespace WhatsSocket.Core.Delegates
 
         public BaseSocket Sender { get; }
 
-        public void Flush()
+        public bool Flush(bool force = false)
         {
+            lock (locker)
+            {
+                if (buffersInProgress == 0)
+                {
+                    return false;
+                }
+
+                if (!force)
+                {
+                    buffersInProgress--;
+                    if (buffersInProgress > 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+
             foreach (var item in GroupedEvents)
             {
                 foreach (var store in item.Value)
@@ -49,11 +53,18 @@ namespace WhatsSocket.Core.Delegates
                     store.Value.Flush();
                 }
             }
+
+            return true;
         }
+
+        public long buffersInProgress = 0;
 
         public void Buffer()
         {
-
+            lock (locker)
+            {
+                buffersInProgress++;
+            }
         }
 
 
@@ -69,10 +80,13 @@ namespace WhatsSocket.Core.Delegates
             $"{typeof(ContactModel)}.{EmitType.Upsert}",
             $"{typeof(ContactModel)}.{EmitType.Update}",
 
+            $"{typeof(MessageUpsertModel)}.{EmitType.Upsert}",
             $"{typeof(MessageModel)}.{EmitType.Upsert}",
             $"{typeof(MessageModel)}.{EmitType.Update}",
             $"{typeof(MessageModel)}.{EmitType.Delete}",
             $"{typeof(MessageModel)}.{EmitType.Reaction}",
+
+            //MessageUpsertModel
 
             //$"MessageReceipt.{EmitType.Update}",
             //$"Group.{EmitType.Reaction}",

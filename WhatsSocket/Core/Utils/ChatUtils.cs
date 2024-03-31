@@ -12,18 +12,15 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Exceptions;
-using static Google.Protobuf.WellKnownTypes.Field.Types;
-using static Proto.ContextInfo.Types.AdReplyInfo.Types;
-using static Proto.Message.Types;
 using static WhatsSocket.Core.Utils.MediaMessageUtil;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
+using WhatsSocket.Core.Events;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -160,7 +157,7 @@ namespace WhatsSocket.Core.Utils
         {
             var versionMac = to64BitNetworkOrder(version);
             var total = lthash.Concat(versionMac).Concat(Encoding.UTF8.GetBytes(name)).ToArray();
-            return EncryptionHelper.HmacSign(total, key);
+            return Helper.CryptoUtils.HmacSign(total, key);
         }
 
         private static AppStateSyncVersion DecodeSyncdPatch(SyncdPatch msg, string name, AppStateSyncVersion initialState, BaseKeyStore keys, Action<ChatMutation> onChatMutation, bool validateMacs)
@@ -191,7 +188,7 @@ namespace WhatsSocket.Core.Utils
         {
             var versionMac = to64BitNetworkOrder(version);
             var total = snapshotMac.Concat(valueMacs.Map(x => x)).Concat(versionMac).Concat(Encoding.UTF8.GetBytes(type)).ToArray();
-            return EncryptionHelper.HmacSign(total, key);
+            return Helper.CryptoUtils.HmacSign(total, key);
         }
 
         private static byte[] to64BitNetworkOrder(ulong version)
@@ -285,13 +282,13 @@ namespace WhatsSocket.Core.Utils
                     throw new Boom("HMAC content verification failed");
             }
 
-            var result = EncryptionHelper.DecryptAesCbc(encContent, key.ValueEncryptionKey);
+            var result = Helper.CryptoUtils.DecryptAesCbc(encContent, key.ValueEncryptionKey);
             var syncAction = SyncActionData.Parser.ParseFrom(result);
 
 
             if (validateMacs)
             {
-                var hmac = EncryptionHelper.HmacSign(syncAction.Index.ToByteArray(), key.IndexKey);
+                var hmac = Helper.CryptoUtils.HmacSign(syncAction.Index.ToByteArray(), key.IndexKey);
                 if (hmac.Compare(record.Index.Blob.ToByteArray()) != 0)
                     throw new Boom("HMAC index verification failed");
             }
@@ -322,7 +319,7 @@ namespace WhatsSocket.Core.Utils
             last.Set([(byte)keyData.Length], last.Length - 1);
 
             var total = keyData.Concat(data).Concat(last).ToArray();
-            var hmac = EncryptionHelper.HmacSign(total, key, "sha512");
+            var hmac = Helper.CryptoUtils.HmacSign(total, key, "sha512");
 
             return hmac.Slice(0, 32);
         }
@@ -339,7 +336,7 @@ namespace WhatsSocket.Core.Utils
 
         private static MutationKey MutationKeys(byte[] keyData)
         {
-            var expanded = EncryptionHelper.HKDF(keyData, 160, [], Encoding.UTF8.GetBytes("WhatsApp Mutation Keys"));
+            var expanded = Helper.CryptoUtils.HKDF(keyData, 160, [], Encoding.UTF8.GetBytes("WhatsApp Mutation Keys"));
             return new MutationKey()
             {
                 IndexKey = expanded.Slice(0, 32),

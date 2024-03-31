@@ -10,7 +10,6 @@ using WhatsSocket.Exceptions;
 using System.Threading;
 using System.Diagnostics;
 using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.Utils;
@@ -22,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.Core.NoSQL;
 using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.WABinary.Constants;
+using static WhatsSocket.Core.Utils.GenericUtils;
 using WhatsSocket.Core.Extensions;
 
 namespace WhatsSocket.Core
@@ -66,7 +66,7 @@ namespace WhatsSocket.Core
 
         private string GenerateMdTagPrefix()
         {
-            var bytes = AuthenticationUtils.RandomBytes(4);
+            var bytes = RandomBytes(4);
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
@@ -415,7 +415,7 @@ namespace WhatsSocket.Core
             SendRawMessage(buffer);
         }
 
-        private void SendRawMessage(byte[] bytes)
+        protected void SendRawMessage(byte[] bytes)
         {
             var toSend = noise.EncodeFrame(bytes);
             Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
@@ -663,7 +663,7 @@ namespace WhatsSocket.Core
             WS.MessageRecieved += Client_MessageRecieved;
 
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
-            EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
+            EphemeralKeyPair = Helper.CryptoUtils.GenerateKeyPair();
 
             /** WA noise protocol wrapper */
             noise = MakeNoiseHandler();

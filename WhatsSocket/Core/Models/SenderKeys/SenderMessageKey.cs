@@ -13,7 +13,7 @@ namespace WhatsSocket.Core.Models.SenderKeys
 
         public SenderMessageKey(uint iteration, byte[] seed)
         {
-            var derivative = EncryptionHelper.DeriveSecrets(seed, new byte[32], Encoding.UTF8.GetBytes("WhisperGroup"));
+            var derivative = CryptoUtils.DeriveSecrets(seed, new byte[32], Encoding.UTF8.GetBytes("WhisperGroup"));
             this.CipherKey = new byte[32];
             CipherKey.Set(derivative[0].Slice(16));
             CipherKey.Set(derivative[1].Slice(0, 16), 16);

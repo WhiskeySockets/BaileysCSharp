@@ -2,7 +2,7 @@
 using WhatsSocket.Core.Models;
 using static WhatsSocket.Core.Utils.ChatUtils;
 using static WhatsSocket.Core.Models.ChatConstants;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Sockets
 {

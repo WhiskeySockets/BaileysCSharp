@@ -24,7 +24,7 @@ namespace WhatsSocket.Core.Models.Sessions
         public Dictionary<string, Chain> Chains { get; set; }
 
         [JsonProperty("pendingPreKey")]
-        public object PendingPreKey { get; set; }
+        public PendingPreKey PendingPreKey { get; set; }
 
         internal void DeleteChain(byte[] remoteKey)
         {
@@ -43,4 +43,14 @@ namespace WhatsSocket.Core.Models.Sessions
             return null;
         }
     }
+
+
+    public class E2ESession
+    {
+        public uint RegistrationId { get; set; }
+        public byte[] IdentityKey { get; set; }
+        public SignedPreKey SignedPreKey { get; set; }
+        public PreKeyPair PreKey { get; set; }
+    }
+
 }

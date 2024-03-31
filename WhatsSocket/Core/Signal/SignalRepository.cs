@@ -1,6 +1,7 @@
 ﻿using Proto;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
 using static WhatsSocket.Core.WABinary.JidUtils;
@@ -9,22 +10,43 @@ namespace WhatsSocket.Core.Signal
 {
     public class SignalRepository
     {
+        public SignalStorage Storage { get; set; }
         public SignalRepository(AuthenticationState auth)
         {
             Auth = auth;
+            Storage = new SignalStorage(Auth);
         }
         public AuthenticationState Auth { get; }
 
-        public byte[] decryptGroupMessage(string group, string authorJid, byte[] content)
+        public byte[] DecryptGroupMessage(string group, string authorJid, byte[] content)
         {
             var senderName = JidToSignalSenderKeyName(group, authorJid);
             var session = new GroupCipher(Auth.Keys, senderName);
             return session.Decrypt(content);
         }
-        public byte[] decryptMessage(string user, string type, byte[] ciphertext)
+
+        internal CipherMessage EncryptMessage(string jid, byte[] data)
         {
-            var addr = new ProtocolAddress(JidDecode(user));
-            var session = new SessionCipher(Auth, addr);
+            if (jid== "27797798179@s.whatsapp.net")
+            {
+
+            }
+
+            var address = new ProtocolAddress(jid);
+            var cipher = new SessionCipher(Storage, address);
+
+            var enc = cipher.Encrypt(data);
+            return new CipherMessage()
+            {
+                Type = enc.Type == 3 ? "pkmsg" : "msg",
+                CipherText = enc.Data
+            };
+        }
+
+        public byte[] DecryptMessage(string user, string type, byte[] ciphertext)
+        {
+            var addr = new ProtocolAddress(user);
+            var session = new SessionCipher(Storage, addr);
             byte[] result;
             if (type == "pkmsg")
             {
@@ -45,5 +67,13 @@ namespace WhatsSocket.Core.Signal
             Auth.Keys.Set(senderName, new SenderKeyRecord());
             builder.Process(senderName, senderMsg);
         }
+
+        internal void InjectE2ESession(string jid, E2ESession session)
+        {
+            var addr = new ProtocolAddress(jid);
+            var sessionBuilder = new SessionBuilder(Storage, addr);
+            sessionBuilder.InitOutGoing(session);
+        }
+
     }
 }

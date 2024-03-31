@@ -14,8 +14,15 @@ using System.Text;
 namespace WhatsSocket.Core.Helper
 {
 
-    public static class EncryptionHelper
+    public static class CryptoUtils
     {
+        public static byte[] GenerateSignalPubKey(byte[] publicKey)
+        {
+            if (publicKey.Length == 33)
+                return publicKey;
+            return new byte[] { 5 }.Concat(publicKey).ToArray();
+        }
+
         public static KeyPair GenerateKeyPair()
         {
             var x25519KeyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("X25519");
@@ -61,7 +68,7 @@ namespace WhatsSocket.Core.Helper
 
         public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
         {
-            publicKey = AuthenticationUtils.GenerateSignalPubKey(publicKey);
+            publicKey = GenerateSignalPubKey(publicKey);
             return Curve25519.VerifySignature(publicKey, message, signature);
         }
 
@@ -159,6 +166,37 @@ namespace WhatsSocket.Core.Helper
             return DecryptAesCbcWithIV(buffer.Slice(16, buffer.Length), key, buffer.Slice(0, 16));
         }
 
+        public static byte[] EncryptAesCbc(byte[] buffer, byte[] key)
+        {
+            return EncryptAesCbcWithIV(buffer.Slice(16, buffer.Length), key, buffer.Slice(0, 16));
+        }
+
+        public static byte[] EncryptAesCbcWithIV(byte[] buffer, byte[] key, byte[] iv)
+        {
+            byte[] result;
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = key;
+                aesAlg.IV = iv;
+                aesAlg.Mode = CipherMode.CBC;
+
+                // Create a decryptor to perform the stream transform
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        csEncrypt.Write(buffer, 0, buffer.Length);
+                        csEncrypt.FlushFinalBlock();
+                        result = msEncrypt.ToArray();
+                    }
+                }
+            }
+            return result;
+        }
+
+
         public static byte[] DecryptAesCbcWithIV(byte[] buffer, byte[] key, byte[] iv)
         {
             byte[] result;
@@ -177,10 +215,11 @@ namespace WhatsSocket.Core.Helper
                     {
                         var outStream = new MemoryStream();
                         csDecrypt.CopyTo(outStream);
-                        return outStream.ToArray();
+                        result = outStream.ToArray();
                     }
                 }
             }
+            return result;
         }
 
         public static byte[] HKDF(byte[] ikm, int length, byte[] salt, byte[] info)

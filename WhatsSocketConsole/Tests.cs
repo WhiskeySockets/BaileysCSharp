@@ -23,6 +23,7 @@ namespace WhatsSocketConsole
 
         public static void RunTests()
         {
+            BufferSendTest();
             TestSendMessageBuffer();
             GenerateMessages();
             TestInflate();
@@ -39,6 +40,14 @@ namespace WhatsSocketConsole
             TestSign();
             TestSuccessSign();
             TestDeriveSecret();
+
+        }
+
+        private static void BufferSendTest()
+        {
+            var node = BufferReader.DecodeDecompressedBinaryNode(Convert.FromBase64String("APgICwj7CLrlDYF95ZgXBCYO+v+GJ3l3mBefA/gC+AIb+AX4BA4P+v+GJ2ZSRQZ/A/gB+AYWNjMEQvzDMwohBdo4LxbdraQw90Gtl1x3U2WdKELGN34lewqkJcTvc7RHEAcYACKQAW2ZVE1xAbOxbkQLjwWZqyUGpT30TRvIfJrpsHWT6kcmh6wRruK5F7Fx62n23BYm4UANtPQloPAqbDaeq+ht8QgvObGjApI8Mo+B/H3k7OC7AqsMPg2AIj8vGuITnpEC9b7HG+7qMWh/MQk8ME0c6IzEADiQfLtOhfsSsON51/IhiKF5+dH6E2yU1tSIE0fG9uKZmxj7pBj6+AQOD/cAUP+GJ2ZSRQZ/+AH4BhY2MwRC/MMzCiEFj+ahruhNXaDXWM4PU+omH2EPRw1c8qDTVS5h3Tt1E0sQAhgDIpAB3Q2HdAJnERYJt3xIzlOLgGj19WX71rD9CiIlyvrmfKVBeXepziYfGEIQaapZvErdxMfilA531w2YadMxTw6igDydFzk2TMkDQ3JygeJpgRGwuXmOyV9vNxj16f537CoI7+YseoQ6FR+MgyeGOB9yS83hS1ODp6BzcnUYvmuomhP2Nwk66cMoXhn+1pqeRZQ94RkS6rF6cnv4BA4P+v+GJ3l3mBefA/gB+AYWNjMEQvySMwohBfW88FuhkQ8QK72mFqAkUsJWdDAmbg4o/+YDa9BAdxMxEAAYACJgUZZApwqmpMIcEfoxsapQUla6StmPYRcOGDEcrhJ4QVCkSDcayWzhbfaqpBnhRjR/XFSO0lRTH1pa1/n11p1uzkJOYG9+UI+DT1fdfTS4wbLY/8m6ZNXc6RGgEmV0KEReWPxRyL6rk2/4BA4P9wAR/4YneXeYF5/4AfgGFjYzBGD85TMI6M/0BxIhBd86eAcY95BIrbq+k3Pjh9fttRpR9KbEikq+xAwsKZkXGiEFmWdGujQtBWMOWKLlxnzKePOHxREOJa9QkXR2OPVJsW8ikgEzCiEF+lTOIzUad+kjIeWU9QHrTbSmJkLahocaM7Fp1h2pNkUQBxgAImBv8WSH87dTY3Rg1KQJAPPD8X0zgdgSPieq5JDzWYkL01rvbqRoCCMtJihxQ68XJa+kS97gZO/Fttwd9WyzNqjB1TLEM1zCN1snCFkXbhQR1QgWdZm5IA2Ci9salYyZ4fjnMJSKxpBjFSgfMAH4BA4P9wAS/4YneXeYF5/4AfgGFjYzBGD84zMIlQISIQW7sfTeJ0xY6Qp+gnIz0txpNxvNurtNyow0iOypCMnEGxohBZlnRro0LQVjDlii5cZ8ynjzh8URDiWvUJF0djj1SbFvIpIBMwohBQscUnirhQi4CBCNiuPEEtAOorer5ikJlczWWravVcsgEAcYACJgrspHZm0FUo7Bb1z5Y47QRhbtG9FPfs3TvU84SI5nZH7WS6i3trWNJr5T7jnqM9dC3a3EGoe7+1Wtj9Idb+NcPA04PUoQKEhsu4FneDs+EkGBCEpaUL8m6QLVvPNy0YQoG4fZPCkoM1YoHzAB+AL8D2RldmljZS1pZGVudGl0efy6ChIIrLXFiAYQwLqesAYYBCAAKAASIIEzLR+KRLAOmi2o/Jy6LSI8i3TJ4kBJxmVUqmvP645FGkAq9jQQiYS1kgkQJpxY5rA4l094DXskfN8JP/XH74nQkY+39kSisGaXt2BxmUZQVIIjqmEmF29fwK+75dLT/ZwBIkD50exmM1MdcJ0c1kseorh5HZmdFbkBZIOLjXZMtW+ZvPdBcf58D0UttbNAJl0FnrgqZsaHdcvE0O/KbvvIGPaP"));
+
+            var json = JsonConvert.SerializeObject(node, Formatting.Indented);
 
         }
 
@@ -198,7 +207,7 @@ namespace WhatsSocketConsole
 
         private static void TestExpandedHKDF()
         {
-            var result = EncryptionHelper.HKDF(Convert.FromBase64String("IpLK/bLtOJpZa7mw+9/Cn6v7EF2YfxvyrSs1K+tvFoE="), 112, [], Encoding.UTF8.GetBytes("WhatsApp App State Keys"));
+            var result = WhatsSocket.Core.Helper.CryptoUtils.HKDF(Convert.FromBase64String("IpLK/bLtOJpZa7mw+9/Cn6v7EF2YfxvyrSs1K+tvFoE="), 112, [], Encoding.UTF8.GetBytes("WhatsApp App State Keys"));
 
 
             //var IV = result.Slice(0, 16);
@@ -209,7 +218,7 @@ namespace WhatsSocketConsole
         private static void TestDeriveSecret()
         {
             var a = Convert.FromBase64String("OBRpl4+nI8GjhHO2AJ7PTnk0kNjlbwckoXExgitm6dQ=");
-            var result = EncryptionHelper.DeriveSecrets(a, new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
+            var result = WhatsSocket.Core.Helper.CryptoUtils.DeriveSecrets(a, new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
         }
 
         private static void TestSuccessSign()
@@ -258,7 +267,7 @@ namespace WhatsSocketConsole
             .Concat(Convert.FromBase64String(signedIdentityKeypublic))
             .ToArray();
 
-            var valid = EncryptionHelper.Verify(Convert.FromBase64String(accountSignatureKey), accountMsg, Convert.FromBase64String(accountSignature));
+            var valid = WhatsSocket.Core.Helper.CryptoUtils.Verify(Convert.FromBase64String(accountSignatureKey), accountMsg, Convert.FromBase64String(accountSignature));
         }
 
         private static void TestSign()
@@ -395,7 +404,7 @@ namespace WhatsSocketConsole
   s2: '4jNPpyMO1am1+WOHb3KvXgN6Ok43WUbRcVGNIAU0gQM='
 }
             */
-            var hkdf = EncryptionHelper.HKDF(Convert.FromBase64String("frvaFLM4ZMjur+3gOkWkOJh3Phpb1Q2voTS2tVkDCzU="), 64, Convert.FromBase64String("Tm9pc2VfWFhfMjU1MTlfQUVTR0NNX1NIQTI1NgAAAAA="), Encoding.UTF8.GetBytes(""));
+            var hkdf = WhatsSocket.Core.Helper.CryptoUtils.HKDF(Convert.FromBase64String("frvaFLM4ZMjur+3gOkWkOJh3Phpb1Q2voTS2tVkDCzU="), 64, Convert.FromBase64String("Tm9pc2VfWFhfMjU1MTlfQUVTR0NNX1NIQTI1NgAAAAA="), Encoding.UTF8.GetBytes(""));
             var b64 = Convert.ToBase64String(hkdf);
 
             var split1 = Convert.ToBase64String(hkdf.Take(32).ToArray());

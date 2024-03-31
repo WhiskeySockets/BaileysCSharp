@@ -7,11 +7,25 @@ using static WhatsSocket.Core.Utils.MessageUtil;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.WABinary.JidUtils;
 using static WhatsSocket.Core.WABinary.Constants;
-using WhatsSocket.Core.Delegates;
+using static WhatsSocket.Core.Utils.ValidateConnectionUtil;
+using static WhatsSocket.Core.Utils.SignalUtils;
 using Newtonsoft.Json;
+using WhatsSocket.Core.Extensions;
+using System.Collections.Generic;
+using WhatsSocket.Core.Models.Sessions;
+using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.Signal;
+using Google.Protobuf;
+using WhatsSocket.Core.Events;
 
 namespace WhatsSocket.Core.Sockets
 {
+    public class ParticipantNode
+    {
+        public BinaryNode[] Nodes { get; set; }
+        public bool ShouldIncludeDeviceIdentity { get; set; }
+    }
+
     public abstract class MessagesSendSocket : GroupSocket
     {
         public MessagesSendSocket([NotNull] SocketConfig config) : base(config)
@@ -68,7 +82,7 @@ namespace WhatsSocket.Core.Sockets
 
 
             var participants = new List<BinaryNode>();
-            var destinationJud = isStatus ? statusId : JidEncode(jidDecoded.User, isLid ? "lid" : isGroup ? "g.us" : "s.whatsapp.net");
+            var destinationJid = isStatus ? statusId : JidEncode(jidDecoded.User, isLid ? "lid" : isGroup ? "g.us" : "s.whatsapp.net");
             var binaryNodeContent = new List<BinaryNode>();
             var devices = new List<JidWidhDevice>();
 
@@ -108,22 +122,232 @@ namespace WhatsSocket.Core.Sockets
             }
             else
             {
-                var meDecode = JidDecode(meId);
+                var me = JidDecode(meId);
                 if (options.Participant == null)
                 {
                     devices.Add(new JidWidhDevice() { User = jidDecoded.User });
                     // do not send message to self if the device is 0 (mobile)
-                    if (meDecode.Device != 0)
+                    if (me.Device != 0)
                     {
-                        devices.Add(new JidWidhDevice() { User = meDecode.User });
+                        devices.Add(new JidWidhDevice() { User = me.User });
                     }
 
                     var additionalDevices = await GetUSyncDevices([meId, jid], options.UseUserDevicesCache ?? false, true);
+                    devices.AddRange(additionalDevices);
                 }
 
+                List<string> allJids = new List<string>();
+                List<string> meJids = new List<string>();
+                List<string> otherJids = new List<string>();
+
+                foreach (var item in devices)
+                {
+                    var isMe = item.User == me.User;
+                    var addJid = JidEncode((isMe && isLid) ? Creds.Me.LID.Split(":")[0] ?? item.User : item.User, isLid ? "lid" : "s.whatsapp.net", item.Device);
+                    if (isMe)
+                    {
+                        meJids.Add(addJid);
+                    }
+                    else
+                    {
+                        otherJids.Add(addJid);
+                    }
+                    allJids.Add(addJid);
+                }
+
+                await AssertSessions(allJids, false);
+
+                var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, null);
+                var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, null);
+
+                participants.AddRange(meNode.Nodes);
+                participants.AddRange(otherNode.Nodes);
+                shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || meNode.ShouldIncludeDeviceIdentity || otherNode.ShouldIncludeDeviceIdentity;
+
+                if (participants.Count > 0)
+                {
+                    binaryNodeContent.Add(new BinaryNode()
+                    {
+                        tag = "participants",
+                        content = participants.ToArray()
+                    });
+                }
+
+                var stanza = new BinaryNode()
+                {
+                    tag = "message",
+                    attrs =
+                    {
+                        {"id",options.MessageID  },
+                        {"type" , "text" }
+                    }
+                };
+                if (options.AdditionalAttributes != null)
+                {
+                    foreach (var item in options.AdditionalAttributes)
+                    {
+                        stanza.attrs.Add(item.Key, item.Value);
+                    }
+                }
+
+                // if the participant to send to is explicitly specified (generally retry recp)
+                // ensure the message is only sent to that person
+                // if a retry receipt is sent to everyone -- it'll fail decryption for everyone else who received the msg
+                if (options.Participant != null)
+                {
+                    if (IsJidGroup(destinationJid))
+                    {
+                        stanza.attrs["to"] = destinationJid;
+                        stanza.attrs["participant"] = options.Participant.Jid;
+                    }
+                    else if (AreJidsSameUser(options.Participant.Jid, meId))
+                    {
+                        stanza.attrs["to"] = options.Participant.Jid;
+                        stanza.attrs["participant"] = destinationJid;
+                    }
+                    else
+                    {
+                        stanza.attrs["to"] = options.Participant.Jid;
+                    }
+                }
+                else
+                {
+                    stanza.attrs["to"] = destinationJid;
+                }
+
+                if (shouldIncludeDeviceIdentity)
+                {
+                    binaryNodeContent.Add(new BinaryNode()
+                    {
+                        tag = "device-identity",
+                        attrs = { },
+                        content = EncodeSignedDeviceIdentity(Creds.Account, true)
+                    });
+                }
+                stanza.content = binaryNodeContent.ToArray();
+
+                //TODO: Button Type
+
+                Logger.Debug(new { msgId = options.MessageID }, $"sending message to ${participants.Count} devices");
+           
+                SendNode(stanza);
+            }
+
+        }
+
+        public ParticipantNode CreateParticipantNodes(string[] jids, Message message, Dictionary<string, string> attrs)
+        {
+            ParticipantNode result = new ParticipantNode();
+            var patched = SocketConfig.PatchMessageBeforeSending(message, jids);
+            var bytes = EncodeWAMessage(patched);//.ToByteArray();
+
+            result.ShouldIncludeDeviceIdentity = false;
+            List<BinaryNode> nodes = new List<BinaryNode>();
+
+            foreach (var jid in jids)
+            {
+                var enc = Repository.EncryptMessage(jid, bytes);
+                if (enc.Type == "pkmsg")
+                {
+                    result.ShouldIncludeDeviceIdentity = true;
+                }
+                var encNode = new BinaryNode()
+                {
+                    tag = "enc",
+                    attrs =
+                            {
+                                {"v","2" },
+                                {"type",enc.Type },
+                            },
+                    content = enc.CipherText
+                };
+                if (attrs != null)
+                {
+                    foreach (var attr in attrs)
+                    {
+                        encNode.attrs[attr.Key] = attr.Value;
+                    }
+                }
+                var node = new BinaryNode()
+                {
+                    tag = "to",
+                    attrs = { { "jid", jid } },
+                    content = new BinaryNode[]
+                    {
+                        encNode
+                    }
+                };
+                nodes.Add(node);
+            }
+
+            result.Nodes = nodes.ToArray();
+
+            return result;
+        }
+
+        private async Task<bool> AssertSessions(List<string> jids, bool force)
+        {
+            var didFetchNewSession = false;
+            List<string> jidsRequiringFetch = new List<string>();
+            if (force)
+            {
+                jidsRequiringFetch = jids.ToList();
+            }
+            else
+            {
+                var addrs = jids.Select(x => new ProtocolAddress(x)).ToList();
+                var sessions = Keys.Get<SessionRecord>(addrs.Select(x => x.ToString()).ToList());
+                foreach (var jid in jids)
+                {
+                    if (!sessions.ContainsKey(new ProtocolAddress(jid).ToString()))
+                    {
+                        jidsRequiringFetch.Add(jid.ToString());
+                    }
+                    else if (sessions[new ProtocolAddress(jid).ToString()] == null)
+                    {
+                        jidsRequiringFetch.Add(jid.ToString());
+                    }
+                }
+            }
+
+            if (jidsRequiringFetch.Count > 0)
+            {
+                Logger.Debug(new { jidsRequiringFetch }, "fetching sessions");
+                var result = await Query(new BinaryNode()
+                {
+                    tag = "iq",
+                    attrs =
+                    {
+                        {"xmlns", "encrypt" },
+                        {"type", "get" },
+                        {"to", S_WHATSAPP_NET }
+                    },
+                    content = new BinaryNode[]
+                    {
+                        new BinaryNode()
+                        {
+                            tag = "key",
+                            attrs = { },
+                            content = jids.Select(x => new BinaryNode()
+                            {
+                                tag = "user",
+                                attrs =
+                                {
+                                    {"jid",x }
+                                }
+
+                            }).ToArray()
+                        }
+                    }
+                });
+
+                ParseAndInjectE2ESessions(result, Repository);
+
+                didFetchNewSession = true;
             }
 
 
+            return didFetchNewSession;
         }
 
         NodeCache userDevicesCache = new NodeCache();
@@ -174,7 +398,8 @@ namespace WhatsSocket.Core.Sockets
                         attrs =
                         {
                             {"sid", GenerateMessageTag() },
-                            {"mode","usync" },
+                            {"mode","query" },
+                            //{"mode","usync" },
                             {"last","true" },
                             {"index","0" },
                             {"context","message" }
@@ -206,13 +431,32 @@ namespace WhatsSocket.Core.Sockets
                 }
             };
 
-            var json = JsonConvert.SerializeObject(iq,Formatting.Indented);
+            var json = JsonConvert.SerializeObject(iq, Formatting.Indented);
+
 
             var result = await Query(iq);
+
+            var extracted = ExtractDeviceJids(result, Creds.Me.ID, ignoreZeroDevices);
+
+            Dictionary<string, List<JidWidhDevice>> deviceMap = new Dictionary<string, List<JidWidhDevice>>();
+
+            foreach (var item in extracted)
+            {
+                deviceMap[item.User] = deviceMap.ContainsKey(item.User) == true ? deviceMap[item.User] : new List<JidWidhDevice>();
+
+                deviceMap[item.User].Add(item);
+                deviceResults.Add(item);
+            }
+
+            foreach (var item in deviceMap)
+            {
+                userDevicesCache.Set(item.Key, item.Value);
+            }
 
 
             return deviceResults;
         }
+
 
         public string GetMediaType(Message message)
         {

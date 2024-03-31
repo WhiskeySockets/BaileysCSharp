@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Stores;
@@ -15,24 +14,27 @@ using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ChatUtils;
 using static WhatsSocket.Core.Models.ChatConstants;
 using static WhatsSocket.Core.WABinary.Constants;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
+using WhatsSocket.Core.Sockets;
+using WhatsSocket.Core.Events;
 
 namespace WhatsSocket.Core
 {
     public abstract class ChatSocket : BaseSocket
     {
 
-
+        protected ProcessingMutex processingMutex;
 
 
         public ChatSocket([NotNull] SocketConfig config) : base(config)
         {
+            processingMutex = new ProcessingMutex();
             events["CB:presence"] = HandlePresenceUpdate;
             events["CB:chatstate"] = HandlePresenceUpdate;
             events["CB:ib,,dirty"] = HandleDirtyUpdate;
 
             var connectionUpdateEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionUpdateEvent.Emit += ConnectionUpdateEvent_Emit;
+            connectionUpdateEvent.Multi += ConnectionUpdateEvent_Emit;
         }
 
         private void ConnectionUpdateEvent_Emit(ConnectionState[] args)
@@ -150,7 +152,7 @@ namespace WhatsSocket.Core
             //EV.MessageUpsert([msg], type);
             if (!string.IsNullOrWhiteSpace(msg.PushName))
             {
-                var jid = msg.Key.FromMe ? Creds.Me.ID : (msg.Key.Participant ?? msg.Key.RemoteJid);
+                var jid = msg.Key.FromMe ? Creds.Me.ID : (msg.Key.Participant != "" ? msg.Key.Participant : msg.Key.RemoteJid);
                 jid = JidUtils.JidNormalizedUser(jid);
 
                 if (!msg.Key.FromMe)

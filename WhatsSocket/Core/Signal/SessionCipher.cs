@@ -13,12 +13,17 @@ using WhatsSocket.Exceptions;
 
 namespace WhatsSocket.Core.Signal
 {
+    public class SessionDecryptResult
+    {
+        public Session Session { get; set; }
+        public byte[] PlainText { get; set; }   
+    }
 
     public class SessionCipher
     {
-        public SessionCipher(AuthenticationState auth, ProtocolAddress address)
+        public SessionCipher(SignalStorage storage, ProtocolAddress address)
         {
-            Storage = new SignalStorage(auth);
+            Storage = storage;
             Address = address;
         }
 
@@ -60,10 +65,56 @@ namespace WhatsSocket.Core.Signal
             return plaintext;
         }
 
+
+        internal byte[] DecryptWhisperMessage(byte[] data)
+        {
+            var record = GetRecord();
+            var result = DecryptWithSessions(data, record.GetSessions());
+            var remoteIdentityKey = result.Session.IndexInfo.RemoteIdentityKey;
+
+            if (record.IsClosed(result.Session))
+            {
+                // It's possible for this to happen when processing a backlog of messages.
+                // The message was, hopefully, just sent back in a time when this session
+                // was the most current.  Simply make a note of it and continue.  If our
+                // actual open session is for reason invalid, that must be handled via
+                // a full SessionError response.
+            }
+            StoreRecord(record);
+            return result.PlainText;
+        }
+
+        private SessionDecryptResult DecryptWithSessions(byte[] data, List<Session> sessions)
+        {
+            if (sessions.Count == 0)
+            {
+                throw new SessionException("No Sessions Available");
+            }
+            List<Exception> errors = new List<Exception>();
+            foreach (var session in sessions)
+            {
+                try
+                {
+                    var plaintext = DoDecryptWhisperMessage(data, session);
+                    session.IndexInfo.Used = DateTime.Now.AsEpoch();
+                    return new SessionDecryptResult()
+                    {
+                        PlainText = plaintext,
+                        Session = session
+                    };
+                }
+                catch (Exception e)
+                {
+                    errors.Add(e);
+                }
+            }
+            throw new Exception("No matching sessions found for message");
+        }
+
         private void StoreRecord(SessionRecord record)
         {
             record.RemoveOldSessions();
-            Storage.StoreSession(Address,record);
+            Storage.StoreSession(Address, record);
         }
 
         private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session? session)
@@ -73,37 +124,37 @@ namespace WhatsSocket.Core.Signal
             var messageProto = messageBuffer.Skip(1).Take(messageBuffer.Length - 1 - 8).ToArray();
             var message = WhisperMessage.Parser.ParseFrom(messageProto);
 
-            MaybeStepRatchet(session, message.EphemeralKey, message.PreviousCounter);
+            MaybeStepRatchet(session, message.EphemeralKey, (int)message.PreviousCounter);
             var chain = session.GetChain(message.EphemeralKey.ToByteArray());
             if (chain.ChainType == ChainType.SENDING)
             {
                 throw new SessionException("Tried to decrypt on a sending chain");
             }
-            FillMessageKeys(chain, message.Counter);
+            FillMessageKeys(chain, (int)message.Counter);
             if (!chain.MessageKeys.ContainsKey((int)message.Counter))
             {
                 throw new SessionException("Key used already or never filled");
             }
             var messageKey = chain.MessageKeys[(int)message.Counter];
             chain.MessageKeys.Remove((int)message.Counter);
-            var keys = EncryptionHelper.DeriveSecrets(messageKey, new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
+            var keys = CryptoUtils.DeriveSecrets(messageKey, new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
 
 
             var ourIdentityKey = Storage.GetOurIdentity();
             var macInput = new byte[messageProto.Length + 33 * 2 + 1];
             macInput.Set(session.IndexInfo.RemoteIdentityKey);
             macInput.Set(ourIdentityKey.Public, 33);
-            macInput[33 * 2] = _encodeTupleByte(3, 3);
+            macInput[33 * 2] = EncodeTupleByte(3, 3);
             macInput.Set(messageProto, 33 * 2 + 1);
 
-            EncryptionHelper.VerifyMac(macInput, keys[1], messageBuffer.Skip(messageBuffer.Length - 8).ToArray(), 8);
+            CryptoUtils.VerifyMac(macInput, keys[1], messageBuffer.Skip(messageBuffer.Length - 8).ToArray(), 8);
 
-            var plaintext = EncryptionHelper.DecryptAesCbcWithIV(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
+            var plaintext = CryptoUtils.DecryptAesCbcWithIV(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
             session.PendingPreKey = null;
             return plaintext;
         }
 
-        private byte _encodeTupleByte(int number1, int number2)
+        private byte EncodeTupleByte(int number1, int number2)
         {
             if (number1 > 15 || number2 > 15)
             {
@@ -112,7 +163,7 @@ namespace WhatsSocket.Core.Signal
             return (byte)(number1 << 4 | number2);
         }
 
-        private void MaybeStepRatchet(Session? session, ByteString remoteKey, uint previousCounter)
+        private void MaybeStepRatchet(Session? session, ByteString remoteKey, int previousCounter)
         {
             if (session.GetChain(remoteKey.ToByteArray()) != null)
             {
@@ -133,7 +184,7 @@ namespace WhatsSocket.Core.Signal
                 ratchet.PreviousCounter = prevCounter.ChainKey.Counter;
                 session.DeleteChain(ratchet.EphemeralKeyPair.Public);
             }
-            ratchet.EphemeralKeyPair = EncryptionHelper.GenerateKeyPair();
+            ratchet.EphemeralKeyPair = CryptoUtils.GenerateKeyPair();
             CalculateRatchet(session, remoteKey, true);
             ratchet.LastRemoteEphemeralKey = remoteKey.ToByteArray();
         }
@@ -141,8 +192,8 @@ namespace WhatsSocket.Core.Signal
         private void CalculateRatchet(Session session, ByteString remoteKey, bool sending)
         {
             var ratchet = session.CurrentRatchet;
-            var sharedSecret = EncryptionHelper.CalculateAgreement(remoteKey.ToByteArray(), ratchet.EphemeralKeyPair.Private);
-            var masterKey = EncryptionHelper.DeriveSecrets(sharedSecret, ratchet.RootKey, Encoding.UTF8.GetBytes("WhisperRatchet"), 2);
+            var sharedSecret = CryptoUtils.CalculateAgreement(remoteKey.ToByteArray(), ratchet.EphemeralKeyPair.Private);
+            var masterKey = CryptoUtils.DeriveSecrets(sharedSecret, ratchet.RootKey, Encoding.UTF8.GetBytes("WhisperRatchet"), 2);
 
             var chainKey = sending ? ratchet.EphemeralKeyPair.Public : remoteKey.ToByteArray();
             session.Chains.Add(chainKey.ToByteString().ToBase64(), new Chain()
@@ -157,7 +208,7 @@ namespace WhatsSocket.Core.Signal
             ratchet.RootKey = masterKey[0];
         }
 
-        private void FillMessageKeys(Chain chain, uint counter)
+        private void FillMessageKeys(Chain chain, int counter)
         {
             if (chain.ChainKey.Counter >= counter)
                 return;
@@ -171,20 +222,96 @@ namespace WhatsSocket.Core.Signal
                 throw new SessionException("Chain closed");
             }
             var key = chain.ChainKey.Key;
-            chain.MessageKeys[chain.ChainKey.Counter + 1] = EncryptionHelper.CalculateMAC(key, [1]);
-            chain.ChainKey.Key = EncryptionHelper.CalculateMAC(key, [2]);
+            chain.MessageKeys[chain.ChainKey.Counter + 1] = CryptoUtils.CalculateMAC(key, [1]);
+            chain.ChainKey.Key = CryptoUtils.CalculateMAC(key, [2]);
             chain.ChainKey.Counter += 1;
             FillMessageKeys(chain, counter);
         }
 
-        internal byte[] DecryptWhisperMessage(byte[] data)
-        {
-            return null;
-        }
 
         private int[] decodeTupleByte(byte buff)
         {
             return [buff >> 4, buff & 0xf];
+        }
+
+        internal EncryptData Encrypt(byte[] data)
+        {
+            var ourIdentityKey = Storage.GetOurIdentity();
+            var record = GetRecord();
+            if (record == null)
+            {
+                throw new SessionException("No Session");
+            }
+
+            var session = record.GetOpenSession();
+            if (session == null)
+            {
+                throw new SessionException("No Open Session");
+            }
+
+            var remoteIdentity = session.IndexInfo.RemoteIdentityKey;
+            if (remoteIdentity == null)
+            {
+                throw new SessonException("Untrusted Identity Key Error");
+            }
+
+            var chain = session.GetChain(session.CurrentRatchet.EphemeralKeyPair.Public);
+            if (chain.ChainType == ChainType.RECEIVING)
+            {
+                throw new SessionException("Tried to encrypt on a receiving chain");
+            }
+            FillMessageKeys(chain, chain.ChainKey.Counter + 1);
+            var keys = CryptoUtils.DeriveSecrets(chain.MessageKeys[chain.ChainKey.Counter], new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
+            chain.MessageKeys.Remove(chain.ChainKey.Counter);
+            //TODO
+            WhisperMessage msg = new WhisperMessage();
+            msg.EphemeralKey = session.CurrentRatchet.EphemeralKeyPair.Public.ToByteString();
+            msg.Counter = (uint)chain.ChainKey.Counter;
+            msg.PreviousCounter = (uint)session.CurrentRatchet.PreviousCounter;
+            msg.Ciphertext = CryptoUtils.EncryptAesCbc(data, keys[0]).ToByteString();
+
+            var msgBuf = msg.ToByteArray();
+            var macInput = new byte[msgBuf.Length + (33 * 2) + 1];
+            macInput.Set(ourIdentityKey.Public);
+            macInput.Set(session.IndexInfo.RemoteIdentityKey, 33);
+            macInput[33 * 2] = this.EncodeTupleByte(3, 3);
+            macInput.Set(msgBuf, (33 * 2) + 1);
+            var mac = CryptoUtils.CalculateMAC(keys[1], macInput);
+            var result = new byte[msgBuf.Length + 9];
+            result[0] = this.EncodeTupleByte(3, 3);
+            result.Set(msgBuf, 1);
+            result.Set(mac.Slice(0, 8), msgBuf.Length + 1);
+            StoreRecord(record);
+            var type = 1;
+            byte[] body;
+            if (session.PendingPreKey != null)
+            {
+                type = 3;
+                var preKeyMsg = new PreKeyWhisperMessage()
+                {
+                    IdentityKey = ourIdentityKey.Public.ToByteString(),
+                    RegistrationId = Storage.GetOurRegistrationId(),
+                    BaseKey = session.PendingPreKey.BaseKey.ToByteString(),
+                    SignedPreKeyId = session.PendingPreKey.SignedKeyId,
+                    Message = result.ToByteString()
+                };
+                if (session.PendingPreKey.PreKeyId > 0)
+                {
+                    preKeyMsg.PreKeyId = session.PendingPreKey.PreKeyId;
+                }
+                body = new byte[] { EncodeTupleByte(3, 3) };
+                body = body.Concat(preKeyMsg.ToByteArray()).ToArray();
+            }
+            else
+            {
+                type = 1;
+                body = result;
+            }
+            return new EncryptData()
+            {
+                Type = type,
+                Data = body
+            };
         }
     }
 }

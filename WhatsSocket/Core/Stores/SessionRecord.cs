@@ -33,7 +33,7 @@ namespace WhatsSocket.Core.Stores
         {
             foreach (var kvp in Sessions)
             {
-                if (kvp.Value.IndexInfo.Closed != -1)
+                if (!IsClosed(kvp.Value))
                     return kvp.Value;
             }
             return null;
@@ -81,6 +81,12 @@ namespace WhatsSocket.Core.Stores
                     Sessions.Remove(oldestKey);
                 }
             }
+        }
+
+        internal List<Session> GetSessions()
+        {
+            var sesions = Sessions.Values.ToList();
+            return sesions.OrderByDescending(x => x.IndexInfo.Used).ToList();
         }
     }
 }

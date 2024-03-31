@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using static WhatsSocket.Core.WABinary.JidUtils;
 
 namespace WhatsSocket.Core.Models
 {
@@ -12,7 +13,11 @@ namespace WhatsSocket.Core.Models
 
         public ProtocolAddress()
         {
-            
+
+        }
+        public ProtocolAddress(string jid) : this(JidDecode(jid))
+        {
+
         }
 
         public ProtocolAddress(FullJid jid)

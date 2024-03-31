@@ -22,4 +22,15 @@ namespace WhatsSocket.Core.Models.Sessions
         [JsonProperty("remoteIdentityKey")]
         public byte[] RemoteIdentityKey { get; set; }
     }
+
+
+    public class PendingPreKey
+    {
+        [JsonProperty("signedKeyId")]
+        public uint SignedKeyId { get; set; }
+        [JsonProperty("preKeyId")]
+        public uint PreKeyId { get; set; }
+        [JsonProperty("baseKey")]
+        public byte[]? BaseKey { get; set; }
+    }
 }

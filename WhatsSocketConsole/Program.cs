@@ -18,7 +18,6 @@ using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Sockets;
 using WhatsSocket.Exceptions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -68,20 +67,20 @@ namespace WhatsSocketConsole
 
 
             var authEvent = socket.EV.On<AuthenticationCreds>(EmitType.Update);
-            authEvent.Emit += AuthEvent_OnEmit;
+            authEvent.Multi += AuthEvent_OnEmit;
 
             var connectionEvent = socket.EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Emit += ConnectionEvent_Emit;
+            connectionEvent.Multi += ConnectionEvent_Emit;
 
 
             var messageEvent = socket.EV.On<MessageUpsertModel>(EmitType.Upsert);
-            messageEvent.Emit += MessageEvent_Emit;
+            messageEvent.Single += MessageEvent_Single;
 
             var history = socket.EV.On<MessageHistoryModel>(EmitType.Set);
-            history.Emit += History_Emit;
+            history.Multi += History_Emit;
 
             var presence = socket.EV.On<PresenceModel>(EmitType.Update);
-            presence.Emit += Presence_Emit;
+            presence.Multi += Presence_Emit;
 
             //socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
             //socket.EV.OnDisconnect += EV_OnDisconnect;
@@ -92,6 +91,20 @@ namespace WhatsSocketConsole
             socket.MakeSocket();
 
             Console.ReadLine();
+        }
+
+        private static async void MessageEvent_Single(MessageUpsertModel args)
+        {
+            if (args.Type == MessageUpsertType.Notify)
+            {
+                var msg = args.Messages[0];
+                if (msg.Key.FromMe == false)
+                {
+                    var result = await socket.SendMessage(msg.Key.RemoteJid,
+                        new ExtendedTextMessageModel() { Text = "oh hello there" },
+                        new MessageGenerationOptionsFromContent());
+                }
+            }
         }
 
         private static void Presence_Emit(PresenceModel[] args)
@@ -116,15 +129,16 @@ namespace WhatsSocketConsole
             var array = $"[\n{string.Join(",", jsons)}\n]";
             Debug.WriteLine(array);
 
-            if (args[0]?.Messages[0]?.Message?.Conversation == "test")
+            if (args[0].Type == MessageUpsertType.Notify)
             {
                 var msg = args[0].Messages[0];
-                var result = await socket.SendMessage(msg.Key.RemoteJid, 
-                    new ExtendedTextMessageModel() { Text = "oh hello there" }, 
-                    new MessageGenerationOptionsFromContent() { Quoted = msg });
-
+                if (msg.Key.FromMe == false)
+                {
+                    //var result = await socket.SendMessage(msg.Key.RemoteJid,
+                    //    new ExtendedTextMessageModel() { Text = "oh hello there" },
+                    //    new MessageGenerationOptionsFromContent());
+                }
             }
-
         }
 
         private static async void ConnectionEvent_Emit(ConnectionState[] args)

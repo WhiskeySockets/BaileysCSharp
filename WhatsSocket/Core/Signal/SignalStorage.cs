@@ -4,6 +4,7 @@ using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
+using static WhatsSocket.Core.Helper.CryptoUtils;
 
 namespace WhatsSocket.Core.Signal
 {
@@ -27,7 +28,7 @@ namespace WhatsSocket.Core.Signal
 
         internal KeyPair LoadSignedPreKey(uint signedPreKeyId)
         {
-            return Creds.SignedPreKey.KeyPair;
+            return Creds.SignedPreKey;
         }
 
         internal KeyPair GetOurIdentity()
@@ -35,7 +36,7 @@ namespace WhatsSocket.Core.Signal
             return new KeyPair()
             {
                 Private = Creds.SignedIdentityKey.Private,
-                Public = AuthenticationUtils.GenerateSignalPubKey(Creds.SignedIdentityKey.Public),
+                Public = GenerateSignalPubKey(Creds.SignedIdentityKey.Public),
             };
         }
 
@@ -71,6 +72,11 @@ namespace WhatsSocket.Core.Signal
         internal void StoreSession(ProtocolAddress address, SessionRecord record)
         {
             Keys.Set(address.ToString(), record);
+        }
+
+        internal uint GetOurRegistrationId()
+        {
+            return (uint)Creds.RegistrationId;
         }
     }
 }

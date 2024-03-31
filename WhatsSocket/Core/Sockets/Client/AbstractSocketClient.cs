@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Models;
 

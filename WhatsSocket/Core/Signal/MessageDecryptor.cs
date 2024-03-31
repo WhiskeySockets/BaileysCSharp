@@ -48,12 +48,12 @@ namespace WhatsSocket.Core.Signal
                             switch (e2eType)
                             {
                                 case "skmsg":
-                                    msgBuffer = Repository.decryptGroupMessage(Sender, Author, buffer);
+                                    msgBuffer = Repository.DecryptGroupMessage(Sender, Author, buffer);
                                     break;
                                 case "pkmsg":
                                 case "msg":
                                     var user = IsJidUser(Sender) ? Sender : Author;
-                                    msgBuffer = Repository.decryptMessage(user, e2eType, buffer);
+                                    msgBuffer = Repository.DecryptMessage(user, e2eType, buffer);
                                     break;
                                 default:
                                     break;

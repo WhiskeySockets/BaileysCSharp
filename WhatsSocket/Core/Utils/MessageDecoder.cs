@@ -26,8 +26,8 @@ namespace WhatsSocket.Core
 
             var msgId = stanza.attrs["id"];
             var from = stanza.attrs["from"];
-            var participant = stanza.getattr("participant") ?? "";
-            var recipient = stanza.getattr("recipient") ?? "";
+            var participant = stanza.getattr("participant");
+            var recipient = stanza.getattr("recipient");
 
             if (IsJidUser(from))
             {
@@ -101,7 +101,7 @@ namespace WhatsSocket.Core
             }
 
             var notify = stanza.getattr("notify");
-            var fromMe = IsLidUser(from) ? AreJidsSameUser(meId, participant ?? from) : AreJidsSameUser(meLid, participant ?? from);
+            var fromMe = IsLidUser(from) ? AreJidsSameUser(meId, !string.IsNullOrWhiteSpace(participant) ? participant : from) : AreJidsSameUser(meLid, !string.IsNullOrWhiteSpace(participant) ? participant : from);
 
             var fullMessage = new WebMessageInfo()
             {
@@ -110,7 +110,7 @@ namespace WhatsSocket.Core
                     RemoteJid = chatId,
                     Id = msgId,
                     FromMe = fromMe,
-                    Participant = participant,
+                    Participant = participant ?? "",
                 },
                 PushName = notify,
                 Broadcast = IsBroadcast(from)

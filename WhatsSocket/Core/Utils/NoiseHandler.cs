@@ -41,7 +41,7 @@ namespace WhatsSocket.Core.Utils
         {
             byte[] data = Encoding.UTF8.GetBytes(Constants.NoiseMode);
 
-            Hash = data.Length == 32 ? data : EncryptionHelper.Sha256(data);
+            Hash = data.Length == 32 ? data : Helper.CryptoUtils.Sha256(data);
             Salt = Hash;
             EncKey = Hash;
             DecKey = Hash;
@@ -55,7 +55,7 @@ namespace WhatsSocket.Core.Utils
 
         public byte[] Encrypt(byte[] plaintext)
         {
-            var result = EncryptionHelper.EncryptAESGCM(plaintext, EncKey, GenerateIV(writeCounter), Hash);
+            var result = Helper.CryptoUtils.EncryptAESGCM(plaintext, EncKey, GenerateIV(writeCounter), Hash);
             writeCounter++;
             Authenticate(result);
             return result;
@@ -72,7 +72,7 @@ namespace WhatsSocket.Core.Utils
             if (!IsFinished)
             {
                 var concattted = Hash.Concat(buffer);
-                Hash = EncryptionHelper.Sha256(Hash.Concat(buffer));
+                Hash = Helper.CryptoUtils.Sha256(Hash.Concat(buffer));
             }
         }
 
@@ -84,7 +84,7 @@ namespace WhatsSocket.Core.Utils
         private byte[] Decrypt(byte[] ciphertext)
         {
             var iv = GenerateIV(IsFinished ? readCounter : writeCounter);
-            var result = EncryptionHelper.DecryptAESGCM(ciphertext, DecKey, iv, Hash);
+            var result = Helper.CryptoUtils.DecryptAESGCM(ciphertext, DecKey, iv, Hash);
 
             if (IsFinished)
             {
@@ -149,10 +149,10 @@ namespace WhatsSocket.Core.Utils
         public byte[] ProcessHandShake(HandshakeMessage result, KeyPair noiseKey)
         {
             Authenticate(result.ServerHello.Ephemeral);
-            MixIntoKey(EncryptionHelper.SharedKey(EphemeralKeyPair.Private, result.ServerHello.Ephemeral));
+            MixIntoKey(Helper.CryptoUtils.SharedKey(EphemeralKeyPair.Private, result.ServerHello.Ephemeral));
 
             var decStaticContent = Decrypt(result.ServerHello.Static);
-            MixIntoKey(EncryptionHelper.SharedKey(EphemeralKeyPair.Private, decStaticContent));
+            MixIntoKey(Helper.CryptoUtils.SharedKey(EphemeralKeyPair.Private, decStaticContent));
 
             var certDecoded = Decrypt(result.ServerHello.Payload);
 
@@ -171,7 +171,7 @@ namespace WhatsSocket.Core.Utils
             }
 
             var keyEnc = Encrypt(noiseKey.Public);
-            MixIntoKey(EncryptionHelper.SharedKey(noiseKey.Private.ToByteString(), result.ServerHello.Ephemeral));
+            MixIntoKey(Helper.CryptoUtils.SharedKey(noiseKey.Private.ToByteString(), result.ServerHello.Ephemeral));
 
             return keyEnc;
         }
@@ -235,7 +235,10 @@ namespace WhatsSocket.Core.Utils
                     Logger.Trace("recv frame");
                 }
 
-                action(message);
+                Task.Run(() =>
+                {
+                    action(message);
+                });
                 size = getBytesSize();
             }
         }
@@ -244,7 +247,7 @@ namespace WhatsSocket.Core.Utils
 
         public (byte[] write, byte[] read) LocalHKDF(byte[] bytes)
         {
-            var hkdf = EncryptionHelper.HKDF(bytes, 64, Salt, Encoding.UTF8.GetBytes(""));
+            var hkdf = Helper.CryptoUtils.HKDF(bytes, 64, Salt, Encoding.UTF8.GetBytes(""));
             return (hkdf.Take(32).ToArray(), hkdf.Skip(32).ToArray());
         }
 

@@ -77,7 +77,7 @@ namespace WhatsSocket.Core.Utils
                     data = data.Slice(AES_CHUNK_SIZE);
                 }
 
-                var decrypted = EncryptionHelper.DecryptAesCbcWithIV(data, keys.CipherKey, iv);
+                var decrypted = Helper.CryptoUtils.DecryptAesCbcWithIV(data, keys.CipherKey, iv);
                 return decrypted;
             }
         }
@@ -86,7 +86,7 @@ namespace WhatsSocket.Core.Utils
 
         public static MediaDecryptionKeyInfo GetMediaKeys(byte[] buffer, string mediaType)
         {
-            var expandedMediaKey = EncryptionHelper.HKDF(buffer, 112, [], HkdifInfoKey(mediaType));
+            var expandedMediaKey = Helper.CryptoUtils.HKDF(buffer, 112, [], HkdifInfoKey(mediaType));
 
             return new MediaDecryptionKeyInfo()
             {

@@ -12,6 +12,13 @@ namespace WhatsSocket.Core.Models
         Notify = 2
     }
 
+    public interface IEventManage
+    {
+        bool CanMerge(IEventManage eventManage);
+        void Merge(IEventManage eventManage);
+    }
+
+
     public class GroupUpdateModel
     {
         public GroupUpdateModel(string jid, GroupMetadataModel update)
@@ -66,7 +73,7 @@ namespace WhatsSocket.Core.Models
         public bool IsLatest { get; set; }
     }
 
-    public class MessageUpsertModel
+    public class MessageUpsertModel : IEventManage
     {
         public MessageUpsertModel(MessageUpsertType type, params WebMessageInfo[] messages)
         {
@@ -76,6 +83,27 @@ namespace WhatsSocket.Core.Models
 
         public MessageUpsertType Type { get; set; }
         public WebMessageInfo[] Messages { get; set; }
+
+        public bool CanMerge(IEventManage eventManage)
+        {
+            if (eventManage == null)
+                return false;
+            if (eventManage is MessageUpsertModel newEvent)
+            {
+                if (newEvent.Type == Type)
+                    return true;
+                return false;
+            }
+            return true;
+        }
+
+        public void Merge(IEventManage eventManage)
+        {
+            if (eventManage is MessageUpsertModel newEvent)
+            {
+                Messages = Messages.Concat(newEvent.Messages).ToArray();
+            }
+        }
     }
 
     public class MessageModel : IMayHaveID

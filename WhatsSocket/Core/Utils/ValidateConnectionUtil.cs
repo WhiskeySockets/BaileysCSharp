@@ -13,7 +13,10 @@ using WhatsSocket.Exceptions;
 using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.NoSQL;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
+using static WhatsSocket.Core.Helper.CryptoUtils;
+using WhatsSocket.Core.Extensions;
+using Newtonsoft.Json;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -23,7 +26,7 @@ namespace WhatsSocket.Core.Utils
 
         public static ClientPayload GenerateRegistrationNode(AuthenticationCreds creds)
         {
-            var appVersion = EncryptionHelper.Md5("2.2329.9");
+            var appVersion = Helper.CryptoUtils.Md5("2.2329.9");
             var companion = new DeviceProps()
             {
                 Os = "Baileys",
@@ -63,7 +66,7 @@ namespace WhatsSocket.Core.Utils
                     EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
                     EIdent = creds.SignedIdentityKey.Public.ToByteString(),
                     ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
-                    ESkeyVal = creds.SignedPreKey.KeyPair.Public.ToByteString(),
+                    ESkeyVal = creds.SignedPreKey.Public.ToByteString(),
                     ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
                 }
             };
@@ -93,7 +96,7 @@ namespace WhatsSocket.Core.Utils
             var detailsHmac = ADVSignedDeviceIdentityHMAC.Parser.ParseFrom(deviceIdentityNode.ToByteArray());
 
 
-            var advSign = EncryptionHelper.HmacSign(detailsHmac.Details.ToByteArray(), Convert.FromBase64String(creds.AdvSecretKey));
+            var advSign = Helper.CryptoUtils.HmacSign(detailsHmac.Details.ToByteArray(), Convert.FromBase64String(creds.AdvSecretKey));
 
             // check HMAC matches
             var hmac = detailsHmac.Hmac.ToBase64();
@@ -107,7 +110,7 @@ namespace WhatsSocket.Core.Utils
             var accountMsg = new byte[] { 6, 0 }
             .Concat(account.Details.ToByteArray())
             .Concat(signedIdentityKey.Public).ToArray();
-            if (!EncryptionHelper.Verify(account.AccountSignatureKey.ToByteArray(), accountMsg, account.AccountSignature.ToByteArray()))
+            if (!Helper.CryptoUtils.Verify(account.AccountSignatureKey.ToByteArray(), accountMsg, account.AccountSignature.ToByteArray()))
             {
                 End("Failed to verify account Signature", DisconnectReason.BadSession);
             }
@@ -117,7 +120,7 @@ namespace WhatsSocket.Core.Utils
             .Concat(account.Details.ToByteArray())
             .Concat(signedIdentityKey.Public)
             .Concat(account.AccountSignatureKey).ToArray();
-            account.DeviceSignature = EncryptionHelper.Sign(signedIdentityKey.Private, deviceMsg).ToByteString();
+            account.DeviceSignature = CryptoUtils.Sign(signedIdentityKey.Private, deviceMsg).ToByteString();
 
             //TODO: Finish 
             var identity = CreateSignalIdentity(jid, account.AccountSignatureKey);
@@ -155,12 +158,24 @@ namespace WhatsSocket.Core.Utils
                 }
             };
 
-            creds.SignalIdentities = new SignalIdentity[] { identity };
+            if (creds.SignalIdentities == null)
+            {
+                creds.SignalIdentities = [];
+            }
+            creds.SignalIdentities = creds.SignalIdentities.Concat([identity]).ToArray();
+            //creds.Account = account;
             creds.Platform = platformNode.attrs["name"];
             creds.Me = new ContactModel()
             {
                 ID = jid,
                 Name = bizName
+            };
+            creds.Account = new Account()
+            {
+                AccountSignature = account.AccountSignature.ToByteArray(),
+                AccountSignatureKey = account.AccountSignatureKey.ToByteArray(),
+                Details = account.Details.ToByteArray(),
+                DeviceSignature = account.DeviceSignature.ToByteArray(),
             };
 
 
@@ -175,6 +190,17 @@ namespace WhatsSocket.Core.Utils
 
 
 
+        public static byte[] EncodeSignedDeviceIdentity(Account account, bool includeSignatureKey)
+        {
+            return EncodeSignedDeviceIdentity(new ADVSignedDeviceIdentity()
+            {
+                DeviceSignature = account.DeviceSignature.ToByteString(),
+                AccountSignature = account.AccountSignature.ToByteString(),
+                AccountSignatureKey = account.AccountSignatureKey.ToByteString(),
+                Details = account.Details.ToByteString()
+            }, includeSignatureKey);
+        }
+
         public static byte[] EncodeSignedDeviceIdentity(ADVSignedDeviceIdentity account, bool includeSignatureKey)
         {
             var clone = ADVSignedDeviceIdentity.Parser.ParseFrom(account.ToByteArray());
@@ -186,18 +212,18 @@ namespace WhatsSocket.Core.Utils
             return clone.ToByteArray();
         }
 
-        private static SignalIdentity CreateSignalIdentity(string jid, ByteString accountSignatureKey)
+        private static SignalIdentity CreateSignalIdentity(string wid, ByteString accountSignatureKey)
         {
             return new SignalIdentity()
             {
-                Identifier = new ProtocolAddress { Name = jid },
-                IdentifierKey = AuthenticationUtils.GenerateSignalPubKey(accountSignatureKey.ToByteArray())
+                Identifier = new ProtocolAddress { Name = wid },
+                IdentifierKey = GenerateSignalPubKey(accountSignatureKey.ToByteArray())
             };
         }
 
 
 
-        public static BinaryNode GetNextPreKeysNode(AuthenticationCreds creds, BaseKeyStore keys, int count)
+        public static BinaryNode GetNextPreKeysNode(AuthenticationCreds creds, BaseKeyStore keys, uint count)
         {
             var preKeys = GetNextPreKeys(creds, keys, count);
 
@@ -229,7 +255,7 @@ namespace WhatsSocket.Core.Utils
                 content = new BinaryNode[]
                 {
                     new BinaryNode("id", signedPreKey.KeyId.EncodeBigEndian(3)),
-                    new BinaryNode("value", signedPreKey.KeyPair.Public),
+                    new BinaryNode("value", signedPreKey.Public),
                     new BinaryNode("signature", signedPreKey.Signature),
                 }
             };
@@ -247,7 +273,7 @@ namespace WhatsSocket.Core.Utils
             };
         }
 
-        private static Dictionary<string, PreKeyPair> GetNextPreKeys(AuthenticationCreds creds, BaseKeyStore keys, int count)
+        private static Dictionary<string, PreKeyPair> GetNextPreKeys(AuthenticationCreds creds, BaseKeyStore keys, uint count)
         {
             var keySet = GenerateOrGetPreKeys(creds, count);
 
@@ -256,7 +282,7 @@ namespace WhatsSocket.Core.Utils
 
             foreach (var item in keySet.NewPreKeys)
             {
-                keys.Set(item.Key.ToString(), new PreKeyPair(item.Key.ToString(), item.Value));
+                keys.Set(item.Key.ToString(), new PreKeyPair(item.Key, item.Value));
             }
             //keys.Set(keySet.NewPreKeys.Select(x => new PreKeyPair(x.Key.ToString(), x.Value)).ToArray());
 
@@ -266,28 +292,28 @@ namespace WhatsSocket.Core.Utils
             return preKeys;
         }
 
-        private static Dictionary<string, PreKeyPair> GetPreKeys(BaseKeyStore keys, int min, int max)
+        private static Dictionary<string, PreKeyPair> GetPreKeys(BaseKeyStore keys, uint min, uint max)
         {
             List<string> ids = new List<string>();
-            for (int i = min; i < max; i++)
+            for (uint i = min; i < max; i++)
             {
                 ids.Add(i.ToString());
             }
             return keys.Get<PreKeyPair>(ids);
         }
 
-        private static PreKeySet GenerateOrGetPreKeys(AuthenticationCreds creds, int range)
+        private static PreKeySet GenerateOrGetPreKeys(AuthenticationCreds creds, uint range)
         {
 
             var avaliable = creds.NextPreKeyId - creds.FirstUnuploadedPreKeyId;
             var remaining = range - avaliable;
             var lastPreKeyId = creds.NextPreKeyId + remaining - 1;
-            Dictionary<int, KeyPair> newPreKeys = new Dictionary<int, KeyPair>();
+            Dictionary<uint, KeyPair> newPreKeys = new Dictionary<uint, KeyPair>();
             if (remaining > 0)
             {
-                for (int i = creds.NextPreKeyId; i <= lastPreKeyId; i++)
+                for (uint i = creds.NextPreKeyId; i <= lastPreKeyId; i++)
                 {
-                    newPreKeys[i] = EncryptionHelper.GenerateKeyPair();
+                    newPreKeys[i] = Helper.CryptoUtils.GenerateKeyPair();
                 }
             }
 
@@ -295,7 +321,7 @@ namespace WhatsSocket.Core.Utils
             {
                 NewPreKeys = newPreKeys,
                 LastPreKeyId = lastPreKeyId,
-                PreKeyRange = new int[] { creds.FirstUnuploadedPreKeyId, range }
+                PreKeyRange = new uint[] { creds.FirstUnuploadedPreKeyId, range }
             };
         }
 

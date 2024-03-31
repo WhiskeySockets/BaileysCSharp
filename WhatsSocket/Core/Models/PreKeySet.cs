@@ -2,8 +2,8 @@
 {
     public class PreKeySet
     {
-        public Dictionary<int, KeyPair> NewPreKeys { get; set; }
-        public int LastPreKeyId { get; set; }
-        public int[] PreKeyRange { get; set; }
+        public Dictionary<uint, KeyPair> NewPreKeys { get; set; }
+        public uint LastPreKeyId { get; set; }
+        public uint[] PreKeyRange { get; set; }
     }
 }

@@ -25,7 +25,20 @@ namespace WhatsSocket.Core.Models
         public ulong MessageTimestamp { get; set; }
     }
 
+    public class Account
+    {
+        [JsonProperty("details")]
+        public byte[] Details { get; set; }
 
+        [JsonProperty("accountSignatureKey")]
+        public byte[] AccountSignatureKey { get; set; }
+
+        [JsonProperty("accountSignature")]
+        public byte[] AccountSignature { get; set; }
+
+        [JsonProperty("deviceSignature")]
+        public byte[] DeviceSignature { get; set; }
+    }
 
     public partial class AuthenticationCreds
     {
@@ -59,10 +72,10 @@ namespace WhatsSocket.Core.Models
         public List<ProcessedHistoryMessage> ProcessedHistoryMessages { get; set; }
 
         [JsonProperty("nextPreKeyId")]
-        public int NextPreKeyId { get; set; }
+        public uint NextPreKeyId { get; set; }
 
         [JsonProperty("firstUnuploadedPreKeyId")]
-        public int FirstUnuploadedPreKeyId { get; set; }
+        public uint FirstUnuploadedPreKeyId { get; set; }
 
         [JsonProperty("accountSyncCounter")]
         public int AccountSyncCounter { get; set; }
@@ -87,6 +100,9 @@ namespace WhatsSocket.Core.Models
 
         [JsonProperty("registration")]
         public Registration Registration { get; set; }
+
+        [JsonProperty("account")]
+        public Account Account { get; set; }
 
         [JsonProperty("signalIdentities")]
         public SignalIdentity[] SignalIdentities { get; set; }

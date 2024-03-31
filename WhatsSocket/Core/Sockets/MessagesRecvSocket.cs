@@ -2,7 +2,6 @@
 using Proto;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using WhatsSocket.Core.Delegates;
 using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
@@ -10,13 +9,15 @@ using WhatsSocket.Core.Utils;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.ProcessMessageUtil;
+using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.WABinary.Constants;
+using WhatsSocket.Core.Events;
 
 namespace WhatsSocket.Core.Sockets
 {
+
     public abstract class MessagesRecvSocket : MessagesSendSocket
     {
-        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
         public bool SendActiveReceipts;
 
         protected MessagesRecvSocket([NotNull] SocketConfig config) : base(config)
@@ -27,7 +28,7 @@ namespace WhatsSocket.Core.Sockets
             events["CB:notification"] = OnNotification;
             events["CB:ack,class:message"] = OnHandleAck;
             var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Emit += ConnectionEvent_Emit;
+            connectionEvent.Multi += ConnectionEvent_Emit;
         }
 
         private void ConnectionEvent_Emit(ConnectionState[] args)
@@ -42,10 +43,11 @@ namespace WhatsSocket.Core.Sockets
         #region messages-recv
 
 
+        private static Mutex mut = new Mutex();
         public async Task<bool> ProcessNodeWithBuffer(BinaryNode node, string identifier, Func<BinaryNode, Task> action)
         {
-            await semaphoreSlim.WaitAsync();
             EV.Buffer();
+            //mut.WaitOne();
             try
             {
                 await action(node);
@@ -55,7 +57,7 @@ namespace WhatsSocket.Core.Sockets
                 OnUnexpectedError(ex, identifier);
             }
             EV.Flush();
-            semaphoreSlim.Release();
+            //mut.ReleaseMutex();
             return true;
         }
 
@@ -85,20 +87,23 @@ namespace WhatsSocket.Core.Sockets
                 return;
             }
 
-            var msg = await ProcessNotifciation(node);
-
-            if (msg != null)
+            await processingMutex.Mutex(async () =>
             {
-                var fromMe = JidUtils.AreJidsSameUser(node.getattr("participant") ?? remoteJid, Creds.Me.ID);
-                msg.Key = msg.Key ?? new MessageKey();
-                msg.Key.RemoteJid = remoteJid;
-                msg.Key.FromMe = fromMe;
-                msg.Key.Participant = node.getattr("participant");
-                msg.Key.Id = node.getattr("id");
-                msg.Participant = msg.Key.Participant;
-                msg.MessageTimestamp = node.getattr("t").ToUInt64();
-                await UpsertMessage(msg, MessageUpsertType.Append);
-            }
+                var msg = await ProcessNotifciation(node);
+                if (msg != null)
+                {
+                    var participant = node.getattr("participant");
+                    var fromMe = JidUtils.AreJidsSameUser(!string.IsNullOrWhiteSpace(participant) ? participant : remoteJid, Creds.Me.ID);
+                    msg.Key = msg.Key ?? new MessageKey();
+                    msg.Key.RemoteJid = remoteJid;
+                    msg.Key.FromMe = fromMe;
+                    msg.Key.Participant = node.getattr("participant");
+                    msg.Key.Id = node.getattr("id");
+                    msg.Participant = msg.Key.Participant;
+                    msg.MessageTimestamp = node.getattr("t").ToUInt64();
+                    await UpsertMessage(msg, MessageUpsertType.Append);
+                }
+            });
 
             SendMessageAck(node);
 
@@ -452,58 +457,68 @@ namespace WhatsSocket.Core.Sockets
 
         private async Task HandleMessage(BinaryNode node)
         {
-            var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
-            result.Decrypt();
-
-            if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
+            if (GetBinaryNodeChild(node, "unavailable") != null && GetBinaryNodeChild(node, "enc") == null)
             {
-                var encNode = GetBinaryNodeChild(node, "enc");
-                if (encNode != null)
-                {
-                    SendRetryRequest(node, encNode != null);
-                }
-
+                Logger.Debug(node, "missing body; sending ack then ignoring.");
+                SendMessageAck(node);
+                return;
             }
-            else
+
+            await processingMutex.Mutex(async () =>
             {
-                // no type in the receipt => message delivered
-                var type = MessageReceiptType.Undefined;
-                var participant = result.Msg.Key.Participant;
-                if (result.Category == "peer") // special peer message
+
+                var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
+                result.Decrypt();
+
+                if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
                 {
-                    type = MessageReceiptType.PeerMsg;
-                }
-                else if (result.Msg.Key.FromMe) // message was sent by us from a different device
-                {
-                    type = MessageReceiptType.Sender;
-                    if (JidUtils.IsJidUser(result.Author))
+                    var encNode = GetBinaryNodeChild(node, "enc");
+                    if (encNode != null)
                     {
-                        participant = result.Author;
+                        SendRetryRequest(node, encNode != null);
                     }
-                    // need to specially handle this case
                 }
-                else if (!SendActiveReceipts)
+                else
                 {
-                    type = MessageReceiptType.Inactive;
+                    // no type in the receipt => message delivered
+                    var type = MessageReceiptType.Undefined;
+                    var participant = result.Msg.Key.Participant;
+                    if (result.Category == "peer") // special peer message
+                    {
+                        type = MessageReceiptType.PeerMsg;
+                    }
+                    else if (result.Msg.Key.FromMe) // message was sent by us from a different device
+                    {
+                        type = MessageReceiptType.Sender;
+                        if (JidUtils.IsJidUser(result.Author))
+                        {
+                            participant = result.Author;
+                        }
+                        // need to specially handle this case
+                    }
+                    else if (!SendActiveReceipts)
+                    {
+                        type = MessageReceiptType.Inactive;
+                    }
+
+                    //When upsert works this is to be implemented
+                    SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
+
+                    var isAnyHistoryMsg = HistoryUtil.GetHistoryMsg(result.Msg.Message);
+                    if (isAnyHistoryMsg != null)
+                    {
+                        var jid = JidUtils.JidNormalizedUser(result.Msg.Key.RemoteJid);
+                        SendReceipt(jid, null, MessageReceiptType.HistSync, result.Msg.Key.Id);
+                    }
                 }
+
+                CleanMessage(result.Msg, Creds.Me.ID);
+
+
+                await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageUpsertType.Append : MessageUpsertType.Notify);
 
                 //When upsert works this is to be implemented
-                SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
-
-                var isAnyHistoryMsg = HistoryUtil.GetHistoryMsg(result.Msg.Message);
-                if (isAnyHistoryMsg != null)
-                {
-                    var jid = JidUtils.JidNormalizedUser(result.Msg.Key.RemoteJid);
-                    SendReceipt(jid, null, MessageReceiptType.HistSync, result.Msg.Key.Id);
-                }
-            }
-
-            CleanMessage(result.Msg, Creds.Me.ID);
-
-
-            await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageUpsertType.Append : MessageUpsertType.Notify);
-
-            //When upsert works this is to be implemented
+            });
             SendMessageAck(node);
         }
 

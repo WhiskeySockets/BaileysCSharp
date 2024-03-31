@@ -31,7 +31,7 @@ namespace WhatsSocket.Core.Helper
 
         private byte[] _addSingle(byte[] e, byte[] t)
         {
-            var n = EncryptionHelper.HKDF(t, 128, [], Encoding.UTF8.GetBytes(Salt));
+            var n = CryptoUtils.HKDF(t, 128, [], Encoding.UTF8.GetBytes(Salt));
             return PerformPointwiseWithOverflow(e, n, AddFunc);
         }
 
@@ -61,7 +61,7 @@ namespace WhatsSocket.Core.Helper
 
         private byte[] _subtractSingle(byte[] e, byte[] t)
         {
-            var n = EncryptionHelper.HKDF(t, 128, [], Encoding.UTF8.GetBytes(Salt));
+            var n = CryptoUtils.HKDF(t, 128, [], Encoding.UTF8.GetBytes(Salt));
             return PerformPointwiseWithOverflow(e, n, SubFunc);
         }
 

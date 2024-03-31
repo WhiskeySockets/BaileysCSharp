@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
@@ -45,49 +45,6 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
-        public static byte[]? GetBinaryNodeChildBuffer(BinaryNode node, string tag)
-        {
-            var child = GetBinaryNodeChild(node, tag);
-            if (child != null)
-                return child.ToByteArray();
-            return null;
-        }
-
-        public static BinaryNode? GetBinaryNodeChild(BinaryNode? message, string tag)
-        {
-            if (message?.content is BinaryNode[] messages)
-            {
-                return messages.FirstOrDefault(x => x.tag == tag);
-            }
-            return null;
-        }
-        public static BinaryNode[] GetBinaryNodeChildren(BinaryNode? message, string tag)
-        {
-            if (message?.content is BinaryNode[] messages)
-            {
-                return messages.Where(x => x.tag == tag).ToArray();
-            }
-            return new BinaryNode[0];
-        }
-
-        public static BinaryNode[] GetAllBinaryNodeChildren(BinaryNode? message)
-        {
-            if (message?.content is BinaryNode[] messages)
-            {
-                return messages.ToArray();
-            }
-            return new BinaryNode[0];
-        }
-
-        public static string GetBinaryNodeChildString(BinaryNode node, string childTag)
-        {
-            var child = GetBinaryNodeChild(node, childTag)?.content;
-            if (child is byte[] buffer)
-            {
-                return Encoding.UTF8.GetString(buffer);
-            }
-            return child?.ToString();
-        }
 
         internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, EventEmitter ev)
         {
@@ -324,7 +281,8 @@ namespace WhatsSocket.Core.Utils
             {
                 // if the sender believed the message being reacted to is not from them
                 // we've to correct the key to be from them, or some other participant
-                msgKey.FromMe = msgKey.FromMe == false ? JidUtils.AreJidsSameUser(msgKey.Participant ?? msgKey.RemoteJid, meId)
+                var participant = msgKey.Participant;
+                msgKey.FromMe = msgKey.FromMe == false ? JidUtils.AreJidsSameUser(!string.IsNullOrWhiteSpace(participant) ? participant : msgKey.RemoteJid, meId)
                 // if the message being reacted to, was from them
                 // fromMe automatically becomes false
                 : false;
@@ -337,20 +295,5 @@ namespace WhatsSocket.Core.Utils
 
 
 
-        public static Dictionary<string,string> ReduceBinaryNodeToDictionary(BinaryNode node, string tag)
-        {
-            var nodes = GetBinaryNodeChildren(node, tag);
-            Dictionary<string, string> result = new Dictionary<string, string>();
-
-            foreach (var item in nodes)
-            {
-                var key = item.getattr("name") ?? item.getattr("config_code") ;
-                var value = item.getattr("value") ?? item.getattr("config_value");
-                result[key] = value;
-            }
-
-            return result;
-
-        }
     }
 }

@@ -2,14 +2,14 @@
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.NoSQL;
 
-namespace WhatsSocket.Core.Delegates
+namespace WhatsSocket.Core.Events
 {
 
     public class NodeCache : BaseKeyStore
     {
-        public Dictionary<string,object> Cache = new Dictionary<string,object>();
+        public Dictionary<string, object> Cache = new Dictionary<string, object>();
 
-        public NodeCache() 
+        public NodeCache()
         {
         }
 
@@ -23,7 +23,7 @@ namespace WhatsSocket.Core.Delegates
                     return (T)value;
                 }
             }
-            return default(T);
+            return default;
         }
 
         public override Dictionary<string, T> Get<T>(List<string> ids)

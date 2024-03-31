@@ -10,7 +10,7 @@ using System.Runtime.Remoting;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Delegates;
+using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
@@ -41,43 +41,43 @@ namespace WhatsSocket.Core.NoSQL
             //EV.OnHistorySync += EV_OnHistorySync;
 
             var historyEvent = EV.On<MessageHistoryModel>(EmitType.Set);
-            historyEvent.Emit += HistoryEvent_Emit;
+            historyEvent.Multi += HistoryEvent_Emit;
 
             var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Emit += ConnectionEvent_Emit;
+            connectionEvent.Multi += ConnectionEvent_Emit;
 
             var contactUpdateEvent = EV.On<ContactModel>(EmitType.Update);
-            contactUpdateEvent.Emit += ContactUpdateEvent_Emit;
+            contactUpdateEvent.Multi += ContactUpdateEvent_Emit;
             var contactUpsert = EV.On<ContactModel>(EmitType.Upsert);
-            contactUpsert.Emit += ContactUpsert_Emit;
+            contactUpsert.Multi += ContactUpsert_Emit;
             //EV.OnContactUpdated += EV_OnContactUpdated;
             //EV.ContactsUpsert.OnEmit += ContactsUpsert_OnEmit;
 
             var messageUpdateEvent = EV.On<WebMessageInfo>(EmitType.Update);
-            messageUpdateEvent.Emit += MessageUpdateEvent_Emit;
+            messageUpdateEvent.Multi += MessageUpdateEvent_Emit;
             var messageUpsert = EV.On<MessageUpsertModel>(EmitType.Upsert);
-            messageUpsert.Emit += MessageUpsert_Emit;
+            messageUpsert.Multi += MessageUpsert_Emit;
             var messageDelete = EV.On<MessageUpdate>(EmitType.Delete);
-            messageDelete.Emit += MessageDelete_Emit;
+            messageDelete.Multi += MessageDelete_Emit;
             //EV.OnMessageUpserted += EV_OnMessageUpserted;
             //EV.OnMessageUpdated += EV_OnMessageUpdated;
             //EV.OnMessagesDeleted += EV_OnMessagesDeleted;
 
             var chatUpsertEvent = EV.On<ChatModel>(EmitType.Upsert);
-            chatUpsertEvent.Emit += ChatUpsertEvent_Emit;
+            chatUpsertEvent.Multi += ChatUpsertEvent_Emit;
             var chatUpdateEvent = EV.On<ChatModel>(EmitType.Update);
-            chatUpdateEvent.Emit += ChatUpdateEvent_Emit;
+            chatUpdateEvent.Multi += ChatUpdateEvent_Emit;
             var chatDeleteEvent = EV.On<ChatModel>(EmitType.Delete);
-            chatDeleteEvent.Emit += ChatDeleteEvent_Emit;
+            chatDeleteEvent.Multi += ChatDeleteEvent_Emit;
             //EV.OnChatUpserted += EV_OnChatUpserted;
             //EV.OnChatUpdated += EV_OnChatUpdated;
             //EV.OnChatDeleted += EV_OnChatDeleted;
 
 
             var groupUpdateEvent = EV.On<GroupMetadataModel>(EmitType.Update);
-            groupUpdateEvent.Emit += GroupUpdateEvent_Emit;
+            groupUpdateEvent.Multi += GroupUpdateEvent_Emit;
             var groupUpsertEvent = EV.On<GroupMetadataModel>(EmitType.Upsert);
-            groupUpsertEvent.Emit += GroupUpsertEvent_Emit;
+            groupUpsertEvent.Multi += GroupUpsertEvent_Emit;
             //EV.OnGroupsUpsert += EV_OnGroupInserted;
             //EV.OnGroupUpdated += EV_OnGroupUpdated;
 

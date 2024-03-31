@@ -42,6 +42,12 @@ namespace WhatsSocket.Core.Helper
 
             return buffer;
         }
+        public static byte[] EncodeBigEndian(this uint number, int t = 4)
+        {
+            var buffer = BitConverter.GetBytes(number).Take(t).Reverse().ToArray();
+
+            return buffer;
+        }
 
         public static byte[] StringToByteArray(this string hex)
         {
