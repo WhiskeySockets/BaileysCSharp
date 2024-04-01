@@ -34,7 +34,7 @@ namespace WhatsSocket.Core.Models.Sessions
             }
         }
 
-        internal Chain? GetChain(byte[] remoteKey)
+        public Chain? GetChain(byte[] remoteKey)
         {
             if (Chains.ContainsKey(remoteKey.ToBase64()))
             {

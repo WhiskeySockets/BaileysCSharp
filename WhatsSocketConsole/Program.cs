@@ -45,8 +45,11 @@ namespace WhatsSocketConsole
                 ID = "27665245067",
             };
 
-
-            var credsFile = Path.Join(config.CacheRoot, "creds.json");
+            var credsFile = Path.Join(config.CacheRoot, $"creds.json");
+            if (!File.Exists(credsFile))
+            {
+                credsFile = Path.Join(@"B:\Github\Baileys\baileys_auth_info", "creds.json");
+            }
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {

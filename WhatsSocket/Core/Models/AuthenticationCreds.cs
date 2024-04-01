@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Proto;
 using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.LibSignal;
@@ -123,75 +124,30 @@ namespace WhatsSocket.Core.Models
 
         public static AuthenticationCreds? Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<AuthenticationCreds>(json, new BufferConverter());
+            var data = JsonConvert.DeserializeObject<AuthenticationCreds>(json, new BufferConverter());
+
+            if (data.SignedPreKey.Public == null)
+            {
+                try
+                {
+                    //Compatibality
+                    var jobj = (JObject)JsonConvert.DeserializeObject(json);
+                    data.SignedPreKey.Public = Convert.FromBase64String(jobj["signedPreKey"]["keyPair"]["public"]["data"].ToString());
+                    data.SignedPreKey.Private = Convert.FromBase64String(jobj["signedPreKey"]["keyPair"]["private"]["data"].ToString());
+                }
+                catch (Exception)
+                {
+
+                }
+            }
+
+            return data;
         }
 
         public ulong? LastAccountTypeSync { get; set; }
 
 
 
-    }
-
-    internal class BufferConverter : JsonConverter<byte[]>
-    {
-        public override byte[]? ReadJson(JsonReader reader, Type objectType, byte[]? existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            //if (reader.TokenType == JsonToken.String)
-            //{
-            //    existingValue = Convert.FromBase64String(reader.Value.ToString());
-            //    return existingValue;
-            //}
-
-            if (reader.TokenType != JsonToken.StartObject)
-            {
-                throw new JsonException();
-            }
-
-            //Read first property
-            reader.Read();
-            if (reader.TokenType == JsonToken.PropertyName)
-            {
-                //Make sure it has a property 'type'
-                if (reader.Value?.ToString() == "type")
-                {
-                    var value = reader.ReadAsString();
-                    if (value == "Buffer")
-                    {
-                        //Read the data value
-                        reader.Read();
-                        value = reader.ReadAsString();
-                        if (!string.IsNullOrEmpty(value))
-                        {
-                            existingValue = Convert.FromBase64String(value);
-                        }
-                    }
-                    else
-                    {
-                        throw new JsonException("the type is not defined as a Buffer");
-                    }
-                }
-
-            }
-            reader.Read();
-
-
-            return existingValue;
-        }
-
-        public override void WriteJson(JsonWriter writer, byte[]? value, JsonSerializer serializer)
-        {
-            var data = JsonConvert.SerializeObject(new
-            {
-                type = "Buffer",
-                data = Convert.ToBase64String(value)
-            });
-
-            //writer.WriteStartObject();
-
-            writer.WriteRawValue(data);
-
-            //writer.WriteEndObject();
-        }
     }
 
 

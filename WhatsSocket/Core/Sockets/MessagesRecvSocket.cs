@@ -12,6 +12,9 @@ using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.WABinary.Constants;
 using WhatsSocket.Core.Events;
+using Org.BouncyCastle.Asn1.Ocsp;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Ocsp;
 
 namespace WhatsSocket.Core.Sockets
 {
@@ -66,10 +69,36 @@ namespace WhatsSocket.Core.Sockets
             return await ProcessNodeWithBuffer(node, "handling ack", HandleAck);
         }
 
-        private Task<bool> HandleAck(BinaryNode node)
+        private async Task<bool> HandleAck(BinaryNode node)
         {
+            var key = new MessageKey()
+            {
+                RemoteJid = node.attrs["from"],
+                FromMe = true,
+                Id = node.attrs["id"]
+            };
+            // current hypothesis is that if pash is sent in the ack
+            // it means -- the message hasn't reached all devices yet
+            // we'll retry sending the message here
+            if (node.getattr("phash") != null)
+            {
+                Logger.Info(new { node.attrs }, "received phash in ack, resending message...");
+                var message = this.Store.GetMessage(key);
+                if (message != null)
+                {
+                    await RelayMessage(key.RemoteJid, message, new MessageRelayOptions()
+                    {
+                        MessageID = key.Id,
+                        UseUserDevicesCache = false
+                    });
+                }
+                else
+                {
+                    Logger.Warn(new { node.attrs }, "could not send message again, as it was not found");
+                }
+            }
 
-            return Task.FromResult(true);
+            return true;
         }
 
         private async Task<bool> OnNotification(BinaryNode node)
@@ -436,7 +465,96 @@ namespace WhatsSocket.Core.Sockets
 
         private Task HandleReceipt(BinaryNode node)
         {
+
+            var isLid = node.getattr("from")?.Contains("lid") ?? false;
+            var participant = node.getattr("participant");
+            var from = node.getattr("from");
+            var recipient = node.getattr("recipient");
+            var isNodeFromMe = JidUtils.AreJidsSameUser(participant ?? from, isLid ? Creds.Me.LID : Creds.Me.ID);
+            var remoteJid = (!isNodeFromMe || JidUtils.IsJidGroup(from)) ? from : recipient;
+
+            var key = new MessageKey()
+            {
+                RemoteJid = node.attrs["from"],
+                FromMe = true,
+                Id = node.attrs["id"]
+            };
+
+            List<string> ids = new List<string>() { node.attrs["id"] };
+            if (node.content is BinaryNode[] content)
+            {
+                var items = GetBinaryNodeChildren(content[0], "item");
+                foreach (var item in items)
+                {
+                    ids.Add(item.attrs["id"]);
+                }
+            }
+
+
+            if (node.getattr("type") == "retry")
+            {
+                key.Participant = participant ?? from;
+                var retryNode = GetBinaryNodeChild(node, "retry");
+                if (key.FromMe)
+                {
+                    Logger.Debug(new { node.attrs, key }, "recv retry request");
+                    try
+                    {
+                        SendMessageAgain(key, ids, retryNode);
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+            }
+
+            SendMessageAck(node);
             return Task.CompletedTask;
+        }
+
+        private async void SendMessageAgain(MessageKey key, List<string> ids, BinaryNode? retryNode)
+        {
+            var msg = Store.GetMessage(key);
+
+            if (msg != null)
+            {
+                var remoteJid = key.RemoteJid;
+                var participant = !string.IsNullOrWhiteSpace(key.Participant) ? key.Participant : remoteJid;
+
+                var sendToAll = JidUtils.JidDecode(participant)?.Device > 0;
+
+                await AssertSessions([participant], true);
+
+                if (JidUtils.IsJidGroup(remoteJid))
+                {
+                    //sender here
+                }
+                Logger.Debug(new { participant, sendToAll }, "forced new session for retry recp");
+
+                //Is there many ?
+                //for(let i = 0; i < msgs.length;i++) {
+                var msgRelayOpts = new MessageRelayOptions()
+                {
+                    MessageID = ids[0]
+                };
+
+                if (sendToAll)
+                {
+                    msgRelayOpts.UseUserDevicesCache = false;
+                }
+                else
+                {
+                    msgRelayOpts.Participant = new MessageParticipant()
+                    {
+                        Jid = participant,
+                        Count = Convert.ToUInt64(retryNode.attrs["count"]),
+                    };
+                }
+
+                //await RelayMessage(remoteJid, msg, msgRelayOpts);
+            }
+
         }
 
         private async Task<bool> OnCall(BinaryNode node)

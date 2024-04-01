@@ -47,19 +47,40 @@ namespace WhatsSocket.Core.Sockets
             {
                 options = options ?? new MessageGenerationOptionsFromContent();
                 options.UserJid = userJid;
+                options.Logger = Logger;
 
                 var fullMsg = GenerateWAMessage(jid, content, options);
 
-                //TODO: handle delete, edit etc
-                var isDeleteMsg = false;
-                var isEditMsg = false;
+                var deleteModel = content as DeleteMessageModel;
+
+                var editMessage = false; //TODO Handle Edit Message
                 var additionalAttributes = new Dictionary<string, string>();
+
+
+                // required for delete
+                if (deleteModel != null)
+                {
+                    if (IsJidGroup(deleteModel.RemoteJid) && !deleteModel.FormMe)
+                    {
+                        additionalAttributes["edit"] = "8";
+                    }
+                    else
+                    {
+                        additionalAttributes["edit"] = "7";
+                    }
+                }
+
 
                 await RelayMessage(jid, fullMsg.Message, new MessageRelayOptions()
                 {
                     MessageID = fullMsg.Key.Id,
                     StatusJidList = options.StatusJidList,
+                    AdditionalAttributes = additionalAttributes,
+                    //cachedGroupMetadata
                 });
+
+
+                await UpsertMessage(fullMsg, MessageUpsertType.Append);
 
                 return fullMsg;
             }
@@ -157,8 +178,9 @@ namespace WhatsSocket.Core.Sockets
 
                 await AssertSessions(allJids, false);
 
-                var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, null);
+                //TODO Add Media Type
                 var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, null);
+                var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, null);
 
                 participants.AddRange(meNode.Nodes);
                 participants.AddRange(otherNode.Nodes);
@@ -229,7 +251,8 @@ namespace WhatsSocket.Core.Sockets
                 //TODO: Button Type
 
                 Logger.Debug(new { msgId = options.MessageID }, $"sending message to ${participants.Count} devices");
-           
+
+
                 SendNode(stanza);
             }
 
@@ -285,7 +308,7 @@ namespace WhatsSocket.Core.Sockets
             return result;
         }
 
-        private async Task<bool> AssertSessions(List<string> jids, bool force)
+        protected async Task<bool> AssertSessions(List<string> jids, bool force)
         {
             var didFetchNewSession = false;
             List<string> jidsRequiringFetch = new List<string>();

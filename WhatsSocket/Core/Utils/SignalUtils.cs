@@ -34,7 +34,7 @@ namespace WhatsSocket.Core.Utils
                 var key = GetBinaryNodeChild(item, "key");
                 var identity = GetBinaryNodeChildBuffer(item, "identity");
                 var jid = item.attrs["jid"];
-                var registrationId = GetBinaryNodeChildUInt(node, "registration", 4);
+                var registrationId = GetBinaryNodeChildUInt(item, "registration", 4);
 
                 repository.InjectE2ESession(jid, new E2ESession()
                 {
@@ -42,7 +42,6 @@ namespace WhatsSocket.Core.Utils
                     IdentityKey = GenerateSignalPubKey(identity),
                     SignedPreKey = ExtractKey(signedKey),
                     PreKey = ExtractKey(key)
-
                 }); 
             }
 

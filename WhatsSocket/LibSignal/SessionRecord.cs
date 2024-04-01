@@ -29,7 +29,7 @@ namespace WhatsSocket.LibSignal
             return null;
         }
 
-        internal Session? GetOpenSession()
+        public Session? GetOpenSession()
         {
             foreach (var kvp in Sessions)
             {
@@ -39,7 +39,7 @@ namespace WhatsSocket.LibSignal
             return null;
         }
 
-        internal void CloseSession(Session session)
+        public void CloseSession(Session session)
         {
             if (!IsClosed(session))
             {

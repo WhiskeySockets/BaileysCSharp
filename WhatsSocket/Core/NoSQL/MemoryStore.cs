@@ -293,6 +293,16 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
+        internal Message GetMessage(MessageKey key)
+        {
+            var raw = messages.FindByID(key.Id);
+            if (raw == null)
+            {
+                return null;
+            }
+            var web = WebMessageInfo.Parser.ParseFrom(raw.Message);
+            return web.Message;
+        }
 
         public EventEmitter EV { get; }
         public Logger Logger { get; }

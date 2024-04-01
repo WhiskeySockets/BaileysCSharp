@@ -1,4 +1,5 @@
 ﻿using Proto;
+using WhatsSocket.Core.Helper;
 
 namespace WhatsSocket.Core.Models
 {
@@ -13,6 +14,8 @@ namespace WhatsSocket.Core.Models
     public class MessageGenerationOptionsFromContent : MessageGenerationOptions
     {
         public string? UserJid { get; set; }
+
+        public Logger Logger { get; set; }
     }
 
     public class MessageGenerationOptions: MinimalRelayOptions
@@ -31,6 +34,12 @@ namespace WhatsSocket.Core.Models
     public class ExtendedTextMessageModel : AnyContentMessageModel
     {
         public string Text { get; set; }
+        public bool Edit { get; set; }
+    }
+    public class DeleteMessageModel : AnyContentMessageModel
+    {
+        public string RemoteJid { get; set; }
+        public bool FormMe { get; set; }
     }
 
     public class MessageParticipant
@@ -41,6 +50,10 @@ namespace WhatsSocket.Core.Models
 
     public class MessageRelayOptions : MinimalRelayOptions
     {
+        public MessageRelayOptions()
+        {
+            AdditionalAttributes = new Dictionary<string, string>();
+        }
         public MessageParticipant Participant { get; set; }
         public Dictionary<string, string> AdditionalAttributes { get; set; }
         public bool? UseUserDevicesCache { get; set; }
