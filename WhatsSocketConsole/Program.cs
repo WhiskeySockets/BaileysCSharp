@@ -10,7 +10,6 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using WhatsSocket.Core;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Events;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Stores;
@@ -93,16 +92,20 @@ namespace WhatsSocketConsole
             Console.ReadLine();
         }
 
+        static List<WebMessageInfo> messages = new List<WebMessageInfo>();
         private static async void MessageEvent_Single(MessageUpsertModel args)
         {
             if (args.Type == MessageUpsertType.Notify)
             {
-                var msg = args.Messages[0];
-                if (msg.Key.FromMe == false)
+                foreach (var msg  in args.Messages)
                 {
-                    var result = await socket.SendMessage(msg.Key.RemoteJid,
-                        new ExtendedTextMessageModel() { Text = "oh hello there" },
-                        new MessageGenerationOptionsFromContent());
+                    if (msg.Key.FromMe == false)
+                    {
+                        var result = await socket.SendMessage(msg.Key.RemoteJid,
+                            new ExtendedTextMessageModel() { Text = "oh hello there C#" },
+                            new MessageGenerationOptionsFromContent());
+                    }
+                    messages.Add(msg);
                 }
             }
         }
@@ -120,26 +123,6 @@ namespace WhatsSocketConsole
             Debug.WriteLine(array);
         }
 
-        static List<WebMessageInfo> messages = new List<WebMessageInfo>();
-
-        private static async void MessageEvent_Emit(MessageUpsertModel[] args)
-        {
-            messages.AddRange(args[0].Messages);
-            var jsons = messages.Select(x => x.ToJson()).ToArray();
-            var array = $"[\n{string.Join(",", jsons)}\n]";
-            Debug.WriteLine(array);
-
-            if (args[0].Type == MessageUpsertType.Notify)
-            {
-                var msg = args[0].Messages[0];
-                if (msg.Key.FromMe == false)
-                {
-                    //var result = await socket.SendMessage(msg.Key.RemoteJid,
-                    //    new ExtendedTextMessageModel() { Text = "oh hello there" },
-                    //    new MessageGenerationOptionsFromContent());
-                }
-            }
-        }
 
         private static async void ConnectionEvent_Emit(ConnectionState[] args)
         {
@@ -179,11 +162,15 @@ namespace WhatsSocketConsole
             }
         }
 
+        public static object locker = new object();
         private static void AuthEvent_OnEmit(AuthenticationCreds[] args)
         {
-            var credsFile = Path.Join(socket.SocketConfig.CacheRoot, $"creds.json");
-            var json = AuthenticationCreds.Serialize(args[0]);
-            File.WriteAllText(credsFile, json);
+            lock (locker)
+            {
+                var credsFile = Path.Join(socket.SocketConfig.CacheRoot, $"creds.json");
+                var json = AuthenticationCreds.Serialize(args[0]);
+                File.WriteAllText(credsFile, json);
+            }
         }
 
 

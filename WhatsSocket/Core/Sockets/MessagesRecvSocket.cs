@@ -47,7 +47,7 @@ namespace WhatsSocket.Core.Sockets
         public async Task<bool> ProcessNodeWithBuffer(BinaryNode node, string identifier, Func<BinaryNode, Task> action)
         {
             EV.Buffer();
-            //mut.WaitOne();
+            mut.WaitOne();
             try
             {
                 await action(node);
@@ -57,7 +57,7 @@ namespace WhatsSocket.Core.Sockets
                 OnUnexpectedError(ex, identifier);
             }
             EV.Flush();
-            //mut.ReleaseMutex();
+            mut.ReleaseMutex();
             return true;
         }
 

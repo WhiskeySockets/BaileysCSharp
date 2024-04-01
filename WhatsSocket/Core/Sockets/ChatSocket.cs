@@ -55,7 +55,7 @@ namespace WhatsSocket.Core
                 // if we don't have the app state key
                 // we keep buffering events until we finally have
                 // the key and can sync the messages
-                if (Creds?.MyAppStateKeyId != null && !SocketConfig.Mobile)
+                if (Creds?.MyAppStateKeyId == null && !SocketConfig.Mobile)
                 {
                     EV.Buffer();
                     NeedToFlushWithAppStateSync = true;

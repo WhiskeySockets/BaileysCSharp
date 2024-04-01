@@ -1,5 +1,4 @@
 ﻿using Proto;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using static WhatsSocket.Core.WABinary.JidUtils;

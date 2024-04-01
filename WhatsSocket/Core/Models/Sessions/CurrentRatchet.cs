@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models.Sessions
 {

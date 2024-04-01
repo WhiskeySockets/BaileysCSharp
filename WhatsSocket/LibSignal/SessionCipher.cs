@@ -3,21 +3,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Textsecure;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.Signal;
 using WhatsSocket.Exceptions;
+using WhatsSocket.LibSignal;
 
-namespace WhatsSocket.Core.Signal
+namespace WhatsSocket.LibSignal
 {
-    public class SessionDecryptResult
-    {
-        public Session Session { get; set; }
-        public byte[] PlainText { get; set; }   
-    }
 
     public class SessionCipher
     {
@@ -184,7 +179,7 @@ namespace WhatsSocket.Core.Signal
                 ratchet.PreviousCounter = prevCounter.ChainKey.Counter;
                 session.DeleteChain(ratchet.EphemeralKeyPair.Public);
             }
-            ratchet.EphemeralKeyPair = CryptoUtils.GenerateKeyPair();
+            ratchet.EphemeralKeyPair = Curve.GenerateKeyPair();
             CalculateRatchet(session, remoteKey, true);
             ratchet.LastRemoteEphemeralKey = remoteKey.ToByteArray();
         }
@@ -234,7 +229,7 @@ namespace WhatsSocket.Core.Signal
             return [buff >> 4, buff & 0xf];
         }
 
-        internal EncryptData Encrypt(byte[] data)
+        public EncryptData Encrypt(byte[] data)
         {
             var ourIdentityKey = Storage.GetOurIdentity();
             var record = GetRecord();
@@ -254,7 +249,6 @@ namespace WhatsSocket.Core.Signal
             {
                 throw new SessonException("Untrusted Identity Key Error");
             }
-
             var chain = session.GetChain(session.CurrentRatchet.EphemeralKeyPair.Public);
             if (chain.ChainType == ChainType.RECEIVING)
             {
@@ -268,7 +262,7 @@ namespace WhatsSocket.Core.Signal
             msg.EphemeralKey = session.CurrentRatchet.EphemeralKeyPair.Public.ToByteString();
             msg.Counter = (uint)chain.ChainKey.Counter;
             msg.PreviousCounter = (uint)session.CurrentRatchet.PreviousCounter;
-            msg.Ciphertext = CryptoUtils.EncryptAesCbc(data, keys[0]).ToByteString();
+            msg.Ciphertext = CryptoUtils.EncryptAesCbcWithIV(data, keys[0], keys[2].Slice(0, 16)).ToByteString();
 
             var msgBuf = msg.ToByteArray();
             var macInput = new byte[msgBuf.Length + (33 * 2) + 1];
@@ -284,6 +278,7 @@ namespace WhatsSocket.Core.Signal
             StoreRecord(record);
             var type = 1;
             byte[] body;
+
             if (session.PendingPreKey != null)
             {
                 type = 3;
@@ -301,6 +296,7 @@ namespace WhatsSocket.Core.Signal
                 }
                 body = new byte[] { EncodeTupleByte(3, 3) };
                 body = body.Concat(preKeyMsg.ToByteArray()).ToArray();
+
             }
             else
             {
@@ -310,8 +306,10 @@ namespace WhatsSocket.Core.Signal
             return new EncryptData()
             {
                 Type = type,
-                Data = body
+                Data = body,
+                RegistrationId = session.RegistrationId
             };
         }
     }
+
 }

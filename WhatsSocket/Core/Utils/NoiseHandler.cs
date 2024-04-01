@@ -8,6 +8,7 @@ using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Helper;
 using Google.Protobuf;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Utils
 {

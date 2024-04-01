@@ -1,5 +1,8 @@
 ﻿using Org.BouncyCastle.Asn1.Ocsp;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Utilities;
+using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Security.Certificates;
 using Org.BouncyCastle.Utilities;
 using Proto;
@@ -12,10 +15,10 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
 
-namespace WhatsSocket.Core.Curve
+namespace WhatsSocket.LibSignal
 {
-
-    public class Curve25519
+    //Curve25519
+    public class Curve
     {
         public static long[] X = new long[] { 0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169, };
         public static long[] Y = new long[] { 0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, };
@@ -208,6 +211,22 @@ namespace WhatsSocket.Core.Curve
         private static Int64[] I = new Int64[] { 0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83 };
         private static Int64[] D = new Int64[] { 0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203 };
 
+        public static KeyPair GenerateKeyPair()
+        {
+            var x25519KeyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("X25519");
+            x25519KeyPairGenerator.Init(new X25519KeyGenerationParameters(new SecureRandom()));
+
+            AsymmetricCipherKeyPair keyPair = x25519KeyPairGenerator.GenerateKeyPair();
+
+            var publicKeyBytes = ((X25519PublicKeyParameters)keyPair.Public).GetEncoded();
+            var privateKeyBytes = ((X25519PrivateKeyParameters)keyPair.Private).GetEncoded();
+
+            return new KeyPair()
+            {
+                Public = publicKeyBytes,
+                Private = privateKeyBytes,
+            };
+        }
 
 
         internal static bool VerifySignature(byte[] publicKey, byte[] message, byte[] signature)

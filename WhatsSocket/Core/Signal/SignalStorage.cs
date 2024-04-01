@@ -3,7 +3,7 @@ using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
+using WhatsSocket.LibSignal;
 using static WhatsSocket.Core.Helper.CryptoUtils;
 
 namespace WhatsSocket.Core.Signal

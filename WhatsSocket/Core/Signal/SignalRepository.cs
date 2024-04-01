@@ -4,6 +4,7 @@ using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Stores;
+using WhatsSocket.LibSignal;
 using static WhatsSocket.Core.WABinary.JidUtils;
 
 namespace WhatsSocket.Core.Signal

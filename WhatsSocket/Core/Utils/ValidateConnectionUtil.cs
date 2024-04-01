@@ -17,6 +17,7 @@ using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.Helper.CryptoUtils;
 using WhatsSocket.Core.Extensions;
 using Newtonsoft.Json;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -313,7 +314,7 @@ namespace WhatsSocket.Core.Utils
             {
                 for (uint i = creds.NextPreKeyId; i <= lastPreKeyId; i++)
                 {
-                    newPreKeys[i] = Helper.CryptoUtils.GenerateKeyPair();
+                    newPreKeys[i] = Curve.GenerateKeyPair();
                 }
             }
 

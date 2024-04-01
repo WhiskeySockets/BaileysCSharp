@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Exceptions;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
 {
@@ -48,7 +48,7 @@ namespace WhatsSocket.Core.Models
         {
             byte[] part1 = _serialized.Take(_serialized.Length - SIGNATURE_LENGTH).ToArray();
             byte[] part2 = _serialized.Skip(part1.Length).ToArray();
-            var valid = Curve25519.Verify(signatureKey.Skip(1).ToArray(), part1, part2);
+            var valid = Curve.Verify(signatureKey.Skip(1).ToArray(), part1, part2);
             if (!valid)
             {
                 throw new GroupCipherException("Invalid Signature");

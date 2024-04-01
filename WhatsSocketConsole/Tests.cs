@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core;
@@ -15,6 +14,11 @@ using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Utils;
 using Org.BouncyCastle.Bcpg;
 using Proto;
+using WhatsSocket.LibSignal;
+using System.Security.Cryptography;
+using WhatsSocket.Core.NoSQL;
+using WhatsSocket.Core.Signal;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace WhatsSocketConsole
 {
@@ -40,14 +44,34 @@ namespace WhatsSocketConsole
             TestSign();
             TestSuccessSign();
             TestDeriveSecret();
-
         }
 
         private static void BufferSendTest()
         {
-            var node = BufferReader.DecodeDecompressedBinaryNode(Convert.FromBase64String("APgICwj7CLrlDYF95ZgXBCYO+v+GJ3l3mBefA/gC+AIb+AX4BA4P+v+GJ2ZSRQZ/A/gB+AYWNjMEQvzDMwohBdo4LxbdraQw90Gtl1x3U2WdKELGN34lewqkJcTvc7RHEAcYACKQAW2ZVE1xAbOxbkQLjwWZqyUGpT30TRvIfJrpsHWT6kcmh6wRruK5F7Fx62n23BYm4UANtPQloPAqbDaeq+ht8QgvObGjApI8Mo+B/H3k7OC7AqsMPg2AIj8vGuITnpEC9b7HG+7qMWh/MQk8ME0c6IzEADiQfLtOhfsSsON51/IhiKF5+dH6E2yU1tSIE0fG9uKZmxj7pBj6+AQOD/cAUP+GJ2ZSRQZ/+AH4BhY2MwRC/MMzCiEFj+ahruhNXaDXWM4PU+omH2EPRw1c8qDTVS5h3Tt1E0sQAhgDIpAB3Q2HdAJnERYJt3xIzlOLgGj19WX71rD9CiIlyvrmfKVBeXepziYfGEIQaapZvErdxMfilA531w2YadMxTw6igDydFzk2TMkDQ3JygeJpgRGwuXmOyV9vNxj16f537CoI7+YseoQ6FR+MgyeGOB9yS83hS1ODp6BzcnUYvmuomhP2Nwk66cMoXhn+1pqeRZQ94RkS6rF6cnv4BA4P+v+GJ3l3mBefA/gB+AYWNjMEQvySMwohBfW88FuhkQ8QK72mFqAkUsJWdDAmbg4o/+YDa9BAdxMxEAAYACJgUZZApwqmpMIcEfoxsapQUla6StmPYRcOGDEcrhJ4QVCkSDcayWzhbfaqpBnhRjR/XFSO0lRTH1pa1/n11p1uzkJOYG9+UI+DT1fdfTS4wbLY/8m6ZNXc6RGgEmV0KEReWPxRyL6rk2/4BA4P9wAR/4YneXeYF5/4AfgGFjYzBGD85TMI6M/0BxIhBd86eAcY95BIrbq+k3Pjh9fttRpR9KbEikq+xAwsKZkXGiEFmWdGujQtBWMOWKLlxnzKePOHxREOJa9QkXR2OPVJsW8ikgEzCiEF+lTOIzUad+kjIeWU9QHrTbSmJkLahocaM7Fp1h2pNkUQBxgAImBv8WSH87dTY3Rg1KQJAPPD8X0zgdgSPieq5JDzWYkL01rvbqRoCCMtJihxQ68XJa+kS97gZO/Fttwd9WyzNqjB1TLEM1zCN1snCFkXbhQR1QgWdZm5IA2Ci9salYyZ4fjnMJSKxpBjFSgfMAH4BA4P9wAS/4YneXeYF5/4AfgGFjYzBGD84zMIlQISIQW7sfTeJ0xY6Qp+gnIz0txpNxvNurtNyow0iOypCMnEGxohBZlnRro0LQVjDlii5cZ8ynjzh8URDiWvUJF0djj1SbFvIpIBMwohBQscUnirhQi4CBCNiuPEEtAOorer5ikJlczWWravVcsgEAcYACJgrspHZm0FUo7Bb1z5Y47QRhbtG9FPfs3TvU84SI5nZH7WS6i3trWNJr5T7jnqM9dC3a3EGoe7+1Wtj9Idb+NcPA04PUoQKEhsu4FneDs+EkGBCEpaUL8m6QLVvPNy0YQoG4fZPCkoM1YoHzAB+AL8D2RldmljZS1pZGVudGl0efy6ChIIrLXFiAYQwLqesAYYBCAAKAASIIEzLR+KRLAOmi2o/Jy6LSI8i3TJ4kBJxmVUqmvP645FGkAq9jQQiYS1kgkQJpxY5rA4l094DXskfN8JP/XH74nQkY+39kSisGaXt2BxmUZQVIIjqmEmF29fwK+75dLT/ZwBIkD50exmM1MdcJ0c1kseorh5HZmdFbkBZIOLjXZMtW+ZvPdBcf58D0UttbNAJl0FnrgqZsaHdcvE0O/KbvvIGPaP"));
 
-            var json = JsonConvert.SerializeObject(node, Formatting.Indented);
+            var enc = Convert.FromBase64String("gdsvWi0wZmxj+ZTIeusUey6LiU/AIi+r1bHAZ8B3QVBZiy4cT8wLWCxrfsrFfRSPiHmzJQtnrD9OI2mvAPOy6Q==");
+            var key = Convert.FromBase64String("8nTF1HOWcex47KYpfd6wTy3kSVKbGmiLlzv3QgvoxPg=");
+            var iv = Convert.FromBase64String("HGE9p6NVnHLw2SZMIdWj4A==");
+
+            var buffer = CryptoUtils.DecryptAesCbcWithIV(enc, key, iv);
+            var enc2 = CryptoUtils.EncryptAesCbcWithIV(buffer, key, iv);
+
+
+            //BaseKeyStore keys = new FileKeyStore(@"B:\Github\BaileysCSharp\WhatsSocketConsole\bin\Debug\net8.0\TestSession");
+            //var file = File.ReadAllText("B:\\Github\\Baileys\\baileys_auth_info\\creds.json");
+            //var auth = AuthenticationCreds.Deserialize(file) ?? new AuthenticationCreds();
+            //var storage = new SignalStorage(new AuthenticationState()
+            //{
+            //    Creds = auth,
+            //    Keys = keys
+            //});
+            //var address = new ProtocolAddress("27665245067@s.whatsapp.net");
+            //var cipher = new SessionCipher(storage, address);
+
+            //var data = Convert.FromBase64String("+gEwChoyNzc5Nzc5ODE3OUBzLndoYXRzYXBwLm5ldBISMhAKDm9oIGhlbGxvIHRoZXJlCAgICAgICAg=");
+
+            //var result = cipher.Encrypt(data);
+
 
         }
 
@@ -227,7 +251,7 @@ namespace WhatsSocketConsole
             var deviceMsg = "BgEI/f7nsAIQoP+3rQYYKCAAKACrRV5Gg5U97GP9ty08k+6gNVYvFnSceP9fsqNiYoGMbLy6K/AKoi08AC8i2wd0pHCLQ6zZSn/PJ6oTDx7DvLBi";
             var deviceSignature = "zqAkA3s+PMr9YV+nKGT8gOojEH4P/Cp0VruJwBJlrH2JJ/nrSmqQ7zhSt1q0qcBvDMqXVItiSyDT3eKBelzkhQ==";
 
-            var newSig = Curve25519.Sign(Convert.FromBase64String(@private), Convert.FromBase64String(deviceMsg));
+            var newSig = Curve.Sign(Convert.FromBase64String(@private), Convert.FromBase64String(deviceMsg));
             var base64 = Convert.ToBase64String(newSig);
             Debug.Assert(deviceSignature == base64);
 
@@ -281,7 +305,7 @@ namespace WhatsSocketConsole
             */
 
 
-            var result = Curve25519.Sign(Convert.FromBase64String("IDCDtVD++rJolLsVvMBmamuh55HDuoLumCOurRPk9G4="), Convert.FromBase64String("Bd9bnwurvCcsEHAQl6EX3NnKBezsyX+ecp1vuGHCxmoC"));
+            var result = Curve.Sign(Convert.FromBase64String("IDCDtVD++rJolLsVvMBmamuh55HDuoLumCOurRPk9G4="), Convert.FromBase64String("Bd9bnwurvCcsEHAQl6EX3NnKBezsyX+ecp1vuGHCxmoC"));
             var signB64 = Convert.ToBase64String(result);
             Debug.Assert(signB64 == "m5xXDNaJF/QmcrrQblztk/0QNmVwZket5PNSbdI+CGD7rC9KfIGKPwa3gI9ZW6kAXViZto9/4faaTm0rKsUwgg==");
         }

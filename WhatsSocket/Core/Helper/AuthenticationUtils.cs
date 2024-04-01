@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Models;
+using WhatsSocket.LibSignal;
 using static WhatsSocket.Core.Helper.CryptoUtils;
 using static WhatsSocket.Core.Utils.GenericUtils;
+using static WhatsSocket.LibSignal.KeyHelper;
 
 namespace WhatsSocket.Core.Helper
 {
@@ -40,9 +42,9 @@ namespace WhatsSocket.Core.Helper
             */
 
             var creds = new AuthenticationCreds();
-            creds.NoiseKey = CryptoUtils.GenerateKeyPair();
-            creds.PairingEphemeralKeyPair = CryptoUtils.GenerateKeyPair();
-            creds.SignedIdentityKey = CryptoUtils.GenerateKeyPair();
+            creds.NoiseKey = Curve.GenerateKeyPair();
+            creds.PairingEphemeralKeyPair = Curve.GenerateKeyPair();
+            creds.SignedIdentityKey = Curve.GenerateKeyPair();
             creds.SignedPreKey = SignedKeyPair(creds.SignedIdentityKey, 1);
             creds.RegistrationId = GenerateRegistrationId();
             creds.AdvSecretKey = RandomBytes(32).ToBase64();
@@ -71,7 +73,7 @@ namespace WhatsSocket.Core.Helper
         {
             if (creds != null)
             {
-                creds.NoiseKey = CryptoUtils.GenerateKeyPair();
+                creds.NoiseKey = Curve.GenerateKeyPair();
                 creds.AdvSecretKey = RandomBytes(32).ToBase64();
             }
         }
@@ -92,22 +94,17 @@ namespace WhatsSocket.Core.Helper
             return base64Url;
         }
 
-        public static int GenerateRegistrationId()
-        {
-            var buffer = RandomBytes(2);
-            return buffer[0] & 16383;
-        }
 
         public static SignedPreKey SignedKeyPair(KeyPair identityKeyPair, uint keyId)
         {
-            var preKey = GenerateKeyPair();
+            var preKey = Curve.GenerateKeyPair();
             var pubKey = GenerateSignalPubKey(preKey.Public);
 
 
 
 
 
-            var signature = Sign(identityKeyPair.Private, pubKey);
+            var signature = Curve.Sign(identityKeyPair.Private, pubKey);
 
             return new SignedPreKey()
             {

@@ -1,5 +1,6 @@
 ﻿using LiteDB;
 using WhatsSocket.Core.NoSQL;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
 {

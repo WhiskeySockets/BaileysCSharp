@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Signal
+﻿namespace WhatsSocket.LibSignal
 {
     [Serializable]
     public class SessonException : Exception

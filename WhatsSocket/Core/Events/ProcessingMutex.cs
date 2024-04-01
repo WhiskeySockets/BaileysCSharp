@@ -15,7 +15,7 @@
             {
                 action();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
             }
             semaphoreSlim.Release();

@@ -23,6 +23,7 @@ using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.WABinary.Constants;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using WhatsSocket.Core.Extensions;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core
 {
@@ -66,7 +67,7 @@ namespace WhatsSocket.Core
 
         private string GenerateMdTagPrefix()
         {
-            var bytes = RandomBytes(4);
+            var bytes = KeyHelper.RandomBytes(4);
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
 
@@ -663,7 +664,7 @@ namespace WhatsSocket.Core
             WS.MessageRecieved += Client_MessageRecieved;
 
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
-            EphemeralKeyPair = Helper.CryptoUtils.GenerateKeyPair();
+            EphemeralKeyPair = Curve.GenerateKeyPair();
 
             /** WA noise protocol wrapper */
             noise = MakeNoiseHandler();

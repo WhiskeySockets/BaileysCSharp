@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
+using WhatsSocket.Core.Models;
 
-namespace WhatsSocket.Core.Models
+namespace WhatsSocket.LibSignal
 {
     public class KeyPair
     {

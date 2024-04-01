@@ -3,7 +3,7 @@ using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
 
-namespace WhatsSocket.Core.Stores
+namespace WhatsSocket.LibSignal
 {
     //SessionRecord
     [FolderPrefix("session")]

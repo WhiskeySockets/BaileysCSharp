@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Proto;
 using System.Diagnostics.CodeAnalysis;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
 {
@@ -135,6 +136,12 @@ namespace WhatsSocket.Core.Models
     {
         public override byte[]? ReadJson(JsonReader reader, Type objectType, byte[]? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
+            //if (reader.TokenType == JsonToken.String)
+            //{
+            //    existingValue = Convert.FromBase64String(reader.Value.ToString());
+            //    return existingValue;
+            //}
+
             if (reader.TokenType != JsonToken.StartObject)
             {
                 throw new JsonException();

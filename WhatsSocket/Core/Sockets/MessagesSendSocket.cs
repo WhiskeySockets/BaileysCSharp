@@ -13,10 +13,10 @@ using Newtonsoft.Json;
 using WhatsSocket.Core.Extensions;
 using System.Collections.Generic;
 using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.Stores;
 using WhatsSocket.Core.Signal;
 using Google.Protobuf;
 using WhatsSocket.Core.Events;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Sockets
 {
@@ -50,7 +50,7 @@ namespace WhatsSocket.Core.Sockets
 
                 var fullMsg = GenerateWAMessage(jid, content, options);
 
-                //Handle Delete
+                //TODO: handle delete, edit etc
                 var isDeleteMsg = false;
                 var isEditMsg = false;
                 var additionalAttributes = new Dictionary<string, string>();
@@ -118,7 +118,7 @@ namespace WhatsSocket.Core.Sockets
             var mediaType = GetMediaType(message);
             if (isGroup || isStatus) // Group and Status
             {
-
+                //TODO: handle status and group
             }
             else
             {
@@ -157,8 +157,8 @@ namespace WhatsSocket.Core.Sockets
 
                 await AssertSessions(allJids, false);
 
-                var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, null);
                 var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, null);
+                var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, null);
 
                 participants.AddRange(meNode.Nodes);
                 participants.AddRange(otherNode.Nodes);
@@ -328,7 +328,7 @@ namespace WhatsSocket.Core.Sockets
                         {
                             tag = "key",
                             attrs = { },
-                            content = jids.Select(x => new BinaryNode()
+                            content = jidsRequiringFetch.Select(x => new BinaryNode()
                             {
                                 tag = "user",
                                 attrs =

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -31,7 +32,7 @@ namespace WhatsSocket.Core.Utils
 
         public static string GenerateMessageID()
         {
-            var bytes = RandomBytes(6);
+            var bytes = KeyHelper.RandomBytes(6);
             return "BAE5" + BitConverter.ToString(bytes).Replace("-", "").ToUpper();
         }
 
@@ -103,32 +104,37 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static byte[] RandomBytes(int size)
-        {
-            byte[] buffer = new byte[size];
-            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(buffer);
-            }
-            return buffer;
-        }
-
-
         public static byte[] EncodeWAMessage(Message message)
         {
             var buffer = message.ToByteArray();
-            return WriteRandomPadMax16(buffer);
+            var combined = WriteRandomPadMax16(buffer);
+            return combined;
         }
 
-        public static byte[] WriteRandomPadMax16(byte[] buffer)
+        public static byte[] WriteRandomPadMax16(byte[] msg)
         {
-            var pad = RandomBytes(1);
+            var pad = KeyHelper.RandomBytes(1);
             pad[0] &= 0xF;
             if (pad[0] == 0)
             {
                 pad[0] = 0xF;
             }
-            return buffer.Concat(pad).ToArray();
+
+            var val = pad[0];
+            pad = new byte[val];
+            for (int i = 0; i < val; i++)
+            {
+                pad[i] = val;
+            }
+            var combined = msg.Concat(pad).ToArray();
+            return combined;
+        }
+        public static byte[] CombineArrays(byte[] first, byte[] second)
+        {
+            byte[] result = new byte[first.Length + second.Length];
+            Buffer.BlockCopy(first, 0, result, 0, first.Length);
+            Buffer.BlockCopy(second, 0, result, first.Length, second.Length);
+            return result;
         }
     }
 }

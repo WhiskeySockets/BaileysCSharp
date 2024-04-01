@@ -2,14 +2,13 @@
 using System.Diagnostics;
 using System.Text;
 using Textsecure;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.Sessions;
 using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
+using WhatsSocket.Core.Signal;
 
-namespace WhatsSocket.Core.Signal
+namespace WhatsSocket.LibSignal
 {
 
     public class SessionBuilder
@@ -31,9 +30,9 @@ namespace WhatsSocket.Core.Signal
             {
 
             }
-            Curve25519.VerifySignature(device.IdentityKey, device.SignedPreKey.Public, device.SignedPreKey.Signature);
+            Curve.VerifySignature(device.IdentityKey, device.SignedPreKey.Public, device.SignedPreKey.Signature);
 
-            var baseKey = CryptoUtils.GenerateKeyPair();
+            var baseKey = Curve.GenerateKeyPair();
             var devicePreKey = device.PreKey != null && device.PreKey.Public != null ? device.PreKey.Public : null;
             var session = InitSession(true, baseKey, null, device.IdentityKey.ToByteString(), devicePreKey.ToByteString(), device.SignedPreKey.Public.ToByteString(), device.RegistrationId);
 
@@ -160,7 +159,7 @@ namespace WhatsSocket.Core.Signal
             session.CurrentRatchet = new CurrentRatchet()
             {
                 RootKey = masterKey[0],
-                EphemeralKeyPair = isInitiator ? CryptoUtils.GenerateKeyPair() : ourSignedKey,
+                EphemeralKeyPair = isInitiator ? Curve.GenerateKeyPair() : ourSignedKey,
                 LastRemoteEphemeralKey = theirSignedPubKey.ToByteArray(),
                 PreviousCounter = 0
             };

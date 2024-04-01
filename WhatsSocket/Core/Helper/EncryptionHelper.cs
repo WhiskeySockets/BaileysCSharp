@@ -5,10 +5,10 @@ using Org.BouncyCastle.Crypto.Agreement;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
-using WhatsSocket.Core.Curve;
 using WhatsSocket.Core.Models;
 using System.Security.Cryptography;
 using System.Text;
+using WhatsSocket.LibSignal;
 //using Sodium;
 
 namespace WhatsSocket.Core.Helper
@@ -23,22 +23,6 @@ namespace WhatsSocket.Core.Helper
             return new byte[] { 5 }.Concat(publicKey).ToArray();
         }
 
-        public static KeyPair GenerateKeyPair()
-        {
-            var x25519KeyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("X25519");
-            x25519KeyPairGenerator.Init(new X25519KeyGenerationParameters(new SecureRandom()));
-
-            AsymmetricCipherKeyPair keyPair = x25519KeyPairGenerator.GenerateKeyPair();
-
-            var publicKeyBytes = ((X25519PublicKeyParameters)keyPair.Public).GetEncoded();
-            var privateKeyBytes = ((X25519PrivateKeyParameters)keyPair.Private).GetEncoded();
-
-            return new KeyPair()
-            {
-                Public = publicKeyBytes,
-                Private = privateKeyBytes,
-            };
-        }
 
         public static byte[] SharedKey(ByteString privateKey, ByteString publicKey)
         {
@@ -69,12 +53,12 @@ namespace WhatsSocket.Core.Helper
         public static bool Verify(byte[] publicKey, byte[] message, byte[] signature)
         {
             publicKey = GenerateSignalPubKey(publicKey);
-            return Curve25519.VerifySignature(publicKey, message, signature);
+            return Curve.VerifySignature(publicKey, message, signature);
         }
 
         public static byte[] Sign(byte[] privateKey, byte[] data)
         {
-            var signature = Curve25519.Sign(privateKey, data);
+            var signature = Curve.Sign(privateKey, data);
             return signature;
         }
 
@@ -150,14 +134,21 @@ namespace WhatsSocket.Core.Helper
 
         public static byte[] DecryptAESGCM(Span<byte> ciphertext, byte[] encKey, byte[] iv, byte[] hash)
         {
-            var GCM_TAG_LENGTH = 128 >> 3;
-            using (AesGcm aesGcm = new AesGcm(encKey))
+            try
             {
-                var enc = ciphertext.Slice(0, ciphertext.Length - GCM_TAG_LENGTH);
-                var tag = ciphertext.Slice(ciphertext.Length - GCM_TAG_LENGTH);
-                byte[] decryptedData = new byte[ciphertext.Length - 16];
-                aesGcm.Decrypt(iv, enc, tag, decryptedData, hash);
-                return decryptedData;
+                var GCM_TAG_LENGTH = 128 >> 3;
+                using (AesGcm aesGcm = new AesGcm(encKey))
+                {
+                    var enc = ciphertext.Slice(0, ciphertext.Length - GCM_TAG_LENGTH);
+                    var tag = ciphertext.Slice(ciphertext.Length - GCM_TAG_LENGTH);
+                    byte[] decryptedData = new byte[ciphertext.Length - 16];
+                    aesGcm.Decrypt(iv, enc, tag, decryptedData, hash);
+                    return decryptedData;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -166,9 +157,9 @@ namespace WhatsSocket.Core.Helper
             return DecryptAesCbcWithIV(buffer.Slice(16, buffer.Length), key, buffer.Slice(0, 16));
         }
 
-        public static byte[] EncryptAesCbc(byte[] buffer, byte[] key)
+        public static byte[] EncryptAesCbc(byte[] buffer, byte[] key, byte[] iv)
         {
-            return EncryptAesCbcWithIV(buffer.Slice(16, buffer.Length), key, buffer.Slice(0, 16));
+            return EncryptAesCbcWithIV(buffer, key, iv);
         }
 
         public static byte[] EncryptAesCbcWithIV(byte[] buffer, byte[] key, byte[] iv)
@@ -282,7 +273,7 @@ namespace WhatsSocket.Core.Helper
         public static byte[] CalculateAgreement(byte[] publicKey, byte[] privateKey)
         {
             publicKey = publicKey.Skip(1).ToArray();
-            return Curve25519.GetSharedSecret(privateKey, publicKey);
+            return Curve.GetSharedSecret(privateKey, publicKey);
         }
 
         public static byte[] GetDerivative(byte[] seed, byte[] key)

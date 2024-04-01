@@ -101,7 +101,7 @@ namespace WhatsSocket.Core
             }
 
             var notify = stanza.getattr("notify");
-            var fromMe = IsLidUser(from) ? AreJidsSameUser(meId, !string.IsNullOrWhiteSpace(participant) ? participant : from) : AreJidsSameUser(meLid, !string.IsNullOrWhiteSpace(participant) ? participant : from);
+            var fromMe = IsLidUser(from) ? AreJidsSameUser(meLid, !string.IsNullOrWhiteSpace(participant) ? participant : from) : AreJidsSameUser(meId, !string.IsNullOrWhiteSpace(participant) ? participant : from);
 
             var fullMessage = new WebMessageInfo()
             {

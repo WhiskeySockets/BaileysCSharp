@@ -1,4 +1,6 @@
-﻿namespace WhatsSocket.Core.Models
+﻿using WhatsSocket.LibSignal;
+
+namespace WhatsSocket.Core.Models
 {
     public class PreKeySet
     {
