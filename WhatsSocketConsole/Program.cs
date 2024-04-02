@@ -34,22 +34,16 @@ namespace WhatsSocketConsole
 
 
 
-            //This creds file comes from the nodejs sample    
-
-
-
-
-
             var config = new SocketConfig()
             {
                 ID = "27665245067",
             };
 
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
-            if (!File.Exists(credsFile))
-            {
-                credsFile = Path.Join(@"B:\Github\Baileys\baileys_auth_info", "creds.json");
-            }
+            //if (!File.Exists(credsFile)) //Just to check if my creds are generating correctly, but it is working
+            //{
+            //    credsFile = Path.Join(@"B:\Github\Baileys\baileys_auth_info", "creds.json");
+            //}
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {

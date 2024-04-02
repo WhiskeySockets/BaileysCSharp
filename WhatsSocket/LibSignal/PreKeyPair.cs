@@ -4,7 +4,7 @@ using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
 {
-    [FolderPrefix("key-pair")]
+    [FolderPrefix("pre-key")]
     public class PreKeyPair : KeyPair
     {
         public PreKeyPair(uint id, KeyPair? key)

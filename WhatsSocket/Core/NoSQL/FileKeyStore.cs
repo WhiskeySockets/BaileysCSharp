@@ -39,10 +39,24 @@ namespace WhatsSocket.Core.NoSQL
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                var file = $"{path}\\{id.Replace("/", "__")}.json";
+
+
+                var file = $"{path}\\{attributes.Prefix}-{id.Replace("/", "__")}.json";
+
+                if (File.Exists(file))
+                {
+                    var mv = file;
+                    file = $"{path}\\{id.Replace("/", "__")}.json";
+                    File.Move(mv, file);
+                }
+
+
+                file = $"{path}\\{id.Replace("/", "__")}.json";
                 if (File.Exists(file))
                 {
                     var data = File.ReadAllText(file) ?? "";
+                    data = data.Replace("pubKey", "public");
+                    data = data.Replace("privKey", "private");
                     return JsonConvert.DeserializeObject<T>(data);
                 }
                 return default(T);

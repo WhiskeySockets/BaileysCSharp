@@ -21,6 +21,8 @@ namespace WhatsSocket.LibSignal
 
         public SignalStorage Storage { get; }
         public ProtocolAddress Address { get; }
+        public KeyPair OutKeyPair { get; set; }
+        public KeyPair GenKeyPair { get; set; }
 
         public void InitOutGoing(E2ESession device)
         {
@@ -32,9 +34,12 @@ namespace WhatsSocket.LibSignal
             }
             Curve.VerifySignature(device.IdentityKey, device.SignedPreKey.Public, device.SignedPreKey.Signature);
 
-            var baseKey = Curve.GenerateKeyPair();
+            var baseKey = OutKeyPair ?? NodeCrypto.GenerateKeyPair();
+   
             var devicePreKey = device.PreKey != null && device.PreKey.Public != null ? device.PreKey.Public : null;
-            var session = InitSession(true, baseKey, null, device.IdentityKey.ToByteString(), devicePreKey.ToByteString(), device.SignedPreKey.Public.ToByteString(), device.RegistrationId);
+            var session = InitSession(true, baseKey, null, device.IdentityKey,
+                devicePreKey, device.SignedPreKey.Public,
+                device.RegistrationId);
 
 
             session.PendingPreKey = new PendingPreKey()
@@ -64,6 +69,11 @@ namespace WhatsSocket.LibSignal
             Storage.StoreSession(Address, record);
         }
 
+        private Session InitSession(bool isInitiator, KeyPair ourEphemeralKey, KeyPair ourSignedKey, byte[] theirIdentityPubKey, byte[]? theirEphemeralPubKey, byte[] theirSignedPubKey, uint registrationId)
+        {
+            return InitSession(isInitiator, ourEphemeralKey, ourSignedKey, theirIdentityPubKey.ToByteString(), theirEphemeralPubKey.ToByteString(), theirSignedPubKey.ToByteString(), registrationId);
+        }
+
         public uint InitIncoming(SessionRecord record, PreKeyWhisperMessage message)
         {
             var fqAddr = Address.ToString();
@@ -74,6 +84,7 @@ namespace WhatsSocket.LibSignal
             var session = record.getSession(message.BaseKey.ToBase64());
             if (session != null)
             {
+                // This just means we haven't replied.
                 return 0;
             }
             var preKeyPair = Storage.LoadPreKey(message.PreKeyId);
@@ -156,17 +167,20 @@ namespace WhatsSocket.LibSignal
 
             var session = new Session();
             session.RegistrationId = registrationId;
+
+            GenKeyPair = GenKeyPair ?? NodeCrypto.GenerateKeyPair();
+
             session.CurrentRatchet = new CurrentRatchet()
             {
                 RootKey = masterKey[0],
-                EphemeralKeyPair = isInitiator ? Curve.GenerateKeyPair() : ourSignedKey,
+                EphemeralKeyPair = isInitiator ? GenKeyPair : ourSignedKey,//32,32 or 32,33
                 LastRemoteEphemeralKey = theirSignedPubKey.ToByteArray(),
                 PreviousCounter = 0
             };
             session.IndexInfo = new IndexInfo()
             {
-                Created = DateTime.UtcNow.AsEpoch(),
-                Used = DateTime.UtcNow.AsEpoch(),
+                Created = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Used = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 RemoteIdentityKey = theirIdentityPubKey.ToByteArray(),
                 BaseKey = isInitiator ? ourEphemeralKey.Public : theirEphemeralPubKey.ToByteArray(),
                 BaseKeyType = isInitiator ? BaseKeyType.OURS : BaseKeyType.THEIRS,
@@ -189,14 +203,15 @@ namespace WhatsSocket.LibSignal
         private void CalculateSendingRatchet(Session session, ByteString remoteKey)
         {
             var ratchet = session.CurrentRatchet;
-            var sharedSecret = CryptoUtils.SharedKey(remoteKey, ratchet.EphemeralKeyPair.Private);
+            var sharedSecret = CryptoUtils.CalculateAgreement(remoteKey.ToByteArray(), ratchet.EphemeralKeyPair.Private);
             var masterKey = CryptoUtils.DeriveSecrets(sharedSecret, ratchet.RootKey, Encoding.UTF8.GetBytes("WhisperRatchet"));
             session.Chains.Add(ratchet.EphemeralKeyPair.Public.ToByteString().ToBase64(), new Chain()
             {
+                MessageKeys = new Dictionary<int, byte[]>(),
                 ChainKey = new ChainKey()
                 {
                     Counter = -1,
-                    Key = masterKey[2],
+                    Key = masterKey[1],
                 },
                 ChainType = ChainType.SENDING
             });

@@ -28,11 +28,6 @@ namespace WhatsSocket.Core.Signal
 
         internal CipherMessage EncryptMessage(string jid, byte[] data)
         {
-            if (jid== "27797798179@s.whatsapp.net")
-            {
-
-            }
-
             var address = new ProtocolAddress(jid);
             var cipher = new SessionCipher(Storage, address);
 

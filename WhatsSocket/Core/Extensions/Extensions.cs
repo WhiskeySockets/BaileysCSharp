@@ -44,7 +44,8 @@ namespace WhatsSocket.Core.Extensions
 
         public static uint ToUInt32(this string? info)
         {
-            if (!string.IsNullOrEmpty(info))
+            info = info.Trim(' ', '\n', '\r');
+            if (string.IsNullOrEmpty(info))
             {
                 return 0;
             }
@@ -53,7 +54,8 @@ namespace WhatsSocket.Core.Extensions
 
         public static ulong ToUInt64(this string? info)
         {
-            if (!string.IsNullOrEmpty(info))
+            info = info.Trim(' ', '\n', '\r');
+            if (string.IsNullOrEmpty(info))
             {
                 return 0;
             }

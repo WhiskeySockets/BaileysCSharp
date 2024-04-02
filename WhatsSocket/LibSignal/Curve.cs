@@ -17,7 +17,30 @@ using WhatsSocket.Core.Helper;
 
 namespace WhatsSocket.LibSignal
 {
-    //Curve25519
+    public class NodeCrypto
+    {
+        public static KeyPair GenerateKeyPair()
+        {
+            var x25519KeyPairGenerator = GeneratorUtilities.GetKeyPairGenerator("X25519");
+            x25519KeyPairGenerator.Init(new X25519KeyGenerationParameters(new SecureRandom()));
+
+            AsymmetricCipherKeyPair keyPair = x25519KeyPairGenerator.GenerateKeyPair();
+
+            var publicKeyBytes = ((X25519PublicKeyParameters)keyPair.Public).GetEncoded();
+            var privateKeyBytes = ((X25519PrivateKeyParameters)keyPair.Private).GetEncoded();
+
+            var buffer = new byte[publicKeyBytes.Length + 1];
+            buffer[0] = 5;
+            publicKeyBytes.CopyTo(buffer, 1);
+
+            return new KeyPair()
+            {
+                Public = buffer,
+                Private = privateKeyBytes,
+            };
+        }
+    }
+
     public class Curve
     {
         public static long[] X = new long[] { 0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169, };
@@ -1049,7 +1072,7 @@ namespace WhatsSocket.LibSignal
             }
             return buffer;
         }
-        private static long[] GFN(int size,params long[] init)
+        private static long[] GFN(int size, params long[] init)
         {
             var buffer = new long[size];
             for (int i = 0; i < init?.Length; i++)
@@ -1058,7 +1081,7 @@ namespace WhatsSocket.LibSignal
             }
             return buffer;
         }
-        
+
 
         #endregion
 

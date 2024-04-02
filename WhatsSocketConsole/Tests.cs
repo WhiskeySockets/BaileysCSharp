@@ -24,6 +24,7 @@ using Textsecure;
 using WhatsSocket.Exceptions;
 using Google.Protobuf;
 using Newtonsoft.Json.Linq;
+using WhatsSocket.Core.Extensions;
 
 namespace WhatsSocketConsole
 {
@@ -33,8 +34,10 @@ namespace WhatsSocketConsole
 
         public static void RunTests()
         {
-            SendEncodeDiviceIdentity();
-            //BufferSendTestEncrypt();
+            //var bytesA = Convert.FromBase64String("oBNPld6Ee4sqpo/fOB4z6/yXV4KknCnc2Knnm9mTBnk=");
+            //var bytesB = Convert.FromBase64String("y2HNWbvgZTvRnOLr+JbACSuq0fkXltzUMHbcZbHgAz4=");
+
+            //TestInitOutgoing();
             TestSendMessageBuffer();
             GenerateMessages();
             TestInflate();
@@ -53,134 +56,88 @@ namespace WhatsSocketConsole
             TestDeriveSecret();
         }
 
-        private static void SendEncodeDiviceIdentity()
+        private static void TestInitOutgoing()
         {
-            var file = "B:\\Github\\Baileys\\baileys_auth_info\\creds.json";
-            var auth = AuthenticationCreds.Deserialize(File.ReadAllText(file));
-            var buffer = ValidateConnectionUtil.EncodeSignedDeviceIdentity(auth.Account, true);
-        }
-
-        private static byte EncodeTupleByte(int number1, int number2)
-        {
-            if (number1 > 15 || number2 > 15)
+            var config = new SocketConfig()
             {
-                throw new SessionException("Numbers must be 4 bits or less");
-            }
-            return (byte)(number1 << 4 | number2);
-        }
-        private static void FillMessageKeys(Chain chain, int counter)
-        {
-            if (chain.ChainKey.Counter >= counter)
-                return;
-
-            if (counter - chain.ChainKey.Counter > 2000)
-            {
-                throw new SessionException("Over 2000 messages into the future!");
-            }
-            if (chain.ChainKey.Key == null)
-            {
-                throw new SessionException("Chain closed");
-            }
-            var key = chain.ChainKey.Key;
-            chain.MessageKeys[chain.ChainKey.Counter + 1] = CryptoUtils.CalculateMAC(key, [1]);
-            chain.ChainKey.Key = CryptoUtils.CalculateMAC(key, [2]);
-            chain.ChainKey.Counter += 1;
-            FillMessageKeys(chain, counter);
-        }
-
-        private static void BufferSendTestEncrypt()
-        {
-
-            var enc = Convert.FromBase64String("gdsvWi0wZmxj+ZTIeusUey6LiU/AIi+r1bHAZ8B3QVBZiy4cT8wLWCxrfsrFfRSPiHmzJQtnrD9OI2mvAPOy6Q==");
-            var key = Convert.FromBase64String("8nTF1HOWcex47KYpfd6wTy3kSVKbGmiLlzv3QgvoxPg=");
-            var iv = Convert.FromBase64String("HGE9p6NVnHLw2SZMIdWj4A==");
-            var buffer = CryptoUtils.DecryptAesCbcWithIV(enc, key, iv);
-            var enc2 = CryptoUtils.EncryptAesCbcWithIV(buffer, key, iv);
-            var file = File.ReadAllText("B:\\Github\\Baileys\\baileys_auth_info\\creds.json");
-            var sessionfile = File.ReadAllText("B:\\Github\\Baileys\\baileys_auth_info\\session-27797798179.18.json");
-            sessionfile = sessionfile.Replace("pubKey", "public");
-            sessionfile = sessionfile.Replace("privKey", "private");
-            //
-
-
-            var ourIdentityKey = new KeyPair()
-            {
-                Private = Convert.FromBase64String("UIP0JfpwgVQhBvwwJPm4IjBfnhvHewMUNU+yK93OBkI="),
-                Public = Convert.FromBase64String("BbiMcOmY66jaXL0yE1wCFMHxFFbDfuvQeCG36VkuEGRG")
+                ID = "TEST",
             };
-            var record = JsonConvert.DeserializeObject<SessionRecord>(sessionfile, new TempBufferConverter());
-            if (record == null)
+            var credsFile = Path.Join(config.CacheRoot, $"creds.json");
+            if (!File.Exists(credsFile))
             {
-                throw new SessionException("No Session");
+                File.Copy(Path.Join(@"B:\Github\Baileys\baileys_auth_info", "creds.json"), credsFile);
             }
 
-            var session = record.GetOpenSession();
-            if (session == null)
+            AuthenticationCreds? authentication = null;
+            if (File.Exists(credsFile))
             {
-                throw new SessionException("No Open Session");
+                authentication = AuthenticationCreds.Deserialize(File.ReadAllText(credsFile));
             }
-
-            var remoteIdentity = session.IndexInfo.RemoteIdentityKey;
-            if (remoteIdentity == null)
+            authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
+            BaseKeyStore keys = new FileKeyStore(config.CacheRoot);
+            config.Auth = new AuthenticationState()
             {
-                throw new SessonException("Untrusted Identity Key Error");
-            }
-            var data = Convert.FromBase64String("MhAKDm9oIGhlbGxvIHRoZXJlDQ0NDQ0NDQ0NDQ0NDQ==");
+                Creds = authentication,
+                Keys = keys
+            };
+            var storage = new SignalStorage(config.Auth);
 
-            var chain = session.GetChain(session.CurrentRatchet.EphemeralKeyPair.Public);
-            if (chain.ChainType == ChainType.RECEIVING)
-            {
-                throw new SessionException("Tried to encrypt on a receiving chain");
-            }
-            FillMessageKeys(chain, chain.ChainKey.Counter + 1);
-            var keys = CryptoUtils.DeriveSecrets(chain.MessageKeys[chain.ChainKey.Counter], new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
-            chain.MessageKeys.Remove(chain.ChainKey.Counter);
-            WhisperMessage msg = new WhisperMessage();
-            msg.EphemeralKey = session.CurrentRatchet.EphemeralKeyPair.Public.ToByteString();
-            msg.Counter = (uint)chain.ChainKey.Counter;
-            msg.PreviousCounter = (uint)session.CurrentRatchet.PreviousCounter;
-            msg.Ciphertext = CryptoUtils.EncryptAesCbcWithIV(data, keys[0], keys[2].Slice(0, 16)).ToByteString();
-            var msgBuf = msg.ToByteArray();
-            var macInput = new byte[msgBuf.Length + (33 * 2) + 1];
-            macInput.Set(ourIdentityKey.Public);
-            macInput.Set(session.IndexInfo.RemoteIdentityKey, 33);
-            macInput[33 * 2] = EncodeTupleByte(3, 3);
-            macInput.Set(msgBuf, (33 * 2) + 1);
-            var mac = CryptoUtils.CalculateMAC(keys[1], macInput);
-            var result = new byte[msgBuf.Length + 9];
-            result[0] = EncodeTupleByte(3, 3);
-            result.Set(msgBuf, 1);
-            result.Set(mac.Slice(0, 8), msgBuf.Length + 1);
-            //StoreRecord(record);
-            var type = 1;
-            byte[] body;
+            var lines = @"Outgoing: 27797798179.17
+Be2bRNKMspaCBZbebXcfsFthN07kj3FlvOns/dyHNcFz
+Bav9awgx3yu/adeMAQVnLEyMRMVccCPlysQ9PX21iAhm
+16591456
+1
+BXMo39+yxfO9uF6IHoWczHHgqKZ3fkNtnEvLIOmrcrEU
+hIN7l2sU/djZWGCp1yb64mfm+kj8HlW4f9qn0af9SAOgoyV51yuQVtmfRigQIZklNVGe0Mp6gwl6oE8K+i5WAg==
+BdjdQiEVJkP+GjOU5stIMEvfrELf6/nCif8GvZEGdLBO
+wFq+bpwLZ2ZaWvhCybfA1Ex0QnPSWzUN1ds55j3yKkY=
+BU3mnhBUG332KGzT7xrGI0az/My3ozO2c+0KhAZsKE4M
+eF2PhnxscWC3DmdT6uVdFC1srlebO4jAe7Tj5mus6ko=
+Outgoing: 27797798179.17 done ";
 
-            if (session.PendingPreKey != null)
+            var split = lines.Split('\n');
+
+            var inputsess = new E2ESession()
             {
-                type = 3;
-                var preKeyMsg = new PreKeyWhisperMessage()
+                IdentityKey = Convert.FromBase64String(split[1]),
+                PreKey = new PreKeyPair()
                 {
-                    IdentityKey = ourIdentityKey.Public.ToByteString(),
-                    RegistrationId = 142,
-                    BaseKey = session.PendingPreKey.BaseKey.ToByteString(),
-                    SignedPreKeyId = session.PendingPreKey.SignedKeyId,
-                    Message = result.ToByteString()
-                };
-                if (session.PendingPreKey.PreKeyId > 0)
+                    Public = Convert.FromBase64String(split[2]),
+                    KeyId = split[3].ToUInt32(),
+                },
+                RegistrationId = 569050546,
+                SignedPreKey = new SignedPreKey()
                 {
-                    preKeyMsg.PreKeyId = session.PendingPreKey.PreKeyId;
-                }
-                body = new byte[] { EncodeTupleByte(3, 3) };
-                body = body.Concat(preKeyMsg.ToByteArray()).ToArray();
+                    KeyId = split[4].ToUInt32(),
+                    Public = Convert.FromBase64String(split[5]),
+                    Signature = Convert.FromBase64String(split[6])
+                },
+            };
 
-            }
-            else
+            var baseKey = new KeyPair()
             {
-                type = 1;
-                body = result;
-            }
+                Public = Convert.FromBase64String(split[7]),
+                Private = Convert.FromBase64String(split[8])
+            };
+
+            var outKey = new KeyPair()
+            {
+                Public = Convert.FromBase64String(split[9]),
+                Private = Convert.FromBase64String(split[10])
+            };
+
+            TestInitOutgoing(storage, "27797798179.17@whatsapp.net", inputsess, baseKey, outKey);
 
         }
+
+        public static void TestInitOutgoing(SignalStorage storage, string addr, E2ESession device, KeyPair pair1, KeyPair pair2)
+        {
+            var sessionBuilder = new SessionBuilder(storage, new ProtocolAddress(addr));
+            sessionBuilder.OutKeyPair = pair1;
+            sessionBuilder.GenKeyPair = pair2;
+            sessionBuilder.InitOutGoing(device);
+        }
+
 
         private static void TestSendMessageBuffer()
         {
