@@ -47,6 +47,10 @@ namespace WhatsSocket.Core.NoSQL
                 {
                     var mv = file;
                     file = $"{path}\\{id.Replace("/", "__")}.json";
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                    }
                     File.Move(mv, file);
                 }
 

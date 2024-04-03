@@ -73,7 +73,7 @@ namespace WhatsSocket.LibSignal
                 // The message was, hopefully, just sent back in a time when this session
                 // was the most current.  Simply make a note of it and continue.  If our
                 // actual open session is for reason invalid, that must be handled via
-                // a full SessionError response.
+                // a full SessionError response.               
             }
             StoreRecord(record);
             return result.PlainText;
@@ -91,7 +91,7 @@ namespace WhatsSocket.LibSignal
                 try
                 {
                     var plaintext = DoDecryptWhisperMessage(data, session);
-                    session.IndexInfo.Used = DateTime.Now.AsEpoch();
+                    session.IndexInfo.Used = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     return new SessionDecryptResult()
                     {
                         PlainText = plaintext,
@@ -128,6 +128,8 @@ namespace WhatsSocket.LibSignal
             FillMessageKeys(chain, (int)message.Counter);
             if (!chain.MessageKeys.ContainsKey((int)message.Counter))
             {
+                // Most likely the message was already decrypted and we are trying to process
+                // twice.  This can happen if the user restarts before the server gets an ACK.
                 throw new SessionException("Key used already or never filled");
             }
             var messageKey = chain.MessageKeys[(int)message.Counter];
@@ -219,7 +221,7 @@ namespace WhatsSocket.LibSignal
             var key = chain.ChainKey.Key;
             chain.MessageKeys[chain.ChainKey.Counter + 1] = CryptoUtils.CalculateMAC(key, [1]);
             chain.ChainKey.Key = CryptoUtils.CalculateMAC(key, [2]);
-            chain.ChainKey.Counter += 1;
+            chain.ChainKey.Counter = chain.ChainKey.Counter + 1;
             FillMessageKeys(chain, counter);
         }
 

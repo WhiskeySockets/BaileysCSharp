@@ -24,7 +24,7 @@ namespace WhatsSocket.LibSignal
         public KeyPair OutKeyPair { get; set; }
         public KeyPair GenKeyPair { get; set; }
 
-        public void InitOutGoing(E2ESession device)
+        public SessionRecord InitOutGoing(E2ESession device)
         {
             var fqAddr = Address.ToString();
 
@@ -67,6 +67,7 @@ namespace WhatsSocket.LibSignal
 
             record.SetSession(session);
             Storage.StoreSession(Address, record);
+            return record;
         }
 
         private Session InitSession(bool isInitiator, KeyPair ourEphemeralKey, KeyPair ourSignedKey, byte[] theirIdentityPubKey, byte[]? theirEphemeralPubKey, byte[] theirSignedPubKey, uint registrationId)
