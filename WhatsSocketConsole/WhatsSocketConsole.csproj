@@ -16,19 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TEST\creds.json">
+    <None Update="CreateSession\pre-key\7.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TEST\session\session-27665245067.0.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TEST\session\session-27797798179.0.json">
+    <None Update="CreateSession\creds.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="TEST\session\" />
+    <Folder Include="CreateSession\pre-key\" />
   </ItemGroup>
 
 </Project>

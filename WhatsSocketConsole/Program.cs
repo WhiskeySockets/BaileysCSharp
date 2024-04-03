@@ -99,7 +99,7 @@ namespace WhatsSocketConsole
                     if (msg.Key.FromMe == false)
                     {
                         var result = await socket.SendMessage(msg.Key.RemoteJid,
-                            new ExtendedTextMessageModel() { Text = "oh hello there C#" },
+                            new ExtendedTextMessageModel() { Text = "yes we do" },
                             new MessageGenerationOptionsFromContent());
                     }
                     messages.Add(msg);

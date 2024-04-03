@@ -107,25 +107,29 @@ namespace WhatsSocket.Core.Utils
         public static byte[] EncodeWAMessage(Message message)
         {
             var buffer = message.ToByteArray();
+
+            var msg = Message.Parser.ParseFrom(buffer);
+
             var combined = WriteRandomPadMax16(buffer);
             return combined;
         }
 
         public static byte[] WriteRandomPadMax16(byte[] msg)
         {
-            var pad = KeyHelper.RandomBytes(1);
-            pad[0] &= 0xF;
-            if (pad[0] == 0)
-            {
-                pad[0] = 0xF;
-            }
+            //var pad = KeyHelper.RandomBytes(1);
+            //pad[0] &= 0xF;
+            //if (pad[0] == 0)
+            //{
+            //    pad[0] = 0xF;
+            //}
 
-            var val = pad[0];
-            pad = new byte[val];
-            for (int i = 0; i < val; i++)
-            {
-                pad[i] = val;
-            }
+            //var val = pad[0];
+            //pad = new byte[val];
+            //for (int i = 0; i < val; i++)
+            //{
+            //    pad[i] = val;
+            //}
+            byte[] pad = [2,2];
             var combined = msg.Concat(pad).ToArray();
             return combined;
         }

@@ -90,20 +90,23 @@ namespace WhatsSocket.Core.Sockets
         public async Task RelayMessage(string jid, Message message, MessageRelayOptions options)
         {
             var meId = Creds.Me.ID;
-
             var shouldIncludeDeviceIdentity = false;
+
             var jidDecoded = JidDecode(jid);
+            var user = jidDecoded.User;
+            var server = jidDecoded.Server;
+
             var statusId = "status@broadcast";
-            var isGroup = jidDecoded.Server == "g.us";
+            var isGroup = server == "g.us";
             var isStatus = jid == statusId;
-            var isLid = jidDecoded.Server == "lid";
+            var isLid = server == "lid";
 
             options.MessageID = options.MessageID ?? GenerateMessageID();
             options.UseUserDevicesCache = options.UseUserDevicesCache != false;
 
 
             var participants = new List<BinaryNode>();
-            var destinationJid = isStatus ? statusId : JidEncode(jidDecoded.User, isLid ? "lid" : isGroup ? "g.us" : "s.whatsapp.net");
+            var destinationJid = (!isStatus) ? JidEncode(user, isLid ? "lid" : isGroup ? "g.us" : "s.whatsapp.net") : statusId;
             var binaryNodeContent = new List<BinaryNode>();
             var devices = new List<JidWidhDevice>();
 
@@ -111,10 +114,11 @@ namespace WhatsSocket.Core.Sockets
             {
                 DeviceSentMessage = new Message.Types.DeviceSentMessage()
                 {
-                    DestinationJid = jid,
+                    DestinationJid = destinationJid,
                     Message = message
                 }
             };
+
 
             if (options.Participant != null)
             {
@@ -144,15 +148,22 @@ namespace WhatsSocket.Core.Sockets
             else
             {
                 var me = JidDecode(meId);
+                var meUser = me.User;
+                var meDevice = me.Device;
+
                 if (options.Participant == null)
                 {
-                    devices.Add(new JidWidhDevice() { User = jidDecoded.User });
+                    //options.Participant = new MessageParticipant()
+                    //{
+                    //    Count = 0,
+                    //    Jid = jid
+                    //};
+                    devices.Add(new JidWidhDevice() { User = user });
                     // do not send message to self if the device is 0 (mobile)
-                    if (me.Device != 0)
+                    if (meDevice != null && meDevice != 0)
                     {
-                        devices.Add(new JidWidhDevice() { User = me.User });
+                        devices.Add(new JidWidhDevice() { User = meUser });
                     }
-
                     var additionalDevices = await GetUSyncDevices([meId, jid], options.UseUserDevicesCache ?? false, true);
                     devices.AddRange(additionalDevices);
                 }
@@ -160,11 +171,12 @@ namespace WhatsSocket.Core.Sockets
                 List<string> allJids = new List<string>();
                 List<string> meJids = new List<string>();
                 List<string> otherJids = new List<string>();
-
                 foreach (var item in devices)
                 {
-                    var isMe = item.User == me.User;
-                    var addJid = JidEncode((isMe && isLid) ? Creds.Me.LID.Split(":")[0] ?? item.User : item.User, isLid ? "lid" : "s.whatsapp.net", item.Device);
+                    var iuser = item.User;
+                    var idevice = item.Device;
+                    var isMe = user == meUser;
+                    var addJid = JidEncode((isMe && isLid) ? Creds.Me.LID.Split(":")[0] ?? iuser : iuser, isLid ? "lid" : "s.whatsapp.net", idevice);
                     if (isMe)
                     {
                         meJids.Add(addJid);
@@ -186,76 +198,78 @@ namespace WhatsSocket.Core.Sockets
                 participants.AddRange(otherNode.Nodes);
                 shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || meNode.ShouldIncludeDeviceIdentity || otherNode.ShouldIncludeDeviceIdentity;
 
-                if (participants.Count > 0)
-                {
-                    binaryNodeContent.Add(new BinaryNode()
-                    {
-                        tag = "participants",
-                        content = participants.ToArray()
-                    });
-                }
+            }
 
-                var stanza = new BinaryNode()
+            if (participants.Count > 0)
+            {
+                binaryNodeContent.Add(new BinaryNode()
                 {
-                    tag = "message",
-                    attrs =
-                    {
-                        {"id",options.MessageID  },
+                    tag = "participants",
+                    attrs = { },
+                    content = participants.ToArray()
+                });
+            }
+
+            var stanza = new BinaryNode()
+            {
+                tag = "message",
+                attrs = {
+                        {"id", options.MessageID  },
                         {"type" , "text" }
-                    }
-                };
-                if (options.AdditionalAttributes != null)
-                {
-                    foreach (var item in options.AdditionalAttributes)
-                    {
-                        stanza.attrs.Add(item.Key, item.Value);
-                    }
                 }
+            };
 
-                // if the participant to send to is explicitly specified (generally retry recp)
-                // ensure the message is only sent to that person
-                // if a retry receipt is sent to everyone -- it'll fail decryption for everyone else who received the msg
-                if (options.Participant != null)
+            if (options.AdditionalAttributes != null)
+            {
+                foreach (var item in options.AdditionalAttributes)
                 {
-                    if (IsJidGroup(destinationJid))
-                    {
-                        stanza.attrs["to"] = destinationJid;
-                        stanza.attrs["participant"] = options.Participant.Jid;
-                    }
-                    else if (AreJidsSameUser(options.Participant.Jid, meId))
-                    {
-                        stanza.attrs["to"] = options.Participant.Jid;
-                        stanza.attrs["participant"] = destinationJid;
-                    }
-                    else
-                    {
-                        stanza.attrs["to"] = options.Participant.Jid;
-                    }
+                    stanza.attrs.Add(item.Key, item.Value);
+                }
+            }
+
+            // if the participant to send to is explicitly specified (generally retry recp)
+            // ensure the message is only sent to that person
+            // if a retry receipt is sent to everyone -- it'll fail decryption for everyone else who received the msg
+            if (options.Participant != null)
+            {
+                if (IsJidGroup(destinationJid))
+                {
+                    stanza.attrs["to"] = destinationJid;
+                    stanza.attrs["participant"] = options.Participant.Jid;
+                }
+                else if (AreJidsSameUser(options.Participant.Jid, meId))
+                {
+                    stanza.attrs["to"] = options.Participant.Jid;
+                    stanza.attrs["participant"] = destinationJid;
                 }
                 else
                 {
-                    stanza.attrs["to"] = destinationJid;
+                    stanza.attrs["to"] = options.Participant.Jid;
                 }
-
-                if (shouldIncludeDeviceIdentity)
-                {
-                    binaryNodeContent.Add(new BinaryNode()
-                    {
-                        tag = "device-identity",
-                        attrs = { },
-                        content = EncodeSignedDeviceIdentity(Creds.Account, true)
-                    });
-                }
-                stanza.content = binaryNodeContent.ToArray();
-
-                //TODO: Button Type
-
-                Logger.Debug(new { msgId = options.MessageID }, $"sending message to ${participants.Count} devices");
-
-
-                SendNode(stanza);
+            }
+            else
+            {
+                stanza.attrs["to"] = destinationJid;
             }
 
+            if (shouldIncludeDeviceIdentity)
+            {
+                binaryNodeContent.Add(new BinaryNode()
+                {
+                    tag = "device-identity",
+                    attrs = { },
+                    content = EncodeSignedDeviceIdentity(Creds.Account, true)
+                });
+            }
+
+            stanza.content = binaryNodeContent.ToArray();
+
+            //TODO: Button Type
+
+            Logger.Debug(new { msgId = options.MessageID }, $"sending message to ${participants.Count} devices");
+
+
+            SendNode(stanza);
         }
 
         public ParticipantNode CreateParticipantNodes(string[] jids, Message message, Dictionary<string, string> attrs)

@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using Proto;
 using System.Diagnostics;
 using System.Text;
+using Textsecure;
 using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
@@ -28,6 +29,63 @@ namespace WhatsAppSocket.Tests
         }
 
 
+        [Test]
+        public static void TestDecodeWhisperMessage()
+        {
+            var config = new SocketConfig()
+            {
+                ID = "CreateSession",
+            };
+            var credsFile = Path.Join(config.CacheRoot, $"creds.json");
+            AuthenticationCreds? authentication = null;
+            if (File.Exists(credsFile))
+            {
+                authentication = AuthenticationCreds.Deserialize(File.ReadAllText(credsFile));
+            }
+            authentication = authentication ?? AuthenticationUtils.InitAuthCreds();
+            BaseKeyStore keys = new FileKeyStore(config.CacheRoot);
+            config.Auth = new AuthenticationState()
+            {
+                Creds = authentication,
+                Keys = keys
+            };
+            var storage = new SignalStorage(config.Auth);
+            var sessionFile = Path.Join(config.CacheRoot, "session", $"27665245067.0.json");
+            //
+            if (File.Exists(sessionFile))
+            {
+                File.Delete(sessionFile);
+            }
+
+
+            SessionBuilder.SendKeyPair = new KeyPair()
+            {
+                Public = Convert.FromBase64String("BWsNAT3phMcvy/RWV6a7YLpQ3ItR5K4Gxk+IBoAN7oc7"),
+                Private = Convert.FromBase64String("0DZTxh4maIVzBjqAxLVD2Mu4Oztn/txWtDbcXVVRmlA=")
+            };
+
+            SessionCipher.EphemeralKeyPair = new KeyPair()
+            {
+                Private = Convert.FromBase64String("YMo0xElvzL4B8sUM4wysBbiVy3CcDRPvRtB2470+Amc="),
+                Public = Convert.FromBase64String("Bai5PQJsxdIDXWRLAIm8FFe4EPp8jOInm/ElXUhKSRYf")
+            };
+
+            var data = Convert.FromBase64String("MwgHEiEF51qjnXcsRw0BrXzGAYZ8VCpxFV+1Szg483wTzJVoWlAaIQWBMy0fikSwDpotqPycui0iPIt0yeJAScZlVKprz+uORSJSMwohBW5Ysg2vPDJVNeNjB3jbtnDAjZCnHatgNnPGsa2XOoIWEAAYACIg63vX5iFT/NLxuC/qdyDWp/KjS8zbemqvTogJoWbzn/EFuDqf2goX2Sjz3pTzBDAB");
+            var cipher = new SessionCipher(storage, new ProtocolAddress("27665245067@whatsapp.net"));
+            cipher.DecryptPreKeyWhisperMessage(data);
+
+            var preKeyProto = PreKeyWhisperMessage.Parser.ParseFrom(data.Slice(1));
+            var record = cipher.GetRecord();
+            var session = record.GetSession(preKeyProto.BaseKey.ToBase64());
+
+            if (session.Chains["BW5Ysg2vPDJVNeNjB3jbtnDAjZCnHatgNnPGsa2XOoIW"].ChainKey.Key.ToBase64() == "Ta+oOkXWh4uB53EkiuOy2VTgG9M5k6sDVVnKhOAzRtA=")
+            {
+
+            }
+
+            SessionBuilder.SendKeyPair = null;
+            SessionCipher.EphemeralKeyPair = null;
+        }
 
 
         [Test]
@@ -148,8 +206,8 @@ Outgoing: 27797798179.17 done";
 
 
             var sessionBuilder = new SessionBuilder(storage, new ProtocolAddress("27797798179.17@whatsapp.net"));
-            sessionBuilder.OutKeyPair = baseKey;
-            sessionBuilder.GenKeyPair = outKey;
+            SessionBuilder.OutKeyPair = baseKey;
+            SessionBuilder.SendKeyPair = outKey;
             var session = sessionBuilder.InitOutGoing(inputsess);
             //Should Match
 
@@ -162,7 +220,8 @@ Outgoing: 27797798179.17 done";
             {
                 Assert.Fail();
             }
-
+            SessionBuilder.OutKeyPair = null;
+            SessionBuilder.SendKeyPair = null;
         }
 
         [Test]

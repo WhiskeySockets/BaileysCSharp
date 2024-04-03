@@ -10,6 +10,7 @@ using WhatsSocket.Core.NoSQL;
 using WhatsSocket.Core.Signal;
 using WhatsSocket.Exceptions;
 using WhatsSocket.LibSignal;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocket.LibSignal
 {
@@ -32,7 +33,7 @@ namespace WhatsSocket.LibSignal
             return record;
         }
 
-        internal byte[] DecryptPreKeyWhisperMessage(byte[] data)
+        public byte[] DecryptPreKeyWhisperMessage(byte[] data)
         {
             var versions = decodeTupleByte(data[0]);
             if (versions[1] > 3 || versions[0] < 3)
@@ -41,16 +42,21 @@ namespace WhatsSocket.LibSignal
             }
 
             var record = GetRecord();
+
+            var preKeyProto = PreKeyWhisperMessage.Parser.ParseFrom(data.Slice(1));
+
             if (record == null)
             {
+                if (preKeyProto.RegistrationId == 0)
+                {
+                    throw new Exception("No registrationId");
+                }
                 record = new SessionRecord();
             }
 
-            var preKeyProto = PreKeyWhisperMessage.Parser.ParseFrom(data.Skip(1).ToArray());
-
             var builder = new SessionBuilder(Storage, Address);
             var preKeyId = builder.InitIncoming(record, preKeyProto);
-            var session = record.getSession(preKeyProto.BaseKey.ToBase64());
+            var session = record.GetSession(preKeyProto.BaseKey.ToBase64());//Working
             var plaintext = DoDecryptWhisperMessage(preKeyProto.Message.ToByteArray(), session);
             StoreRecord(record);
             if (preKeyId > 0)
@@ -114,12 +120,22 @@ namespace WhatsSocket.LibSignal
 
         private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session? session)
         {
+
+            if (session == null)
+            {
+                throw new InvalidOperationException("session required");
+            }
             var versions = decodeTupleByte(messageBuffer[0]);
+            if (versions[1] > 3 || versions[0] < 3)
+            {
+                throw new SessionException("Incompatible version number on WhisperMessage");
+            }
 
             var messageProto = messageBuffer.Skip(1).Take(messageBuffer.Length - 1 - 8).ToArray();
             var message = WhisperMessage.Parser.ParseFrom(messageProto);
 
             MaybeStepRatchet(session, message.EphemeralKey, (int)message.PreviousCounter);
+
             var chain = session.GetChain(message.EphemeralKey.ToByteArray());
             if (chain.ChainType == ChainType.SENDING)
             {
@@ -130,11 +146,13 @@ namespace WhatsSocket.LibSignal
             {
                 // Most likely the message was already decrypted and we are trying to process
                 // twice.  This can happen if the user restarts before the server gets an ACK.
-                throw new SessionException("Key used already or never filled");
+                throw new MessageCounterError("Key used already or never filled");
             }
+
             var messageKey = chain.MessageKeys[(int)message.Counter];
             chain.MessageKeys.Remove((int)message.Counter);
-            var keys = CryptoUtils.DeriveSecrets(messageKey, new byte[32], Encoding.UTF8.GetBytes("WhisperMessageKeys"));
+            var keys = CryptoUtils.DeriveSecrets(messageKey, new byte[32],
+                                                Encoding.UTF8.GetBytes("WhisperMessageKeys"));
 
 
             var ourIdentityKey = Storage.GetOurIdentity();
@@ -142,11 +160,13 @@ namespace WhatsSocket.LibSignal
             macInput.Set(session.IndexInfo.RemoteIdentityKey);
             macInput.Set(ourIdentityKey.Public, 33);
             macInput[33 * 2] = EncodeTupleByte(3, 3);
-            macInput.Set(messageProto, 33 * 2 + 1);
+            macInput.Set(messageProto, (33 * 2) + 1);
 
-            CryptoUtils.VerifyMac(macInput, keys[1], messageBuffer.Skip(messageBuffer.Length - 8).ToArray(), 8);
+            // This is where we most likely fail if the session is not a match.
+            // Don't misinterpret this as corruption.
+            CryptoUtils.VerifyMac(macInput, keys[1], messageBuffer.Slice(-8), 8);
 
-            var plaintext = CryptoUtils.DecryptAesCbcWithIV(message.Ciphertext.ToByteArray(), keys[0], keys[2].Take(16).ToArray());
+            var plaintext = CryptoUtils.DecryptAesCbcWithIV(message.Ciphertext.ToByteArray(), keys[0], keys[2].Slice(0, 16));
             session.PendingPreKey = null;
             return plaintext;
         }
@@ -159,6 +179,8 @@ namespace WhatsSocket.LibSignal
             }
             return (byte)(number1 << 4 | number2);
         }
+
+        public static KeyPair? EphemeralKeyPair { get; set; }
 
         private void MaybeStepRatchet(Session? session, ByteString remoteKey, int previousCounter)
         {
@@ -181,7 +203,7 @@ namespace WhatsSocket.LibSignal
                 ratchet.PreviousCounter = prevCounter.ChainKey.Counter;
                 session.DeleteChain(ratchet.EphemeralKeyPair.Public);
             }
-            ratchet.EphemeralKeyPair = Curve.GenerateKeyPair();
+            ratchet.EphemeralKeyPair = EphemeralKeyPair ?? NodeCrypto.GenerateKeyPair();
             CalculateRatchet(session, remoteKey, true);
             ratchet.LastRemoteEphemeralKey = remoteKey.ToByteArray();
         }
@@ -195,6 +217,7 @@ namespace WhatsSocket.LibSignal
             var chainKey = sending ? ratchet.EphemeralKeyPair.Public : remoteKey.ToByteArray();
             session.Chains.Add(chainKey.ToByteString().ToBase64(), new Chain()
             {
+                MessageKeys = new Dictionary<int, byte[]>(),
                 ChainKey = new ChainKey()
                 {
                     Counter = -1,
@@ -280,7 +303,6 @@ namespace WhatsSocket.LibSignal
             StoreRecord(record);
             var type = 1;
             byte[] body;
-
             if (session.PendingPreKey != null)
             {
                 type = 3;

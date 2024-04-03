@@ -54,6 +54,10 @@ namespace WhatsSocket.Core.NoSQL
                     File.Move(mv, file);
                 }
 
+                if (memory.ContainsKey($"{attributes.Prefix}-{id}"))
+                {
+                    return (T)memory[$"{attributes.Prefix}-{id}"];
+                }
 
                 file = $"{path}\\{id.Replace("/", "__")}.json";
                 if (File.Exists(file))
@@ -61,7 +65,14 @@ namespace WhatsSocket.Core.NoSQL
                     var data = File.ReadAllText(file) ?? "";
                     data = data.Replace("pubKey", "public");
                     data = data.Replace("privKey", "private");
-                    return JsonConvert.DeserializeObject<T>(data);
+                    try
+                    {
+                        return JsonConvert.DeserializeObject<T>(data);
+                    }
+                    catch (Exception)
+                    {
+                        return JsonConvert.DeserializeObject<T>(data, new BufferConverter());
+                    }
                 }
                 return default(T);
             }
@@ -95,6 +106,9 @@ namespace WhatsSocket.Core.NoSQL
             return result.ToArray();
         }
 
+
+        Dictionary<string, object> memory = new Dictionary<string, object>();
+
         public override void Set<T>(string id, T? value) where T : default
         {
             lock (locker)
@@ -107,11 +121,13 @@ namespace WhatsSocket.Core.NoSQL
 
                 if (value != null)
                 {
+                    memory[$"{attributes.Prefix}-{id}"] = value;
                     File.WriteAllText(file, JsonConvert.SerializeObject(value, Formatting.Indented));
                 }
                 else if (File.Exists(file))
                 {
-                    File.Delete(file);
+                    memory.Remove($"{attributes.Prefix}-{id}");
+                    //File.Delete(file);
                 }
             }
             //Use Below

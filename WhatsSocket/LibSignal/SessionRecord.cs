@@ -22,7 +22,7 @@ namespace WhatsSocket.LibSignal
             Version = "v1";
         }
 
-        internal Session? getSession(string key)
+        public Session? GetSession(string key)
         {
             if (Sessions.ContainsKey(key))
                 return Sessions[key];
@@ -43,7 +43,7 @@ namespace WhatsSocket.LibSignal
         {
             if (!IsClosed(session))
             {
-                session.IndexInfo.Closed = DateTime.UtcNow.AsEpoch();
+                session.IndexInfo.Closed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             }
         }
 
@@ -51,7 +51,7 @@ namespace WhatsSocket.LibSignal
         {
             if (session == null)
                 return false;
-            return session.IndexInfo.Closed != -1;
+            return session.IndexInfo.Closed >= 0;
         }
 
         internal void SetSession(Session session)

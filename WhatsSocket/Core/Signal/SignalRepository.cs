@@ -26,7 +26,7 @@ namespace WhatsSocket.Core.Signal
             return session.Decrypt(content);
         }
 
-        internal CipherMessage EncryptMessage(string jid, byte[] data)
+        public CipherMessage EncryptMessage(string jid, byte[] data)
         {
             var address = new ProtocolAddress(jid);
             var cipher = new SessionCipher(Storage, address);

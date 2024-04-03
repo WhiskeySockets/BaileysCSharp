@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using System;
 using System.Diagnostics;
 using System.Text;
 using Textsecure;
@@ -13,6 +14,9 @@ namespace WhatsSocket.LibSignal
 
     public class SessionBuilder
     {
+        public static KeyPair? OutKeyPair { get; set; }
+        public static KeyPair? SendKeyPair { get; set; }
+
         public SessionBuilder(SignalStorage storage, ProtocolAddress address)
         {
             Storage = storage;
@@ -21,8 +25,6 @@ namespace WhatsSocket.LibSignal
 
         public SignalStorage Storage { get; }
         public ProtocolAddress Address { get; }
-        public KeyPair OutKeyPair { get; set; }
-        public KeyPair GenKeyPair { get; set; }
 
         public SessionRecord InitOutGoing(E2ESession device)
         {
@@ -35,7 +37,7 @@ namespace WhatsSocket.LibSignal
             Curve.VerifySignature(device.IdentityKey, device.SignedPreKey.Public, device.SignedPreKey.Signature);
 
             var baseKey = OutKeyPair ?? NodeCrypto.GenerateKeyPair();
-   
+
             var devicePreKey = device.PreKey != null && device.PreKey.Public != null ? device.PreKey.Public : null;
             var session = InitSession(true, baseKey, null, device.IdentityKey,
                 devicePreKey, device.SignedPreKey.Public,
@@ -61,6 +63,7 @@ namespace WhatsSocket.LibSignal
                 var openSession = record.GetOpenSession();
                 if (openSession != null)
                 {
+                    Debug.WriteLine("Closing stale open session for new outgoing prekey bundle");
                     record.CloseSession(openSession);
                 }
             }
@@ -80,9 +83,10 @@ namespace WhatsSocket.LibSignal
             var fqAddr = Address.ToString();
             if (!Storage.IsTrustedIdentity(fqAddr, message.IdentityKey))
             {
+                throw new UntrustedIdentityKeyError(fqAddr, message.IdentityKey);
 
             }
-            var session = record.getSession(message.BaseKey.ToBase64());
+            var session = record.GetSession(message.BaseKey.ToBase64());
             if (session != null)
             {
                 // This just means we haven't replied.
@@ -97,14 +101,19 @@ namespace WhatsSocket.LibSignal
 
             var signedPreKeyPair = Storage.LoadSignedPreKey(message.SignedPreKeyId);
 
+            if (signedPreKeyPair == null)
+            {
+                throw new SessonException("InMissingvalid SignedPreKey");
+            }
+
             var existingOpenSession = record.GetOpenSession();
             if (existingOpenSession != null)
             {
+                Debug.WriteLine("Closing open session in favor of incoming prekey bundle");
                 record.CloseSession(existingOpenSession);
             }
 
-            record.SetSession(InitSession(false,
-                preKeyPair, signedPreKeyPair,
+            record.SetSession(InitSession(false, preKeyPair, signedPreKeyPair,
                 message.IdentityKey, message.BaseKey,
                 null, message.RegistrationId));
 
@@ -130,10 +139,14 @@ namespace WhatsSocket.LibSignal
                 theirSignedPubKey = theirEphemeralPubKey; //1
             }
 
-            byte[] sharedSecret = new byte[32 * 5];
+            byte[] sharedSecret;
             if (ourEphemeralKey == null || theirEphemeralPubKey == null)
             {
                 sharedSecret = new byte[32 * 4];
+            }
+            else
+            {
+                sharedSecret = new byte[32 * 5];
             }
             for (var i = 0; i < 32; i++)
             {
@@ -149,19 +162,19 @@ namespace WhatsSocket.LibSignal
 
             if (isInitiator)
             {
-                Array.Copy(a1, 0, sharedSecret, 32, 32);
-                Array.Copy(a2, 0, sharedSecret, 32 * 2, 32);
+                sharedSecret.Set(a1, 32);
+                sharedSecret.Set(a2, 32 * 2);
             }
             else
             {
-                Array.Copy(a1, 0, sharedSecret, 32 * 2, 32);
-                Array.Copy(a2, 0, sharedSecret, 32, 32);
+                sharedSecret.Set(a1, 32 * 2);
+                sharedSecret.Set(a2, 32);
             }
-            Array.Copy(a3, 0, sharedSecret, 32 * 3, 32);
+            sharedSecret.Set(a3, 32 * 3);
             if (ourEphemeralKey != null && theirEphemeralPubKey != null)
             {
                 var a4 = CryptoUtils.CalculateAgreement(theirEphemeralPubKey.ToByteArray(), ourEphemeralKey.Private);
-                Array.Copy(a4, 0, sharedSecret, 32 * 4, 32);
+                sharedSecret.Set(a4, 32 * 4);
             }
 
             byte[][] masterKey = CryptoUtils.DeriveSecrets(sharedSecret, new byte[32], Encoding.UTF8.GetBytes("WhisperText"));
@@ -169,12 +182,12 @@ namespace WhatsSocket.LibSignal
             var session = new Session();
             session.RegistrationId = registrationId;
 
-            GenKeyPair = GenKeyPair ?? NodeCrypto.GenerateKeyPair();
+            SendKeyPair = SendKeyPair ?? NodeCrypto.GenerateKeyPair();
 
             session.CurrentRatchet = new CurrentRatchet()
             {
                 RootKey = masterKey[0],
-                EphemeralKeyPair = isInitiator ? GenKeyPair : ourSignedKey,//32,32 or 32,33
+                EphemeralKeyPair = isInitiator ? SendKeyPair : ourSignedKey,//32,32 or 32,33
                 LastRemoteEphemeralKey = theirSignedPubKey.ToByteArray(),
                 PreviousCounter = 0
             };

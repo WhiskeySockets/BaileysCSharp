@@ -84,6 +84,11 @@ namespace WhatsSocket.Core.Helper
 
         public static T[] Slice<T>(this T[] bytes, int start)
         {
+            if (start > 0)
+            {
+                return bytes.Skip(start).ToArray();
+            }
+
             return bytes.Slice(start, bytes.Length - start);
         }
 

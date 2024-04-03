@@ -552,7 +552,7 @@ namespace WhatsSocket.Core.Sockets
                     };
                 }
 
-                //await RelayMessage(remoteJid, msg, msgRelayOpts);
+                await RelayMessage(remoteJid, msg, msgRelayOpts);
             }
 
         }

@@ -11,7 +11,7 @@ namespace WhatsSocket.Core.Models.Sessions
         public int BaseKeyType { get; set; }
 
         [JsonProperty("closed")]
-        public int Closed { get; set; }
+        public long Closed { get; set; }
 
         [JsonProperty("used")]
         public long Used { get; set; }
