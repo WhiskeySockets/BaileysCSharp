@@ -98,19 +98,28 @@ namespace WhatsSocketConsole
                 {
                     if (msg.Key.FromMe == false)
                     {
-                        //Standard message
-                        var result = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
+                        ////Standard message
+                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
 
-                        //Mention
-                        result = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
+                        ////Mention
+                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
 
-                        //Quoted Message
-                        result = await socket.SendMessage(msg.Key.RemoteJid,
-                            new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
-                            new MessageGenerationOptionsFromContent()
-                            {
-                                Quoted = msg
-                            });
+                        ////Quoted Message
+                        //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
+                        //    new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
+                        //    new MessageGenerationOptionsFromContent()
+                        //    {
+                        //        Quoted = msg
+                        //    });
+
+                        //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageModel()
+                        //{
+                        //    Location = new Message.Types.LocationMessage()
+                        //    {
+                        //        DegreesLatitude = -25.822561396752295,
+                        //        DegreesLongitude = 28.149330524681027
+                        //    }
+                        //});
                     }
                     messages.Add(msg);
                 }

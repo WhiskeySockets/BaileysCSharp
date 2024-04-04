@@ -419,7 +419,7 @@ namespace WhatsSocket.Core
         protected void SendRawMessage(byte[] bytes)
         {
             var toSend = noise.EncodeFrame(bytes);
-            Logger.Info(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
+            Logger.Raw(new { bytes = Convert.ToBase64String(toSend) }, $"send {toSend.Length} bytes");
             WS.Send(toSend);
         }
 

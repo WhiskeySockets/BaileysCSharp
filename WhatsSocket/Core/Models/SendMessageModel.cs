@@ -1,5 +1,6 @@
 ﻿using Proto;
 using WhatsSocket.Core.Helper;
+using static Proto.Message.Types;
 
 namespace WhatsSocket.Core.Models
 {
@@ -57,6 +58,11 @@ namespace WhatsSocket.Core.Models
         public ContextInfo? ContextInfo { get; set; }
         public string[] Mentions { get; set; }
         public MessageKey? Edit { get; set; }
+    }
+
+    public class LocationMessageModel : AnyContentMessageModel
+    {
+        public LocationMessage Location { get; set; }
     }
 
     public class DeleteMessageModel : AnyContentMessageModel

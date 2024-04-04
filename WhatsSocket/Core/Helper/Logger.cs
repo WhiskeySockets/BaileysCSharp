@@ -12,52 +12,22 @@ namespace WhatsSocket.Core.Helper
 {
     public enum LogLevel
     {
-        Info = 0,
-        Warn = 1,
+        Fatal = 1,
         Error = 2,
-        Fatal = 3,
-        Verbose = 4,
-        Debug = 5
+        Warn = 4,
+        Info = 8,
+        Debug = 16,
+        Trace = 32,
+        All = 63,
+        Raw = 64,
     }
 
     public class Logger
     {
+        private static object locker = new object();
         public LogLevel Level { get; set; }
 
-        internal void Trace(string message)
-        {
-            if (Level >= LogLevel.Info)
-            {
-                var logEntry = new
-                {
-                    level = LogLevel.Info,
-                    time = DateTime.Now,
-                    hostname = Dns.GetHostName(),
-                    message
-                };
 
-
-                Write(logEntry);
-            }
-        }
-
-        public void Trace(object? obj, string message)
-        {
-            if (Level >= LogLevel.Info)
-            {
-                var logEntry = new
-                {
-                    level = LogLevel.Info,
-                    time = DateTime.Now,
-                    hostname = Dns.GetHostName(),
-                    traceobj = obj,
-                    message
-                };
-
-
-                Write(logEntry);
-            }
-        }
         internal void Error(string message)
         {
             if (Level >= LogLevel.Error)
@@ -69,7 +39,13 @@ namespace WhatsSocket.Core.Helper
                     hostname = Dns.GetHostName(),
                     message
                 };
-                Write(logEntry);
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
             }
         }
         public void Error(object? obj, string message)
@@ -85,8 +61,13 @@ namespace WhatsSocket.Core.Helper
                     message
                 };
 
-
-                Write(logEntry);
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
             }
         }
 
@@ -103,8 +84,54 @@ namespace WhatsSocket.Core.Helper
                     message
                 };
 
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
 
+        internal void Warn(object? obj, string message)
+        {
+            if (Level >= LogLevel.Warn)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Warn,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
+                    message
+                };
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
+
+        internal void Warn(string message)
+        {
+            var logEntry = new
+            {
+                level = LogLevel.Warn,
+                time = DateTime.Now,
+                hostname = Dns.GetHostName(),
+                message
+            };
+
+            lock (locker)
+            {
+                var backup = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Write(logEntry);
+                Console.ForegroundColor = backup;
             }
         }
 
@@ -120,40 +147,13 @@ namespace WhatsSocket.Core.Helper
                     message
                 };
 
-                Write(logEntry);
-            }
-        }
-
-        internal void Debug(string message)
-        {
-            if (Level >= LogLevel.Debug)
-            {
-                var logEntry = new
+                lock (locker)
                 {
-                    level = LogLevel.Debug,
-                    time = DateTime.Now,
-                    hostname = Dns.GetHostName(),
-                    message
-                };
-
-                Write(logEntry);
-            }
-        }
-
-        internal void Debug(object? obj, string message)
-        {
-            if (Level >= LogLevel.Debug)
-            {
-                var logEntry = new
-                {
-                    level = LogLevel.Debug,
-                    time = DateTime.Now,
-                    hostname = Dns.GetHostName(),
-                    traceobj = obj,
-                    message
-                };
-
-                Write(logEntry);
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
             }
         }
 
@@ -170,9 +170,106 @@ namespace WhatsSocket.Core.Helper
                     message
                 };
 
-                Write(logEntry);
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
             }
         }
+        internal void Debug(string message)
+        {
+            if (Level >= LogLevel.Debug)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Debug,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    message
+                };
+
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
+
+        internal void Debug(object? obj, string message)
+        {
+            if (Level >= LogLevel.Debug)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Debug,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
+                    message
+                };
+
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
+
+        internal void Trace(string message)
+        {
+            if (Level >= LogLevel.Trace)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Trace,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    message
+                };
+
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
+
+        public void Trace(object? obj, string message)
+        {
+            if (Level >= LogLevel.Trace)
+            {
+                var logEntry = new
+                {
+                    level = LogLevel.Trace,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    traceobj = obj,
+                    message
+                };
+
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
+            }
+        }
+
+
 
         private void Write(object logEntry)
         {
@@ -185,34 +282,27 @@ namespace WhatsSocket.Core.Helper
             Console.WriteLine(json);
         }
 
-        internal void Warn(object? obj, string message)
+        internal void Raw(object obj, string message)
         {
-            if (Level >= LogLevel.Warn)
+            if (Level >= LogLevel.Raw)
             {
                 var logEntry = new
                 {
-                    level = LogLevel.Warn,
+                    level = LogLevel.Raw,
                     time = DateTime.Now,
                     hostname = Dns.GetHostName(),
                     traceobj = obj,
                     message
                 };
 
-                Write(logEntry);
+                lock (locker)
+                {
+                    var backup = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Write(logEntry);
+                    Console.ForegroundColor = backup;
+                }
             }
-        }
-
-        internal void Warn(string message)
-        {
-            var logEntry = new
-            {
-                level = LogLevel.Warn,
-                time = DateTime.Now,
-                hostname = Dns.GetHostName(),
-                message
-            };
-
-            Write(logEntry);
         }
     }
     public class ConditionalResolver : DefaultContractResolver

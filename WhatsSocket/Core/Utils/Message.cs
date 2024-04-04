@@ -171,6 +171,12 @@ namespace WhatsSocket.Core.Utils
 
                 ///TODO generateLinkPreviewIfRequired
             }
+            else if (message is LocationMessageModel location)
+            {
+                m.LocationMessage = location.Location;
+            }
+
+
             //contacts
             //location
             //contacts

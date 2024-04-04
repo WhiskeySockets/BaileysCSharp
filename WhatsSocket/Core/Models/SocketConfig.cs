@@ -19,7 +19,7 @@ namespace WhatsSocket.Core.Models
         public SocketConfig()
         {
             Logger = new Logger();
-            Logger.Level = LogLevel.Verbose;
+            Logger.Level = LogLevel.All;
             AppStateMacVerification = new AppStateMacVerification();
             ConnectTimeoutMs = 20000;
             KeepAliveIntervalMs = 30000;

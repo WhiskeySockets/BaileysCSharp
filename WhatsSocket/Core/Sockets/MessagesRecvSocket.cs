@@ -660,10 +660,17 @@ namespace WhatsSocket.Core.Sockets
             {
                 stanza.attrs["recipient"] = node.attrs["recipient"];
             }
-            if (node.tag != "message")
+
+            if (node.getattr("type") != null && (node.tag != "message" || GetBinaryNodeChild(node, "unavailable") != null))
             {
                 stanza.attrs["type"] = node.attrs["type"];
             }
+
+            if (node.tag == "message" && GetBinaryNodeChild(node, "unavailable") != null)
+            {
+                stanza.attrs["from"] = Creds.Me.ID;
+            }
+
             Logger.Debug(new { recv = new { node.tag, node.attrs }, sent = stanza.attrs }, "sent ack");
             SendNode(stanza);
         }
