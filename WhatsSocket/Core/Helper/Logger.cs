@@ -298,7 +298,7 @@ namespace WhatsSocket.Core.Helper
                 lock (locker)
                 {
                     var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.ForegroundColor = ConsoleColor.Blue;
                     Write(logEntry);
                     Console.ForegroundColor = backup;
                 }

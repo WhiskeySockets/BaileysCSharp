@@ -98,20 +98,33 @@ namespace WhatsSocketConsole
                 {
                     if (msg.Key.FromMe == false)
                     {
-                        ////Standard message
+                        // send a simple text!
                         //var standard = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
-
-                        ////Mention
-                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
-
-                        ////Quoted Message
+                        //
+                        //// send a reply messagge
                         //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
                         //    new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
                         //    new MessageGenerationOptionsFromContent()
                         //    {
                         //        Quoted = msg
                         //    });
-
+                        //
+                        //// send a mentions message
+                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
+                        //
+                        //
+                        //// send a contact!
+                        //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageModel()
+                        //{
+                        //    Contact = new ContactShareModel()
+                        //    {
+                        //        ContactNumber = "27797798179",
+                        //        FullName = "Donald Jansen",
+                        //        Organization = ""
+                        //    }
+                        //});
+                        //
+                        //// send a location!
                         //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageModel()
                         //{
                         //    Location = new Message.Types.LocationMessage()
@@ -120,6 +133,14 @@ namespace WhatsSocketConsole
                         //        DegreesLongitude = 28.149330524681027
                         //    }
                         //});
+                        //
+                        ////react
+                        //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactionMessageModel()
+                        //{
+                        //    Key = msg.Key,
+                        //    ReactText = "💖"
+                        //});
+
                     }
                     messages.Add(msg);
                 }

@@ -171,16 +171,28 @@ namespace WhatsSocket.Core.Utils
 
                 ///TODO generateLinkPreviewIfRequired
             }
+            else if (message is ContactMessageModel contact)
+            {
+                m.ContactMessage = new ContactMessage()
+                {
+                    DisplayName = contact.Contact.FullName,
+                    Vcard = $"BEGIN:VCARD\nVERSION:3.0\nFN:{contact.Contact.FullName}\nORG:;\nTEL;type=CELL;type=VOICE;waid={contact.Contact.ContactNumber}:+{contact.Contact.ContactNumber}\nEND:VCARD"
+                };
+            }
             else if (message is LocationMessageModel location)
             {
                 m.LocationMessage = location.Location;
             }
+            else if (message is ReactionMessageModel reaction)
+            {
+                m.ReactionMessage = new ReactionMessage()
+                {
+                    SenderTimestampMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Key = reaction.Key,
+                    Text = reaction.ReactText
+                };
+            }
 
-
-            //contacts
-            //location
-            //contacts
-            //react
             //delete
             //forward
             //disappearingMessagesInChat
@@ -188,7 +200,6 @@ namespace WhatsSocket.Core.Utils
             //product
             //listReply
             //poll
-            //sharePhoneNumber
             //requestPhoneNumber
 
 

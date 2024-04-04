@@ -43,14 +43,14 @@ namespace WhatsSocket.Core.Events
                         return false;
                     }
                 }
-            }
 
 
-            foreach (var item in GroupedEvents)
-            {
-                foreach (var store in item.Value)
+                foreach (var item in GroupedEvents)
                 {
-                    store.Value.Flush();
+                    foreach (var store in item.Value)
+                    {
+                        store.Value.Flush();
+                    }
                 }
             }
 
@@ -95,18 +95,21 @@ namespace WhatsSocket.Core.Events
 
         public bool Emit<T>(EmitType type, params T[] args)
         {
-            var eventkey = $"{typeof(T)}.{type}";
-            if (!GroupedEvents.ContainsKey(eventkey))
+            lock (locker)
             {
-                GroupedEvents[eventkey] = new Dictionary<EmitType, IEventStore>();
+                var eventkey = $"{typeof(T)}.{type}";
+                if (!GroupedEvents.ContainsKey(eventkey))
+                {
+                    GroupedEvents[eventkey] = new Dictionary<EmitType, IEventStore>();
+                }
+                var events = GroupedEvents[eventkey];
+                if (!events.ContainsKey(type))
+                {
+                    events[type] = new EventStore<T>(Sender, BufferableEvent.Contains($"{typeof(T)}.{type}"));
+                }
+                var store = (EventStore<T>)events[type];
+                store.Append(args);
             }
-            var events = GroupedEvents[eventkey];
-            if (!events.ContainsKey(type))
-            {
-                events[type] = new EventStore<T>(Sender, BufferableEvent.Contains($"{typeof(T)}.{type}"));
-            }
-            var store = (EventStore<T>)events[type];
-            store.Append(args);
             return true;
         }
 

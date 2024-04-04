@@ -65,6 +65,18 @@ namespace WhatsSocket.Core.Models
         public LocationMessage Location { get; set; }
     }
 
+    public class ContactShareModel
+    {
+        public string FullName { get; set; }
+        public string Organization { get; set; }
+        public string ContactNumber { get; set; }
+    }
+
+    public class ContactMessageModel : AnyContentMessageModel
+    {
+        public ContactShareModel Contact { get; set; }
+    }
+
     public class DeleteMessageModel : AnyContentMessageModel
     {
         public string RemoteJid { get; set; }
@@ -75,6 +87,13 @@ namespace WhatsSocket.Core.Models
     {
         public string Jid { get; set; }
         public ulong Count { get; set; }
+    }
+
+    public class ReactionMessageModel : AnyContentMessageModel
+    {
+        public string ReactText { get; set; }
+        public MessageKey Key { get; set; }
+
     }
 
     public class MessageRelayOptions : MinimalRelayOptions
