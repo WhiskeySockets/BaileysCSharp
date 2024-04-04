@@ -21,6 +21,7 @@ using WhatsSocket.Core.Sockets;
 using WhatsSocket.Exceptions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Google.Protobuf;
+using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocketConsole
 {
@@ -96,50 +97,50 @@ namespace WhatsSocketConsole
             {
                 foreach (var msg in args.Messages)
                 {
-                    if (msg.Key.FromMe == false)
+                    if (msg.Key.FromMe == false && msg.Message.ExtendedTextMessage != null && msg.Message.ExtendedTextMessage.Text == "runtests")
                     {
+                        var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
-                        //
+                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
+                        
                         //// send a reply messagge
-                        //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
-                        //    new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
-                        //    new MessageGenerationOptionsFromContent()
-                        //    {
-                        //        Quoted = msg
-                        //    });
-                        //
+                        var quoted = await socket.SendMessage(msg.Key.RemoteJid,
+                            new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
+                            new MessageGenerationOptionsFromContent()
+                            {
+                                Quoted = msg
+                            });
+
                         //// send a mentions message
-                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
-                        //
-                        //
+                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
+
                         //// send a contact!
-                        //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageModel()
-                        //{
-                        //    Contact = new ContactShareModel()
-                        //    {
-                        //        ContactNumber = "27797798179",
-                        //        FullName = "Donald Jansen",
-                        //        Organization = ""
-                        //    }
-                        //});
-                        //
-                        //// send a location!
-                        //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageModel()
-                        //{
-                        //    Location = new Message.Types.LocationMessage()
-                        //    {
-                        //        DegreesLatitude = -25.822561396752295,
-                        //        DegreesLongitude = 28.149330524681027
-                        //    }
-                        //});
-                        //
+                        var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageModel()
+                        {
+                            Contact = new ContactShareModel()
+                            {
+                                ContactNumber = jid.User,
+                                FullName = $"{msg.PushName}",
+                                Organization = ""
+                            }
+                        });
+
+                        //// send a location! //48.858221124792756, 2.294466243303683
+                        var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageModel()
+                        {
+                            Location = new Message.Types.LocationMessage()
+                            {
+                                DegreesLongitude = 48.858221124792756,
+                                DegreesLatitude = 2.294466243303683,
+                            }
+                        });
+
                         ////react
-                        //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactionMessageModel()
-                        //{
-                        //    Key = msg.Key,
-                        //    ReactText = "💖"
-                        //});
+                        var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactionMessageModel()
+                        {
+                            Key = msg.Key,
+                            ReactText = "💖"
+                        });
 
                     }
                     messages.Add(msg);
