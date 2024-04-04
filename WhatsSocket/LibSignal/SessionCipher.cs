@@ -120,7 +120,6 @@ namespace WhatsSocket.LibSignal
 
         private byte[] DoDecryptWhisperMessage(byte[] messageBuffer, Session? session)
         {
-
             if (session == null)
             {
                 throw new InvalidOperationException("session required");

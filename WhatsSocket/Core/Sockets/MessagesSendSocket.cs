@@ -175,7 +175,7 @@ namespace WhatsSocket.Core.Sockets
                 {
                     var iuser = item.User;
                     var idevice = item.Device;
-                    var isMe = user == meUser;
+                    var isMe = iuser == meUser;
                     var addJid = JidEncode((isMe && isLid) ? Creds.Me.LID.Split(":")[0] ?? iuser : iuser, isLid ? "lid" : "s.whatsapp.net", idevice);
                     if (isMe)
                     {

@@ -6,22 +6,42 @@ namespace WhatsSocket.Core.Models
     // types to generate WA messages
     public class AnyContentMessageModel
     {
-        public bool? DisappearingMessagesInChat { get; set; }   
+        public bool? DisappearingMessagesInChat { get; set; }
 
     }
 
+    public interface IContextable
+    {
+        ContextInfo? ContextInfo { get; set; }
+    }
 
-    public class MessageGenerationOptionsFromContent : MessageGenerationOptions
+    public interface IMentionable
+    {
+        string[] Mentions { get; set; }
+    }
+
+    public interface IViewOnce
+    {
+        bool ViewOnce { get; set; }
+    }
+
+    public interface IEditable
+    {
+        public MessageKey? Edit { get; set; }
+    }
+
+
+    public class MessageGenerationOptionsFromContent : MiscMessageGenerationOptions
     {
         public string? UserJid { get; set; }
 
         public Logger Logger { get; set; }
     }
 
-    public class MessageGenerationOptions: MinimalRelayOptions
+    public class MiscMessageGenerationOptions : MinimalRelayOptions
     {
         public ulong Timestamp { get; set; }
-        public WebMessageInfo Quoted {  get; set; }
+        public WebMessageInfo Quoted { get; set; }
 
         public ulong? EphemeralExpiration { get; set; }
         public ulong? MediaUploadTimeoutMs { get; set; }
@@ -31,11 +51,14 @@ namespace WhatsSocket.Core.Models
         public ulong? Font { get; set; }
     }
 
-    public class ExtendedTextMessageModel : AnyContentMessageModel
+    public class ExtendedTextMessageModel : AnyContentMessageModel, IMentionable, IContextable, IEditable
     {
         public string Text { get; set; }
-        public bool Edit { get; set; }
+        public ContextInfo? ContextInfo { get; set; }
+        public string[] Mentions { get; set; }
+        public MessageKey? Edit { get; set; }
     }
+
     public class DeleteMessageModel : AnyContentMessageModel
     {
         public string RemoteJid { get; set; }

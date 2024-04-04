@@ -112,31 +112,24 @@ namespace WhatsSocket.Core.Utils
 
                 var quotedMsg = NormalizeMessageContent(quoted.Message);
                 var contentType = GetContentType(quotedMsg);
-
                 if (contentType != null)
                 {
                     var valueToKeep = contentType.GetValue(quotedMsg, null);
                     quotedMsg = new Message();
                     contentType.SetValue(quotedMsg, valueToKeep);
                 }
-
-
                 var contextInfo = new ContextInfo()
                 {
                     Participant = JidNormalizedUser(participant),
                     StanzaId = quoted.Key.Id,
                     QuotedMessage = quotedMsg,
                 };
-
-
                 // if a participant is quoted, then it must be a group
                 // hence, remoteJid of group must also be entered
                 if (jid != quoted?.Key?.RemoteJid)
                 {
                     contextInfo.RemoteJid = quoted.Key.RemoteJid;
                 }
-
-
                 message.SetContextInfo(contextInfo);
 
 
@@ -159,13 +152,13 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static WebMessageInfo GenerateWAMessage(string jid, AnyContentMessageModel content, MessageGenerationOptions? options = null)
+        public static WebMessageInfo GenerateWAMessage(string jid, AnyContentMessageModel content, MessageGenerationOptionsFromContent? options = null)
         {
-            return GenerateWAMessageFromContent(jid, GenerateWAMessageContent(content, options));
+            return GenerateWAMessageFromContent(jid, GenerateWAMessageContent(content, options), options);
         }
 
 
-        public static Message GenerateWAMessageContent<T>(T message, MessageGenerationOptions? options = null) where T : AnyContentMessageModel
+        public static Message GenerateWAMessageContent<T>(T message, MessageGenerationOptionsFromContent? options = null) where T : AnyContentMessageModel
         {
             var m = new Message();
 
@@ -178,7 +171,48 @@ namespace WhatsSocket.Core.Utils
 
                 ///TODO generateLinkPreviewIfRequired
             }
+            //contacts
+            //location
+            //contacts
+            //react
+            //delete
+            //forward
+            //disappearingMessagesInChat
+            //buttonReply
+            //product
+            //listReply
+            //poll
+            //sharePhoneNumber
+            //requestPhoneNumber
 
+
+
+            //Buttons
+
+            //Sections
+
+            if (message is IViewOnce viewOnce && viewOnce.ViewOnce)
+            {
+                m = new Message()
+                {
+                    ViewOnceMessage =
+                    {
+                        Message = m
+                    }
+                };
+            }
+
+            // Works
+            if (message is IMentionable mentionable && mentionable.Mentions?.Length > 0)
+            {
+                var contentType = GetContentType(m);
+                if (contentType != null)
+                {
+                    var contextInfo = new ContextInfo();
+                    contextInfo.MentionedJid.AddRange(mentionable.Mentions);
+                    m.SetContextInfo(contextInfo);
+                }
+            }
 
             return m;
         }

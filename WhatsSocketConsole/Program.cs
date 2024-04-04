@@ -94,13 +94,23 @@ namespace WhatsSocketConsole
         {
             if (args.Type == MessageUpsertType.Notify)
             {
-                foreach (var msg  in args.Messages)
+                foreach (var msg in args.Messages)
                 {
                     if (msg.Key.FromMe == false)
                     {
-                        var result = await socket.SendMessage(msg.Key.RemoteJid,
-                            new ExtendedTextMessageModel() { Text = "yes we do" },
-                            new MessageGenerationOptionsFromContent());
+                        //Standard message
+                        var result = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
+
+                        //Mention
+                        result = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi @27797798179 from C# with mention", Mentions = [msg.Key.RemoteJid] });
+
+                        //Quoted Message
+                        result = await socket.SendMessage(msg.Key.RemoteJid,
+                            new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
+                            new MessageGenerationOptionsFromContent()
+                            {
+                                Quoted = msg
+                            });
                     }
                     messages.Add(msg);
                 }
