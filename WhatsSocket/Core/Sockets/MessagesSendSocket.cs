@@ -28,39 +28,214 @@ namespace WhatsSocket.Core.Sockets
 
     public abstract class MessagesSendSocket : GroupSocket
     {
+        public MediaConnInfo CurrentMedia { get; set; }
+
+        NodeCache userDevicesCache = new NodeCache();
+
         public MessagesSendSocket([NotNull] SocketConfig config) : base(config)
         {
         }
 
+        private async Task<List<JidWidhDevice>> GetUSyncDevices(string[] jids, bool useCache, bool ignoreZeroDevices)
+        {
+            var deviceResults = new List<JidWidhDevice>();
+            if (!useCache)
+            {
+                Logger.Debug("not using cache for devices");
+            }
+
+            var users = new List<BinaryNode>();
+            foreach (var jid in jids)
+            {
+                var user = JidDecode(jid).User;
+                var normalJid = JidNormalizedUser(jid);
+
+                var devices = userDevicesCache.Get<JidWidhDevice[]>(jid);
+                if (devices != null && devices.Length > 0 && useCache)
+                {
+                    deviceResults.AddRange(devices);
+                    Logger.Trace(new { user }, "using cache for devices");
+                }
+                else
+                {
+                    users.Add(new BinaryNode("user")
+                    {
+                        attrs = { { "jid", normalJid } }
+                    });
+                }
+            }
+
+            var iq = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", S_WHATSAPP_NET },
+                    {"type" , "get" },
+                    {"xmlns","usync" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "usync",
+                        attrs =
+                        {
+                            {"sid", GenerateMessageTag() },
+                            {"mode","query" },
+                            //{"mode","usync" },
+                            {"last","true" },
+                            {"index","0" },
+                            {"context","message" }
+                        },
+                        content = new BinaryNode[]
+                        {
+                            new BinaryNode()
+                            {
+                                tag = "query",
+                                content = new BinaryNode[]
+                                {
+                                    new BinaryNode()
+                                    {
+                                        tag = "devices",
+                                        attrs =
+                                        {
+                                            {"version", "2" }
+                                        }
+                                    }
+                                },
+                            },
+                            new BinaryNode()
+                            {
+                                tag ="list",
+                                content = users.ToArray()
+                            }
+                        }
+                    }
+                }
+            };
+
+            var result = await Query(iq);
+
+            var extracted = ExtractDeviceJids(result, Creds.Me.ID, ignoreZeroDevices);
+
+            Dictionary<string, List<JidWidhDevice>> deviceMap = new Dictionary<string, List<JidWidhDevice>>();
+
+            foreach (var item in extracted)
+            {
+                deviceMap[item.User] = deviceMap.ContainsKey(item.User) == true ? deviceMap[item.User] : new List<JidWidhDevice>();
+
+                deviceMap[item.User].Add(item);
+                deviceResults.Add(item);
+            }
+
+            foreach (var item in deviceMap)
+            {
+                userDevicesCache.Set(item.Key, item.Value);
+            }
 
 
-        public async Task<WebMessageInfo?> SendMessage(string jid, AnyContentMessageModel content, MessageGenerationOptionsFromContent? options = null)
+            return deviceResults;
+        }
+
+        protected async Task<bool> AssertSessions(List<string> jids, bool force)
+        {
+            var didFetchNewSession = false;
+            List<string> jidsRequiringFetch = new List<string>();
+            if (force)
+            {
+                jidsRequiringFetch = jids.ToList();
+            }
+            else
+            {
+                var addrs = jids.Select(x => new ProtocolAddress(x)).ToList();
+                var sessions = Keys.Get<SessionRecord>(addrs.Select(x => x.ToString()).ToList());
+                foreach (var jid in jids)
+                {
+                    if (!sessions.ContainsKey(new ProtocolAddress(jid).ToString()))
+                    {
+                        jidsRequiringFetch.Add(jid.ToString());
+                    }
+                    else if (sessions[new ProtocolAddress(jid).ToString()] == null)
+                    {
+                        jidsRequiringFetch.Add(jid.ToString());
+                    }
+                }
+            }
+
+            if (jidsRequiringFetch.Count > 0)
+            {
+                Logger.Debug(new { jidsRequiringFetch }, "fetching sessions");
+                var result = await Query(new BinaryNode()
+                {
+                    tag = "iq",
+                    attrs =
+                    {
+                        {"xmlns", "encrypt" },
+                        {"type", "get" },
+                        {"to", S_WHATSAPP_NET }
+                    },
+                    content = new BinaryNode[]
+                    {
+                        new BinaryNode()
+                        {
+                            tag = "key",
+                            attrs = { },
+                            content = jidsRequiringFetch.Select(x => new BinaryNode()
+                            {
+                                tag = "user",
+                                attrs =
+                                {
+                                    {"jid",x }
+                                }
+
+                            }).ToArray()
+                        }
+                    }
+                });
+
+                ParseAndInjectE2ESessions(result, Repository);
+
+                didFetchNewSession = true;
+            }
+
+
+            return didFetchNewSession;
+        }
+
+
+        private async Task<MediaUploadResult> WaUploadToServer(MemoryStream stream, MediaUploadOptions options)
+        {
+            return await MediaMessageUtil.GetWAUploadToServer(SocketConfig, stream, options, RefreshMediaConn);
+        }
+
+
+        public async Task<WebMessageInfo?> SendMessage(string jid, AnyMessageContent content, IMiscMessageGenerationOptions? options = null)
         {
             var userJid = Creds.Me.ID;
-            if (content.DisappearingMessagesInChat.HasValue && JidUtils.IsJidGroup(jid))
+            if (IsJidGroup(jid))
             {
                 ///TODO: groupToggleEphemeral
-                ///
                 return null;
             }
             else
             {
-                options = options ?? new MessageGenerationOptionsFromContent();
-                options.UserJid = userJid;
-                options.Logger = Logger;
+                var fullMsg = await GenerateWAMessage(jid, content, new MessageGenerationOptions(options)
+                {
+                    UserJid = userJid,
+                    Logger = Logger,
+                    Upload = WaUploadToServer
+                });
 
-                var fullMsg = GenerateWAMessage(jid, content, options);
-
-                var deleteModel = content as DeleteMessageModel;
-
-                var editMessage = false; //TODO Handle Edit Message
+                var deleteModel = content as IDeleteable;
+                var editMessage = content as IEditable;
                 var additionalAttributes = new Dictionary<string, string>();
-
 
                 // required for delete
                 if (deleteModel != null)
                 {
-                    if (IsJidGroup(deleteModel.RemoteJid) && !deleteModel.FormMe)
+                    // if the chat is a group, and I am not the author, then delete the message as an admin
+                    if (IsJidGroup(deleteModel.Delete.RemoteJid) && !deleteModel.Delete.FromMe)
                     {
                         additionalAttributes["edit"] = "8";
                     }
@@ -69,14 +244,17 @@ namespace WhatsSocket.Core.Sockets
                         additionalAttributes["edit"] = "7";
                     }
                 }
+                else if (editMessage != null)
+                {
+                    additionalAttributes["edit"] = "1";
+                }
 
 
                 await RelayMessage(jid, fullMsg.Message, new MessageRelayOptions()
                 {
                     MessageID = fullMsg.Key.Id,
-                    StatusJidList = options.StatusJidList,
+                    StatusJidList = options?.StatusJidList,
                     AdditionalAttributes = additionalAttributes,
-                    //cachedGroupMetadata
                 });
 
 
@@ -87,7 +265,7 @@ namespace WhatsSocket.Core.Sockets
 
         }
 
-        public async Task RelayMessage(string jid, Message message, MessageRelayOptions options)
+        public async Task RelayMessage(string jid, Message message, IMessageRelayOptions options)
         {
             var meId = Creds.Me.ID;
             var shouldIncludeDeviceIdentity = false;
@@ -102,7 +280,7 @@ namespace WhatsSocket.Core.Sockets
             var isLid = server == "lid";
 
             options.MessageID = options.MessageID ?? GenerateMessageID();
-            options.UseUserDevicesCache = options.UseUserDevicesCache != false;
+            //options.UseUserDevicesCache = options.UseUserDevicesCache != false;
 
 
             var participants = new List<BinaryNode>();
@@ -322,179 +500,6 @@ namespace WhatsSocket.Core.Sockets
             return result;
         }
 
-        protected async Task<bool> AssertSessions(List<string> jids, bool force)
-        {
-            var didFetchNewSession = false;
-            List<string> jidsRequiringFetch = new List<string>();
-            if (force)
-            {
-                jidsRequiringFetch = jids.ToList();
-            }
-            else
-            {
-                var addrs = jids.Select(x => new ProtocolAddress(x)).ToList();
-                var sessions = Keys.Get<SessionRecord>(addrs.Select(x => x.ToString()).ToList());
-                foreach (var jid in jids)
-                {
-                    if (!sessions.ContainsKey(new ProtocolAddress(jid).ToString()))
-                    {
-                        jidsRequiringFetch.Add(jid.ToString());
-                    }
-                    else if (sessions[new ProtocolAddress(jid).ToString()] == null)
-                    {
-                        jidsRequiringFetch.Add(jid.ToString());
-                    }
-                }
-            }
-
-            if (jidsRequiringFetch.Count > 0)
-            {
-                Logger.Debug(new { jidsRequiringFetch }, "fetching sessions");
-                var result = await Query(new BinaryNode()
-                {
-                    tag = "iq",
-                    attrs =
-                    {
-                        {"xmlns", "encrypt" },
-                        {"type", "get" },
-                        {"to", S_WHATSAPP_NET }
-                    },
-                    content = new BinaryNode[]
-                    {
-                        new BinaryNode()
-                        {
-                            tag = "key",
-                            attrs = { },
-                            content = jidsRequiringFetch.Select(x => new BinaryNode()
-                            {
-                                tag = "user",
-                                attrs =
-                                {
-                                    {"jid",x }
-                                }
-
-                            }).ToArray()
-                        }
-                    }
-                });
-
-                ParseAndInjectE2ESessions(result, Repository);
-
-                didFetchNewSession = true;
-            }
-
-
-            return didFetchNewSession;
-        }
-
-        NodeCache userDevicesCache = new NodeCache();
-
-        private async Task<List<JidWidhDevice>> GetUSyncDevices(string[] jids, bool useCache, bool ignoreZeroDevices)
-        {
-            var deviceResults = new List<JidWidhDevice>();
-            if (!useCache)
-            {
-                Logger.Debug("not using cache for devices");
-            }
-
-            var users = new List<BinaryNode>();
-            foreach (var jid in jids)
-            {
-                var user = JidDecode(jid).User;
-                var normalJid = JidNormalizedUser(jid);
-
-                var devices = userDevicesCache.Get<JidWidhDevice[]>(jid);
-                if (devices != null && devices.Length > 0 && useCache)
-                {
-                    deviceResults.AddRange(devices);
-                    Logger.Trace(new { user }, "using cache for devices");
-                }
-                else
-                {
-                    users.Add(new BinaryNode("user")
-                    {
-                        attrs = { { "jid", normalJid } }
-                    });
-                }
-            }
-
-            var iq = new BinaryNode()
-            {
-                tag = "iq",
-                attrs =
-                {
-                    {"to", S_WHATSAPP_NET },
-                    {"type" , "get" },
-                    {"xmlns","usync" }
-                },
-                content = new BinaryNode[]
-                {
-                    new BinaryNode()
-                    {
-                        tag = "usync",
-                        attrs =
-                        {
-                            {"sid", GenerateMessageTag() },
-                            {"mode","query" },
-                            //{"mode","usync" },
-                            {"last","true" },
-                            {"index","0" },
-                            {"context","message" }
-                        },
-                        content = new BinaryNode[]
-                        {
-                            new BinaryNode()
-                            {
-                                tag = "query",
-                                content = new BinaryNode[]
-                                {
-                                    new BinaryNode()
-                                    {
-                                        tag = "devices",
-                                        attrs =
-                                        {
-                                            {"version", "2" }
-                                        }
-                                    }
-                                },
-                            },
-                            new BinaryNode()
-                            {
-                                tag ="list",
-                                content = users.ToArray()
-                            }
-                        }
-                    }
-                }
-            };
-
-            var json = JsonConvert.SerializeObject(iq, Formatting.Indented);
-
-
-            var result = await Query(iq);
-
-            var extracted = ExtractDeviceJids(result, Creds.Me.ID, ignoreZeroDevices);
-
-            Dictionary<string, List<JidWidhDevice>> deviceMap = new Dictionary<string, List<JidWidhDevice>>();
-
-            foreach (var item in extracted)
-            {
-                deviceMap[item.User] = deviceMap.ContainsKey(item.User) == true ? deviceMap[item.User] : new List<JidWidhDevice>();
-
-                deviceMap[item.User].Add(item);
-                deviceResults.Add(item);
-            }
-
-            foreach (var item in deviceMap)
-            {
-                userDevicesCache.Set(item.Key, item.Value);
-            }
-
-
-            return deviceResults;
-        }
-
-
         public string GetMediaType(Message message)
         {
             if (message.ImageMessage != null)
@@ -557,6 +562,65 @@ namespace WhatsSocket.Core.Sockets
             {
                 return "unknown"; // Or handle any other cases accordingly
             }
+        }
+
+        public async Task<MediaConnInfo> RefreshMediaConn(bool refresh = false)
+        {
+            if (CurrentMedia == null)
+            {
+                refresh = true;
+            }
+            else
+            {
+                DateTime currentTime = DateTime.Now;
+                DateTime fetchDateTime = CurrentMedia.FetchDate;
+                var ttlInSeconds = CurrentMedia.Ttl;
+                TimeSpan timeDifference = currentTime - fetchDateTime;
+                double millisecondsDifference = timeDifference.TotalMilliseconds;
+                if (millisecondsDifference > ttlInSeconds * 1000)
+                {
+                    refresh = true;
+                }
+            }
+
+            if (refresh)
+            {
+                var result = await Query(new BinaryNode()
+                {
+                    tag = "iq",
+                    attrs =
+                {
+                    { "type","set" },
+                    { "xmlns", "w:m" },
+                    {"to" , S_WHATSAPP_NET }
+                },
+                    content = new BinaryNode[]
+                    {
+                    new BinaryNode()
+                    {
+                        tag = "media_conn",
+                        attrs = {}
+                    }
+                    }
+                });
+
+                var mediaConnNode = GetBinaryNodeChild(result, "media_conn");
+                var hostNodes = GetBinaryNodeChildren(mediaConnNode,"host");
+                CurrentMedia = new MediaConnInfo()
+                {
+                    Auth = mediaConnNode.getattr("auth") ?? "",
+                    Ttl = mediaConnNode.getattr("ttl")?.ToUInt64(),
+                    FetchDate = DateTime.Now,
+                    Hosts = hostNodes.Select(x => new MediaHost
+                    {
+                        HostName = x.getattr("hostname")  ?? "",
+                        MaxContentLengthBytes = x.getattr("maxContentLengthBytes").ToUInt32(),
+                    }).ToArray()
+                };
+                Logger.Debug("fetched media connection");
+            }
+
+            return CurrentMedia;
         }
     }
 }

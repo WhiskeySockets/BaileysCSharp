@@ -1,14 +1,27 @@
-﻿using System;
+﻿using Google.Protobuf;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Models;
 
 namespace Proto
 {
     public interface IContextable
     {
         ContextInfo ContextInfo { get; set; }
+    }
+
+    public interface IMediaMessage 
+    {
+        public string Url { get; set; }
+        public string DirectPath { get; set; }
+        public ByteString MediaKey { get; set; }
+        public ByteString FileEncSha256 { get; set; }
+        public ByteString FileSha256 { get; set; }
+        public ulong FileLength { get; set; }
+        public long MediaKeyTimestamp { get; set; }
     }
 
     public sealed partial class Message
@@ -25,6 +38,19 @@ namespace Proto
                 }
             }
         }
+
+        public void SetMediaMessage(IMediaMessage message)
+        {
+            var children = this.GetType().GetProperties();
+            foreach (var item in children)
+            {
+                if (item.PropertyType == message.GetType())
+                {
+                    item.SetValue(this, message);
+                }
+            }
+        }
+
 
         public partial class Types
         {
@@ -51,7 +77,35 @@ namespace Proto
             {
 
             }
+
+
+
+            public sealed partial class ImageMessage : IMediaMessage
+            {
+
+            }
+
+            public sealed partial class VideoMessage : IMediaMessage
+            {
+
+            }
+
+            public sealed partial class AudioMessage : IMediaMessage
+            {
+
+            }
+
+            public sealed partial class StickerMessage : IMediaMessage
+            {
+
+            }
+
+            public sealed partial class DocumentMessage : IMediaMessage
+            {
+
+            }
         }
+
     }
 
 }

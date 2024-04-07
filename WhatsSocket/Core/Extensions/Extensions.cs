@@ -44,6 +44,8 @@ namespace WhatsSocket.Core.Extensions
 
         public static uint ToUInt32(this string? info)
         {
+            if (info == null)
+                return 0;
             info = info.Trim(' ', '\n', '\r');
             if (string.IsNullOrEmpty(info))
             {
@@ -80,5 +82,54 @@ namespace WhatsSocket.Core.Extensions
                 property.SetValue(existing, toSave);
             }
         }
+
+        public static TResult? FindMatchingValue<TSource, TResult>(this TSource source, string key)
+        {
+            if (source == null)
+                return default(TResult);
+            var sourceProperty = source.GetType().GetProperty(key);
+            var value = sourceProperty?.GetValue(source, null); 
+            if (value == null)
+                return default(TResult);
+            return (TResult)value;
+        }
+
+        public static void CopyMatchingValues<TDestination, TSource>(this TDestination destination, TSource source)
+        {
+            if (source == null)
+                return;
+            if (destination == null)
+                return;
+            var properties = destination.GetType().GetProperties();
+            foreach (var destinationProperty in properties)
+            {
+                var sourceProperty = source.GetType().GetProperty(destinationProperty.Name);
+                if (sourceProperty != null)
+                {
+                    var value = sourceProperty.GetValue(source, null);
+                    if (value != null)
+                    {
+                        if (sourceProperty.PropertyType == destinationProperty.PropertyType)
+                        {
+                            destinationProperty.SetValue(destination, value, null);
+                        }
+
+                        if (value is byte[] buffer && destinationProperty.PropertyType == typeof(ByteString))
+                        {
+                            destinationProperty.SetValue(destination, buffer.ToByteString(), null);
+                        }
+
+                        if (value is ByteString bytebuffer && destinationProperty.PropertyType == typeof(byte[]))
+                        {
+                            destinationProperty.SetValue(destination, bytebuffer.ToByteArray(), null);
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+
     }
 }

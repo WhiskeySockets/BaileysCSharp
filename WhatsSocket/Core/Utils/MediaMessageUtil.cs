@@ -1,12 +1,19 @@
-﻿using Proto;
+﻿using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.X509;
+using Proto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.Exceptions;
+using static Proto.Message.Types.BCallMessage.Types;
+using static Proto.Message.Types.InteractiveMessage.Types;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -87,7 +94,6 @@ namespace WhatsSocket.Core.Utils
         public static MediaDecryptionKeyInfo GetMediaKeys(byte[] buffer, string mediaType)
         {
             var expandedMediaKey = Helper.CryptoUtils.HKDF(buffer, 112, [], HkdifInfoKey(mediaType));
-
             return new MediaDecryptionKeyInfo()
             {
                 IV = expandedMediaKey.Slice(0, 16),
@@ -98,6 +104,7 @@ namespace WhatsSocket.Core.Utils
 
         public static byte[] HkdifInfoKey(string type)
         {
+            type = type.ToLower();
             var hkdfInfo = Constants.MEDIA_HKDF_KEY_MAPPING[type];
             return Encoding.UTF8.GetBytes($"WhatsApp {hkdfInfo} Keys");
         }
@@ -108,6 +115,11 @@ namespace WhatsSocket.Core.Utils
             return (number / AES_CHUNK_SIZE) * AES_CHUNK_SIZE;
         }
 
+
+        public static Dictionary<string, string> MEDIA_PATH_MAP = new Dictionary<string, string>()
+        {
+            { "Image","/mms/image" }
+        };
 
         public static int GetStatusCodeForMediaRetry(string errorCode)
         {
@@ -126,5 +138,79 @@ namespace WhatsSocket.Core.Utils
             }
         }
 
+        public static async Task<MediaUploadResult> GetWAUploadToServer(SocketConfig socketConfig, MemoryStream stream, MediaUploadOptions options, Func<bool, Task<MediaConnInfo>> refreshMediaConn)
+        {
+
+
+            var uploadInfo = await refreshMediaConn(false);
+            var body = stream.ToArray();
+
+            options.FileEncSha256B64 = EncodeBase64EncodedStringForUpload(options.FileEncSha256B64);
+
+            foreach (var item in uploadInfo.Hosts)
+            {
+                socketConfig.Logger.Debug($"uploading to {item.HostName}");
+                var auth = EncodeURIComponent(uploadInfo.Auth);
+                var url = $"https://{item.HostName}{MEDIA_PATH_MAP[options.MediaType]}/{options.FileEncSha256B64}?auth={auth}&token={options.FileEncSha256B64}";
+
+                try
+                {
+                    if (item.MaxContentLengthBytes > 0 && body.Length > item.MaxContentLengthBytes)
+                    {
+                        throw new Boom($"Body too large for {item.HostName}");
+                    }
+                    using (var httpClient = new HttpClient())
+                    {
+                        // Set headers
+                        httpClient.DefaultRequestHeaders.Add("Origin", Constants.DEFAULT_ORIGIN);
+
+                        // Create ByteArrayContent with the data and set the media type
+                        ByteArrayContent content = new ByteArrayContent(body);
+                        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+
+                        HttpResponseMessage response = await httpClient.PostAsync(url, content);
+
+
+                        // Check the response status
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var json = await response.Content.ReadAsStringAsync();
+                            var result = JsonConvert.DeserializeObject<MediaUploadResult>(json);
+                            return result;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: {response.StatusCode}");
+                        }
+
+
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+
+            return null;
+        }
+
+
+        public static string EncodeBase64EncodedStringForUpload(string b64)
+        {
+            string encoded = EncodeURIComponent(
+                b64
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "")
+            );
+            return encoded;
+        }
+
+        public static string EncodeURIComponent(string str)
+        {
+            string encoded = Uri.EscapeDataString(str);
+            return encoded;
+        }
     }
 }

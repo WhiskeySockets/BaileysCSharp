@@ -13,6 +13,12 @@ using WhatsSocket.Core.WABinary;
 using static Proto.Message.Types;
 using static WhatsSocket.Core.WABinary.JidUtils;
 using static WhatsSocket.Core.Utils.GenericUtils;
+using static WhatsSocket.Core.Utils.MediaMessageUtil;
+using WhatsSocket.Exceptions;
+using WhatsSocket.LibSignal;
+using WhatsSocket.Core.Helper;
+using Newtonsoft.Json;
+using Google.Protobuf;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -83,7 +89,7 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static WebMessageInfo GenerateWAMessageFromContent(string jid, Message message, MessageGenerationOptionsFromContent? options = null)
+        public static WebMessageInfo GenerateWAMessageFromContent(string jid, Message message, IMessageGenerationOptionsFromContent? options = null)
         {
             var webmessage = new WebMessageInfo();
             if (options?.Quoted != null)
@@ -152,17 +158,19 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static WebMessageInfo GenerateWAMessage(string jid, AnyContentMessageModel content, MessageGenerationOptionsFromContent? options = null)
+        public static async Task<WebMessageInfo> GenerateWAMessage(string jid, AnyMessageContent content, IMessageGenerationOptions? options = null)
         {
-            return GenerateWAMessageFromContent(jid, GenerateWAMessageContent(content, options), options);
+            return GenerateWAMessageFromContent(jid,
+                await GenerateWAMessageContent(content, options),
+                options);
         }
 
 
-        public static Message GenerateWAMessageContent<T>(T message, MessageGenerationOptionsFromContent? options = null) where T : AnyContentMessageModel
+        public static async Task<Message> GenerateWAMessageContent<T>(T message, IMessageContentGenerationOptions? options = null) where T : AnyMessageContent
         {
             var m = new Message();
 
-            if (message is ExtendedTextMessageModel text)
+            if (message is TextMessageContent text)
             {
                 m.ExtendedTextMessage = new ExtendedTextMessage()
                 {
@@ -171,7 +179,7 @@ namespace WhatsSocket.Core.Utils
 
                 ///TODO generateLinkPreviewIfRequired
             }
-            else if (message is ContactMessageModel contact)
+            else if (message is ContactMessageContent contact)
             {
                 m.ContactMessage = new ContactMessage()
                 {
@@ -179,11 +187,11 @@ namespace WhatsSocket.Core.Utils
                     Vcard = $"BEGIN:VCARD\nVERSION:3.0\nFN:{contact.Contact.FullName}\nORG:;\nTEL;type=CELL;type=VOICE;waid={contact.Contact.ContactNumber}:+{contact.Contact.ContactNumber}\nEND:VCARD"
                 };
             }
-            else if (message is LocationMessageModel location)
+            else if (message is LocationMessageContent location)
             {
                 m.LocationMessage = location.Location;
             }
-            else if (message is ReactionMessageModel reaction)
+            else if (message is ReactMessageContent reaction)
             {
                 m.ReactionMessage = new ReactionMessage()
                 {
@@ -202,6 +210,10 @@ namespace WhatsSocket.Core.Utils
             //poll
             //requestPhoneNumber
 
+            else if (message is AnyMediaMessageContent media)
+            {
+                m = await PrepareWAMessageMedia(media, options);
+            }
 
 
             //Buttons
@@ -233,5 +245,227 @@ namespace WhatsSocket.Core.Utils
 
             return m;
         }
+
+
+        public static Dictionary<string, string> MEDIA_KEYS = new Dictionary<string, string>
+        {
+            {typeof(ImageMessageContent).Name, "Image" }
+        };
+
+        private static async Task<Message> PrepareWAMessageMedia<T>(T message, IMediaGenerationOptions? options) where T : AnyMediaMessageContent
+        {
+            IMediaMessage? media = message.ToMediaMessage();
+            var key = message.GetType().Name;
+            string mediaType = null;
+            if (MEDIA_KEYS.ContainsKey(key))
+            {
+                mediaType = MEDIA_KEYS[key];
+            }
+
+
+
+            // /mms/video
+            // /mms/document
+            // /mms/audio
+            // /mms/image
+            // /product/image
+            // /mms/md-app-state
+
+
+            if (mediaType == "")
+                throw new Boom("Invalid media type", new BoomData(400));
+            if (mediaType == null)
+                throw new Boom("Invalid media type", new BoomData(400));
+
+            var uploadData = new MediaUploadData();
+            uploadData.CopyMatchingValues(message);
+
+
+            var mediaData = message.FindMatchingValue<T, Stream>(mediaType);
+            if (mediaData == null)
+                throw new Boom("Invalid media type", new BoomData(400));
+
+            uploadData.Media = mediaData;
+
+
+            // check if cacheable + generate cache key
+            if (mediaType == "document" && string.IsNullOrEmpty(uploadData.FileName))
+            {
+                uploadData.FileName = "file";
+            }
+
+            // check for cache hit
+            ///TODO:
+            ///
+
+            var requiresDurationComputation = mediaType == "Audio" && uploadData.Seconds == 0;
+            var requiresThumbnailComputation = (mediaType == "Image" || mediaType == "Video") && uploadData.JpegThumbnail == null;
+
+            var requiresWaveformProcessing = mediaType == "Audio" && uploadData.Ptt;
+            var requiresAudioBackground = options?.BackgroundColor != null && mediaType == "Audio" && uploadData.Ptt;
+            var requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation;
+
+
+
+            var result = EncryptedStream(uploadData.Media, mediaType);
+            media.CopyMatchingValues(result);
+
+
+            // url safe Base64 encode the SHA256 hash of the body
+            var fileEncSha256B64 = result.FileEncSha256.ToBase64();
+
+
+            var uploaded = await options.Upload(result.EncWriteStream, new MediaUploadOptions()
+            {
+                FileEncSha256B64 = fileEncSha256B64,
+                MediaType = mediaType,
+                TimeOutMs = options.MediaUploadTimeoutMs
+            });
+
+
+            media.CopyMatchingValues(uploaded);
+
+
+
+            if (requiresThumbnailComputation)
+            {
+
+            }
+
+            //Set Values
+
+            var m = new Message()
+            {
+
+            };
+            if (media != null)
+            {
+                m.SetMediaMessage(media);
+            }
+            return m;
+        }
+
+        private static MediaEncryptResult EncryptedStream(Stream media, string mediaType)
+        {
+            var memroyStream = new MemoryStream();
+            media.Position = 0;
+            media.CopyTo(memroyStream);
+
+            var data = memroyStream.ToArray();
+            byte[] encrypted = [];
+            var mediaKey = KeyHelper.RandomBytes(32);
+
+            var mediaKeys = GetMediaKeys(mediaKey, mediaType);
+
+            var hmac = new HMACSHA256(mediaKeys.MacKey);
+            SHA256 sha256Plain = SHA256.Create();
+            SHA256 sha256Enc = SHA256.Create();
+
+            Append(hmac, mediaKeys.IV, false);
+
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.KeySize = 256;
+                aesAlg.Key = mediaKeys.CipherKey;
+                aesAlg.IV = mediaKeys.IV;
+                aesAlg.Mode = CipherMode.CBC;
+
+                // Create a decryptor to perform the stream transform
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        csEncrypt.Write(data);
+                        encrypted = msEncrypt.ToArray();
+                        //Plain
+                        sha256Plain.TransformFinalBlock(data, 0, data.Length);
+
+                        var size = encrypted.Length;
+                        csEncrypt.FlushFinalBlock();
+                        encrypted = msEncrypt.ToArray();
+                        Append(hmac, encrypted, true);
+                        sha256Enc.TransformBlock(encrypted, 0, encrypted.Length, encrypted, 0);
+                    }
+                }
+            }
+
+            var mac = hmac.Hash.Slice(0, 10);
+            sha256Enc.TransformFinalBlock(mac, 0, mac.Length);
+            var encWriteStream = new MemoryStream();
+            encWriteStream.Write(encrypted);
+            encWriteStream.Write(mac);
+            encWriteStream.Position = 0;
+
+
+            return new MediaEncryptResult()
+            {
+                EncWriteStream = encWriteStream,
+                FileEncSha256 = sha256Enc.Hash,
+                FileLength = (ulong)memroyStream.Length,
+                FileSha256 = sha256Enc.Hash,
+                Mac = mac,
+                MediaKey = mediaKey,
+            };
+        }
+
+        public static void Append(HMACSHA256 hmac, byte[] buffer, bool isFinal)
+        {
+            if (!isFinal)
+            {
+                hmac.TransformBlock(buffer, 0, buffer.Length, buffer, 0);
+            }
+            else
+            {
+                hmac.TransformFinalBlock(buffer, 0, buffer.Length);
+            }
+        }
+
     }
+
+    public class MediaConnInfo
+    {
+        public string? Auth { get; set; }
+        public ulong? Ttl { get; set; }
+
+        public MediaHost[] Hosts { get; set; }
+        public DateTime FetchDate { get; set; }
+
+    }
+    public class MediaHost
+    {
+        public string HostName { get; set; }
+        public long MaxContentLengthBytes { get; set; }
+    }
+
+
+    public class MediaEncryptResult
+    {
+        public MemoryStream EncWriteStream { get; set; }
+        public byte[] MediaKey { get; set; }
+        public byte[] Mac { get; set; }
+        public byte[] FileEncSha256 { get; set; }
+        public byte[] FileSha256 { get; set; }
+        public ulong FileLength { get; set; }
+
+    }
+
+    public class MediaUploadOptions
+    {
+        public string FileEncSha256B64 { get; set; }
+        public string MediaType { get; set; }
+        public ulong? TimeOutMs { get; set; }
+    }
+
+    public class MediaUploadResult
+    {
+        [JsonProperty("url")]
+        public string Url { get; set; }
+
+        [JsonProperty("direct_path")]
+        public string DirectPath { get; set; }
+    }
+
 }

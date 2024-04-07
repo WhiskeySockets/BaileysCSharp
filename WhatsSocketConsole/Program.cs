@@ -101,47 +101,53 @@ namespace WhatsSocketConsole
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = "Hi there from C#" });
-                        
-                        //// send a reply messagge
-                        var quoted = await socket.SendMessage(msg.Key.RemoteJid,
-                            new ExtendedTextMessageModel() { Text = "Hi this is a C# reply" },
-                            new MessageGenerationOptionsFromContent()
-                            {
-                                Quoted = msg
-                            });
+                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = "Hi there from C#" });
+                        //
+                        ////// send a reply messagge
+                        //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
+                        //    new TextMessageContent() { Text = "Hi this is a C# reply" },
+                        //    new MessageGenerationOptionsFromContent()
+                        //    {
+                        //        Quoted = msg
+                        //    });
+                        //
+                        ////// send a mentions message
+                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
+                        //
+                        ////// send a contact!
+                        //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
+                        //{
+                        //    Contact = new ContactShareModel()
+                        //    {
+                        //        ContactNumber = jid.User,
+                        //        FullName = $"{msg.PushName}",
+                        //        Organization = ""
+                        //    }
+                        //});
+                        //
+                        ////// send a location! //48.858221124792756, 2.294466243303683
+                        //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
+                        //{
+                        //    Location = new Message.Types.LocationMessage()
+                        //    {
+                        //        DegreesLongitude = 48.858221124792756,
+                        //        DegreesLatitude = 2.294466243303683,
+                        //    }
+                        //});
+                        //
+                        //////react
+                        //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
+                        //{
+                        //    Key = msg.Key,
+                        //    ReactText = "💖"
+                        //});
 
-                        //// send a mentions message
-                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new ExtendedTextMessageModel() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
 
-                        //// send a contact!
-                        var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageModel()
+                        var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
                         {
-                            Contact = new ContactShareModel()
-                            {
-                                ContactNumber = jid.User,
-                                FullName = $"{msg.PushName}",
-                                Organization = ""
-                            }
+                            Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                            Caption = "Cat.jpeg"
                         });
-
-                        //// send a location! //48.858221124792756, 2.294466243303683
-                        var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageModel()
-                        {
-                            Location = new Message.Types.LocationMessage()
-                            {
-                                DegreesLongitude = 48.858221124792756,
-                                DegreesLatitude = 2.294466243303683,
-                            }
-                        });
-
-                        ////react
-                        var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactionMessageModel()
-                        {
-                            Key = msg.Key,
-                            ReactText = "💖"
-                        });
-
                     }
                     messages.Add(msg);
                 }
@@ -197,6 +203,14 @@ namespace WhatsSocketConsole
 
             if (connection.Connection == WAConnectionState.Open)
             {
+                Console.WriteLine("Now you can send messages");
+
+
+                var imageMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new ImageMessageContent()
+                {
+                    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                    Caption = "Cat.jpeg"
+                });
             }
         }
 
