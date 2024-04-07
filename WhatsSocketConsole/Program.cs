@@ -208,8 +208,7 @@ namespace WhatsSocketConsole
 
                 var imageMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new ImageMessageContent()
                 {
-                    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
-                    Caption = "Cat.jpeg"
+                    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open)
                 });
             }
         }

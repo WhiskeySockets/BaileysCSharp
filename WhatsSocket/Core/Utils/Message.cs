@@ -353,8 +353,8 @@ namespace WhatsSocket.Core.Utils
 
             var data = memroyStream.ToArray();
             byte[] encrypted = [];
-            var mediaKey = KeyHelper.RandomBytes(32);
-
+            //var mediaKey = KeyHelper.RandomBytes(32);
+            var mediaKey = Convert.FromBase64String("SrRqGYETTwGcZal0sSwL5NXYc5uGWQK3N+DQ1kqq2aA=");
             var mediaKeys = GetMediaKeys(mediaKey, mediaType);
 
             var hmac = new HMACSHA256(mediaKeys.MacKey);
@@ -405,7 +405,7 @@ namespace WhatsSocket.Core.Utils
                 EncWriteStream = encWriteStream,
                 FileEncSha256 = sha256Enc.Hash,
                 FileLength = (ulong)memroyStream.Length,
-                FileSha256 = sha256Enc.Hash,
+                FileSha256 = sha256Plain.Hash,
                 Mac = mac,
                 MediaKey = mediaKey,
             };

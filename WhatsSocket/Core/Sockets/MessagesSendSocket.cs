@@ -232,7 +232,7 @@ namespace WhatsSocket.Core.Sockets
                 var additionalAttributes = new Dictionary<string, string>();
 
                 // required for delete
-                if (deleteModel != null)
+                if (deleteModel?.Delete != null)
                 {
                     // if the chat is a group, and I am not the author, then delete the message as an admin
                     if (IsJidGroup(deleteModel.Delete.RemoteJid) && !deleteModel.Delete.FromMe)
@@ -244,7 +244,7 @@ namespace WhatsSocket.Core.Sockets
                         additionalAttributes["edit"] = "7";
                     }
                 }
-                else if (editMessage != null)
+                else if (editMessage?.Edit != null)
                 {
                     additionalAttributes["edit"] = "1";
                 }
@@ -368,9 +368,15 @@ namespace WhatsSocket.Core.Sockets
 
                 await AssertSessions(allJids, false);
 
+                Dictionary<string, string> mediaTypeAttr = new Dictionary<string, string>()
+                {
+                    {"mediatype",mediaType }
+                };
+
+
                 //TODO Add Media Type
-                var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, null);
-                var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, null);
+                var meNode = CreateParticipantNodes(meJids.ToArray(), meMsg, mediaType != null ? mediaTypeAttr : null);
+                var otherNode = CreateParticipantNodes(otherJids.ToArray(), message, mediaType != null ? mediaTypeAttr : null);
 
                 participants.AddRange(meNode.Nodes);
                 participants.AddRange(otherNode.Nodes);
@@ -450,7 +456,7 @@ namespace WhatsSocket.Core.Sockets
             SendNode(stanza);
         }
 
-        public ParticipantNode CreateParticipantNodes(string[] jids, Message message, Dictionary<string, string> attrs)
+        public ParticipantNode CreateParticipantNodes(string[] jids, Message message, Dictionary<string, string>? attrs)
         {
             ParticipantNode result = new ParticipantNode();
             var patched = SocketConfig.PatchMessageBeforeSending(message, jids);
@@ -589,11 +595,11 @@ namespace WhatsSocket.Core.Sockets
                 {
                     tag = "iq",
                     attrs =
-                {
-                    { "type","set" },
-                    { "xmlns", "w:m" },
-                    {"to" , S_WHATSAPP_NET }
-                },
+                    {
+                        { "type","set" },
+                        { "xmlns", "w:m" },
+                        {"to" , S_WHATSAPP_NET }
+                    },
                     content = new BinaryNode[]
                     {
                     new BinaryNode()
@@ -605,7 +611,7 @@ namespace WhatsSocket.Core.Sockets
                 });
 
                 var mediaConnNode = GetBinaryNodeChild(result, "media_conn");
-                var hostNodes = GetBinaryNodeChildren(mediaConnNode,"host");
+                var hostNodes = GetBinaryNodeChildren(mediaConnNode, "host");
                 CurrentMedia = new MediaConnInfo()
                 {
                     Auth = mediaConnNode.getattr("auth") ?? "",
@@ -613,7 +619,7 @@ namespace WhatsSocket.Core.Sockets
                     FetchDate = DateTime.Now,
                     Hosts = hostNodes.Select(x => new MediaHost
                     {
-                        HostName = x.getattr("hostname")  ?? "",
+                        HostName = x.getattr("hostname") ?? "",
                         MaxContentLengthBytes = x.getattr("maxContentLengthBytes").ToUInt32(),
                     }).ToArray()
                 };

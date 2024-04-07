@@ -141,12 +141,12 @@ namespace WhatsSocket.Core.Utils
         public static async Task<MediaUploadResult> GetWAUploadToServer(SocketConfig socketConfig, MemoryStream stream, MediaUploadOptions options, Func<bool, Task<MediaConnInfo>> refreshMediaConn)
         {
 
-
+            List<MediaUploadResult> urls = new List<MediaUploadResult>();
             var uploadInfo = await refreshMediaConn(false);
             var body = stream.ToArray();
 
             options.FileEncSha256B64 = EncodeBase64EncodedStringForUpload(options.FileEncSha256B64);
-
+            uploadInfo.Hosts.Reverse();
             foreach (var item in uploadInfo.Hosts)
             {
                 socketConfig.Logger.Debug($"uploading to {item.HostName}");
@@ -176,7 +176,11 @@ namespace WhatsSocket.Core.Utils
                         {
                             var json = await response.Content.ReadAsStringAsync();
                             var result = JsonConvert.DeserializeObject<MediaUploadResult>(json);
-                            return result;
+                            if (result != null)
+                            {
+                                urls.Add(result);
+                                break;
+                            }
                         }
                         else
                         {
@@ -192,7 +196,7 @@ namespace WhatsSocket.Core.Utils
                 }
             }
 
-            return null;
+            return urls.FirstOrDefault();
         }
 
 

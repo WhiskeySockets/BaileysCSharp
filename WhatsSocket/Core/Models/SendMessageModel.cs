@@ -113,11 +113,11 @@ namespace WhatsSocket.Core.Models
             {
                 Height = (uint)bitmap.Height;
                 Width = (uint)bitmap.Width;
-                using (var resized = bitmap.Resize(new SKSizeI(32, 32), SKFilterQuality.High))
+                using (var resized = bitmap.Resize(new SKSizeI(32, 32), SKFilterQuality.None))
                 {
                     using (var stream = new MemoryStream())
                     {
-                        resized.Encode(stream, SKEncodedImageFormat.Jpeg, 100);
+                        resized.Encode(stream, SKEncodedImageFormat.Jpeg, 50);
                         JpegThumbnail = stream.ToArray();
                     }
                 }
@@ -132,16 +132,20 @@ namespace WhatsSocket.Core.Models
 
         public override IMediaMessage ToMediaMessage()
         {
-            return new ImageMessage()
+            var image = new ImageMessage()
             {
-                Caption = Caption,
                 ContextInfo = ContextInfo,
                 Width = Width,
                 Height = Height,
                 Mimetype = "image/jpeg",
                 JpegThumbnail = JpegThumbnail.ToByteString(),
-                MediaKeyTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                MediaKeyTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             };
+            if (!string.IsNullOrWhiteSpace(Caption))
+            {
+                image.Caption = Caption;
+            }
+            return image;
         }
     }
 
