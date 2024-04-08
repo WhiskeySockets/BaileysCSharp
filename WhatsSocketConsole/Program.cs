@@ -156,20 +156,20 @@ namespace WhatsSocketConsole
                         });
 
                         // send an audio file
-                        var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new AudioMessageContent()
+                        var audioMessage = await socket.SendMessage(msg.Key.RemoteJid, new AudioMessageContent()
                         {
                             Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
                         });
 
                         // send an audio file
-                        var videoMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new VideoMessageContent()
+                        var videoMessage = await socket.SendMessage(msg.Key.RemoteJid, new VideoMessageContent()
                         {
                             Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
                             GifPlayback = true
                         });
 
                         // send a document file
-                        var documentMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new DocumentMessageContent()
+                        var documentMessage = await socket.SendMessage(msg.Key.RemoteJid, new DocumentMessageContent()
                         {
                             Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
                             Mimetype = "application/pdf",
@@ -231,13 +231,6 @@ namespace WhatsSocketConsole
             if (connection.Connection == WAConnectionState.Open)
             {
                 Console.WriteLine("Now you can send messages");
-                // send an audio file
-                var documentMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new DocumentMessageContent()
-                {
-                    Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
-                    Mimetype = "application/pdf",
-                    FileName = "proposal.pdf",
-                });
 
             }
         }
