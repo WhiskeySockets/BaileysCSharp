@@ -42,10 +42,6 @@ namespace WhatsSocketConsole
             };
 
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
-            //if (!File.Exists(credsFile)) //Just to check if my creds are generating correctly, but it is working
-            //{
-            //    credsFile = Path.Join(@"B:\Github\Baileys\baileys_auth_info", "creds.json");
-            //}
             AuthenticationCreds? authentication = null;
             if (File.Exists(credsFile))
             {
@@ -79,12 +75,6 @@ namespace WhatsSocketConsole
 
             var presence = socket.EV.On<PresenceModel>(EmitType.Update);
             presence.Multi += Presence_Emit;
-
-            //socket.EV.OnCredsChange += Socket_OnCredentialsChangeArgs;
-            //socket.EV.OnDisconnect += EV_OnDisconnect;
-            //socket.EV.OnQR += EV_OnQR;
-            //socket.EV.OnMessageUpserted += EV_OnMessageUpserted;
-
 
             socket.MakeSocket();
 
@@ -250,22 +240,6 @@ namespace WhatsSocketConsole
         }
 
 
-
-
-
-        private static void EV_OnDisconnect(BaseSocket sender, DisconnectReason args)
-        {
-            if (args != DisconnectReason.LoggedOut)
-            {
-                sender.MakeSocket();
-            }
-            else
-            {
-                Directory.Delete(Path.Join(Directory.GetCurrentDirectory(), "test"), true);
-                sender.NewAuth();
-                sender.MakeSocket();
-            }
-        }
 
 
 
