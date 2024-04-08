@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.NoSQL;
+using WhatsSocket.Core.WABinary;
 using static WhatsSocket.Core.Utils.GenericUtils;
 
 namespace WhatsSocket.Core.Models
@@ -119,6 +120,14 @@ namespace WhatsSocket.Core.Models
         public byte[] TcToken { get; set; }
         public long MuteEndTime { get; set; }
         public long Pinned { get; internal set; }
+
+        public bool IsGroup
+        {
+            get
+            {
+                return JidUtils.IsJidGroup(ID);
+            }
+        }
 
         public string GetID()
         {

@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
-using Org.BouncyCastle.Tls;
 using Proto;
 using System.Diagnostics;
 using System.Net;

@@ -79,7 +79,16 @@ namespace WhatsSocket.Core.Extensions
                 var old = property.GetValue(existing);
                 var @new = property.GetValue(value);
                 var toSave = @new ?? old;
-                property.SetValue(existing, toSave);
+                if (property.SetMethod != null)
+                {
+                    try
+                    {
+                        property.SetValue(existing, toSave);
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
             }
         }
 

@@ -8,5 +8,10 @@ namespace WhatsSocket.Core.Sockets
         public WASocket([NotNull] SocketConfig config) : base(config)
         {
         }
+
+        public List<ContactModel> GetAllGroups()
+        {
+            return Store.GetAllGroups();
+        }
     }
 }

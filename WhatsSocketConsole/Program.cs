@@ -103,8 +103,10 @@ namespace WhatsSocketConsole
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { 
-                            Text = "Hi there from C#" });
+                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
+                        {
+                            Text = "Hi there from C#"
+                        });
 
                         //send a reply messagge
                         var quoted = await socket.SendMessage(msg.Key.RemoteJid,
@@ -116,9 +118,11 @@ namespace WhatsSocketConsole
 
 
                         // send a mentions message
-                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { 
-                            Text = $"Hi @{jid.User} from C# with mention", 
-                            Mentions = [msg.Key.RemoteJid] });
+                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
+                        {
+                            Text = $"Hi @{jid.User} from C# with mention",
+                            Mentions = [msg.Key.RemoteJid]
+                        });
 
                         // send a contact!
                         var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
@@ -232,6 +236,15 @@ namespace WhatsSocketConsole
             {
                 Console.WriteLine("Now you can send messages");
 
+                var groups = socket.GetAllGroups();
+
+                var metaData = await socket.GroupMetaData(groups[1].ID);
+
+                await socket.GroupUpdateSubject(metaData.ID, "Test Subject Change");
+
+                ///await socket.GroupUpdateDescription(metaData.ID, "Test Description Change");
+
+                await socket.GroupSettingUpdate(metaData.ID, GroupSetting.Locked);
             }
         }
 

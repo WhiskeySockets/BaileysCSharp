@@ -12,10 +12,8 @@ using static WhatsSocket.Core.Utils.ProcessMessageUtil;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using static WhatsSocket.Core.WABinary.Constants;
 using WhatsSocket.Core.Events;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Ocsp;
 using WhatsSocket.Core.Models.Sending;
+using System.Globalization;
 
 namespace WhatsSocket.Core.Sockets
 {
@@ -338,7 +336,7 @@ namespace WhatsSocket.Core.Sockets
                     {
                         ID = metadata.ID,
                         Name = metadata.Subject ?? "",
-                        ConversationTimestamp = metadata.Creation
+                        ConversationTimestamp = metadata.Creation,
                     }]);
                     EV.Emit(EmitType.Upsert, [metadata]);
 
@@ -364,7 +362,7 @@ namespace WhatsSocket.Core.Sockets
                     {
                         WAMessageStubType.Add(value.ToString(), value);
                     }
-                    var stubType = $"GROUPPARTICIPANT{child.tag.ToUpper()}";
+                    var stubType = $"GroupParticipant{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(child.tag)}";
                     msg.MessageStubType = WAMessageStubType[stubType];
                     var participants = GetBinaryNodeChildren(child, "participant").Select(p => p.attrs["jid"]).ToArray();
                     if (participants.Length == 1 && JidUtils.AreJidsSameUser(participants[0], participant) && child.tag == "remove")
@@ -411,53 +409,6 @@ namespace WhatsSocket.Core.Sockets
             }
         }
 
-        private static GroupMetadataModel ExtractGroupMetaData(BinaryNode result)
-        {
-            var group = GetBinaryNodeChild(result, "group");
-            var descChild = GetBinaryNodeChild(result, "description");
-            string desc = "";
-            string descId = "";
-            if (descChild != null)
-            {
-                desc = GetBinaryNodeChildString(descChild, "body");
-                descId = descChild.attrs["id"];
-            }
-
-
-            var groupId = group.attrs["id"].Contains("@") ? group.attrs["id"] : JidUtils.JidEncode(group.attrs["id"], "g.us");
-            var eph = GetBinaryNodeChild(group, "ephemeral")?.attrs["expiration"].ToUInt64();
-
-            var participants = GetBinaryNodeChildren(group, "participant");
-            var memberAddMode = GetBinaryNodeChildString(group, "member_add_mode") == "all_member_add";
-
-            var metadata = new GroupMetadataModel
-            {
-                ID = groupId,
-                Subject = group.getattr("subject"),
-                SubjectOwner = group.getattr("s_o"),
-                SubjectTime = group.getattr("s_t").ToUInt64(),
-                Size = (ulong)participants.Length,
-                Creation = group.attrs["creation"].ToUInt64(),
-                Owner = group.getattr("creator") != null ? JidUtils.JidNormalizedUser(group.attrs["creator"]) : null,
-                Desc = desc,
-                DescID = descId,
-                Restrict = GetBinaryNodeChild(group, "locked") != null,
-                Announce = GetBinaryNodeChild(group, "announcement") != null,
-                IsCommunity = GetBinaryNodeChild(group, "parent") != null,
-                IsCommunityAnnounce = GetBinaryNodeChild(group, "default_sub_group") != null,
-                JoinApprovalMode = GetBinaryNodeChild(group, "membership_approval_mode") != null,
-                MemberAddMode = memberAddMode,
-                Participants = participants.Select(x => new GroupParticipantModel()
-                {
-                    ID = x.attrs["jid"],
-                    ParticipantType = x.getattr("type")
-
-                }).ToArray(),
-                EphemeralDuration = eph
-            };
-
-            return metadata;
-        }
 
         private async Task<bool> OnReceipt(BinaryNode node)
         {

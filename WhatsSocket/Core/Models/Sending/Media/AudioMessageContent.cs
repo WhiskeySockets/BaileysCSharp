@@ -1,8 +1,8 @@
 ﻿using FFMpegCore;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Utilities;
 using Proto;
 using SkiaSharp;
+using System.Diagnostics;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models.Sending.Interfaces;
 using static Proto.Message.Types;
@@ -24,6 +24,7 @@ namespace WhatsSocket.Core.Models.Sending.Media
         public uint Seconds { get; set; }
         public ulong FileLength { get; set; }
         public string Mimetype { get; set; }
+        public bool Ptt { get; private set; }
 
         public Stream Audio
         {
@@ -34,6 +35,7 @@ namespace WhatsSocket.Core.Models.Sending.Media
 
         private void OnLoadImage(Stream value)
         {
+            Ptt = false;
             if (value is MemoryStream memoryStream)
             {
                 audio = memoryStream;
@@ -54,8 +56,16 @@ namespace WhatsSocket.Core.Models.Sending.Media
             var temp = Path.GetTempFileName();
             File.WriteAllBytes(temp, copy);
             var mediaInfo = await FFProbe.AnalyseAsync(temp);
-            File.Delete(temp);
             Seconds = (uint)mediaInfo.Duration.TotalSeconds;
+
+
+            if (Ptt)
+            {
+                //TODO Ptt
+
+
+            }
+            File.Delete(temp);
         }
 
         public override IMediaMessage ToMediaMessage()
@@ -66,6 +76,7 @@ namespace WhatsSocket.Core.Models.Sending.Media
                 Mimetype = Mimetype ?? "audio/mp4",
                 MediaKeyTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 Seconds = Seconds,
+                Ptt = Ptt
             };
             return image;
         }

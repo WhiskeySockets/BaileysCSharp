@@ -1,6 +1,5 @@
 ﻿using LiteDB;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Bcpg.Sig;
 using Proto;
 using System;
 using System.Collections.Generic;
@@ -96,7 +95,7 @@ namespace WhatsSocket.Core.NoSQL
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
         }
 
-        private void ConnectionEvent_Emit( ConnectionState[] args)
+        private void ConnectionEvent_Emit(ConnectionState[] args)
         {
             State.Connection = args[0].Connection;
             State.QR = args[0].QR;
@@ -106,7 +105,7 @@ namespace WhatsSocket.Core.NoSQL
             State.IsNewLogin = args[0].IsNewLogin;
         }
 
-        private void GroupUpsertEvent_Emit( GroupMetadataModel[] args)
+        private void GroupUpsertEvent_Emit(GroupMetadataModel[] args)
         {
             lock (locker)
             {
@@ -115,12 +114,16 @@ namespace WhatsSocket.Core.NoSQL
         }
 
 
-        private void GroupUpdateEvent_Emit( GroupMetadataModel[] args)
+        private void GroupUpdateEvent_Emit(GroupMetadataModel[] args)
         {
+            foreach (var item in args)
+            {
+
+            }
             ///
         }
 
-        private void ChatDeleteEvent_Emit( ChatModel[] args)
+        private void ChatDeleteEvent_Emit(ChatModel[] args)
         {
             ///TODO
         }
@@ -142,7 +145,7 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void ChatUpsertEvent_Emit( ChatModel[] args)
+        private void ChatUpsertEvent_Emit(ChatModel[] args)
         {
             lock (locker)
             {
@@ -183,7 +186,7 @@ namespace WhatsSocket.Core.NoSQL
             ///TODO
         }
 
-        private void MessageUpsert_Emit( MessageUpsertModel[] args)
+        private void MessageUpsert_Emit(MessageUpsertModel[] args)
         {
             lock (locker)
             {
@@ -220,7 +223,7 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        private void MessageUpdateEvent_Emit( WebMessageInfo[] args)
+        private void MessageUpdateEvent_Emit(WebMessageInfo[] args)
         {
             ///TODO
         }
@@ -293,7 +296,7 @@ namespace WhatsSocket.Core.NoSQL
             }
         }
 
-        internal Message GetMessage(MessageKey key)
+        public Message GetMessage(MessageKey key)
         {
             var raw = messages.FindByID(key.Id);
             if (raw == null)
@@ -302,6 +305,16 @@ namespace WhatsSocket.Core.NoSQL
             }
             var web = WebMessageInfo.Parser.ParseFrom(raw.Message);
             return web.Message;
+        }
+
+        public List<ContactModel> GetAllGroups()
+        {
+            return contacts.Where(x => x.IsGroup).ToList();
+        }
+
+        public void AddGroup(ContactModel contactModel)
+        {
+
         }
 
         public EventEmitter EV { get; }

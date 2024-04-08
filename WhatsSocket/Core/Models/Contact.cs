@@ -1,6 +1,7 @@
 ﻿using LiteDB;
 using Newtonsoft.Json;
 using WhatsSocket.Core.NoSQL;
+using WhatsSocket.Core.WABinary;
 
 namespace WhatsSocket.Core.Models
 {
@@ -25,6 +26,15 @@ namespace WhatsSocket.Core.Models
         public override string ToString()
         {
             return $"{ID} - {Name}";
+        }
+
+
+        public bool IsGroup
+        {
+            get
+            {
+                return JidUtils.IsJidGroup(ID);
+            }
         }
     }
 }
