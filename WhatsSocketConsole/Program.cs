@@ -110,11 +110,11 @@ namespace WhatsSocketConsole
                         //    {
                         //        Quoted = msg
                         //    });
-                        
+
 
                         // send a mentions message
                         //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
-                        
+
                         // send a contact!
                         //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
                         //{
@@ -125,7 +125,7 @@ namespace WhatsSocketConsole
                         //        Organization = ""
                         //    }
                         //});
-                        
+
                         // send a location! //48.858221124792756, 2.294466243303683
                         //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
                         //{
@@ -211,6 +211,12 @@ namespace WhatsSocketConsole
             if (connection.Connection == WAConnectionState.Open)
             {
                 Console.WriteLine("Now you can send messages");
+                // send an audio file
+                var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new VideoMessageContent()
+                {
+                    Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
+                    GifPlayback = true
+                });
 
             }
         }

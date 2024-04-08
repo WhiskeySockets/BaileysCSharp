@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Models;
+using WhatsSocket.Core.Models.Sending.Media;
 
 namespace Proto
 {
@@ -39,12 +40,12 @@ namespace Proto
             }
         }
 
-        public void SetMediaMessage(IMediaMessage message)
+        public void SetMediaMessage(IMediaMessage message, string property)
         {
             var children = this.GetType().GetProperties();
             foreach (var item in children)
             {
-                if (item.PropertyType == message.GetType())
+                if (item.PropertyType == message.GetType() && item.Name == property)
                 {
                     item.SetValue(this, message);
                 }
@@ -87,7 +88,6 @@ namespace Proto
 
             public sealed partial class VideoMessage : IMediaMessage
             {
-
             }
 
             public sealed partial class AudioMessage : IMediaMessage

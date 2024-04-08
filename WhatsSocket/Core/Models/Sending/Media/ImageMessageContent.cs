@@ -10,6 +10,11 @@ namespace WhatsSocket.Core.Models.Sending.Media
     {
         private Stream image;
 
+        public ImageMessageContent()
+        {
+            Property = "ImageMessage";
+        }
+
         public Stream Image
         {
             get => image;

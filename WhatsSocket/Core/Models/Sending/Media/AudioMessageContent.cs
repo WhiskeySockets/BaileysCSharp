@@ -14,6 +14,11 @@ namespace WhatsSocket.Core.Models.Sending.Media
     {
         private MemoryStream audio;
 
+        public AudioMessageContent()
+        {
+            Property = "AudioMessage";
+        }
+
         public string Caption { get; set; }
         public byte[] JpegThumbnail { get; set; }
         public uint Seconds { get; set; }

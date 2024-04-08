@@ -253,7 +253,8 @@ namespace WhatsSocket.Core.Utils
         public static Dictionary<string, string> MEDIA_KEYS = new Dictionary<string, string>
         {
             {typeof(ImageMessageContent).Name, "Image" },
-            {typeof(AudioMessageContent).Name, "Audio" }
+            {typeof(AudioMessageContent).Name, "Audio" },
+            {typeof(VideoMessageContent).Name, "Video" }
         };
 
         private static async Task<Message> PrepareWAMessageMedia<T>(T message, IMediaGenerationOptions? options) where T : AnyMediaMessageContent
@@ -314,12 +315,11 @@ namespace WhatsSocket.Core.Utils
 
 
             // url safe Base64 encode the SHA256 hash of the body
-            var fileEncSha256B64 = result.FileEncSha256.ToBase64();
 
 
             var uploaded = await options.Upload(result.EncWriteStream, new MediaUploadOptions()
             {
-                FileEncSha256B64 = fileEncSha256B64,
+                FileEncSha256B64 = result.FileEncSha256.ToBase64(),
                 MediaType = mediaType,
                 TimeOutMs = options.MediaUploadTimeoutMs
             });
@@ -334,6 +334,19 @@ namespace WhatsSocket.Core.Utils
             if (requiresThumbnailComputation)
             {
                 await message.Process();
+                if (message is VideoMessageContent video)
+                {
+                    var thumnailUpload = video.ExtractThumbnail();
+                    var thumnailResult = EncryptedStream(thumnailUpload.Media, "thumbnail-link");
+                    var thumbnail = await options.Upload(thumnailResult.EncWriteStream, new MediaUploadOptions()
+                    {
+                        FileEncSha256B64 = thumnailResult.FileEncSha256.ToBase64(),
+                        MediaType = "thumbnail-link",
+                        TimeOutMs = options.MediaUploadTimeoutMs
+                    });
+                    video.SetThumbnail(thumbnail, thumnailResult);
+
+                }
             }
 
             if (requiresWaveformProcessing)
@@ -354,7 +367,7 @@ namespace WhatsSocket.Core.Utils
             };
             if (media != null)
             {
-                m.SetMediaMessage(media);
+                m.SetMediaMessage(media, message.Property);
             }
             return m;
         }

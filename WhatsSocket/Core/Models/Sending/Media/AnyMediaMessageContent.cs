@@ -8,11 +8,12 @@ namespace WhatsSocket.Core.Models.Sending.Media
         public ContextInfo? ContextInfo { get; set; }
         public string[] Mentions { get; set; }
         public MessageKey? Edit { get; set; }
-
+        public string Property { get; set; }
 
         public abstract IMediaMessage ToMediaMessage();
 
 
         public abstract Task Process();
+
     }
 }
