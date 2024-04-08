@@ -235,16 +235,6 @@ namespace WhatsSocketConsole
             if (connection.Connection == WAConnectionState.Open)
             {
                 Console.WriteLine("Now you can send messages");
-
-                var groups = socket.GetAllGroups();
-
-                var metaData = await socket.GroupMetaData(groups[1].ID);
-
-                await socket.GroupUpdateSubject(metaData.ID, "Test Subject Change");
-
-                ///await socket.GroupUpdateDescription(metaData.ID, "Test Description Change");
-
-                await socket.GroupSettingUpdate(metaData.ID, GroupSetting.Locked);
             }
         }
 
