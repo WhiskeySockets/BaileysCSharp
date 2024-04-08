@@ -37,7 +37,6 @@ namespace WhatsSocket.Core.NoSQL
             EV = ev;
             Logger = logger;
             database = new LiteDB.LiteDatabase($"{root}\\store.db");
-            //EV.OnHistorySync += EV_OnHistorySync;
 
             var historyEvent = EV.On<MessageHistoryModel>(EmitType.Set);
             historyEvent.Multi += HistoryEvent_Emit;
@@ -49,8 +48,6 @@ namespace WhatsSocket.Core.NoSQL
             contactUpdateEvent.Multi += ContactUpdateEvent_Emit;
             var contactUpsert = EV.On<ContactModel>(EmitType.Upsert);
             contactUpsert.Multi += ContactUpsert_Emit;
-            //EV.OnContactUpdated += EV_OnContactUpdated;
-            //EV.ContactsUpsert.OnEmit += ContactsUpsert_OnEmit;
 
             var messageUpdateEvent = EV.On<WebMessageInfo>(EmitType.Update);
             messageUpdateEvent.Multi += MessageUpdateEvent_Emit;
@@ -58,9 +55,6 @@ namespace WhatsSocket.Core.NoSQL
             messageUpsert.Multi += MessageUpsert_Emit;
             var messageDelete = EV.On<MessageUpdate>(EmitType.Delete);
             messageDelete.Multi += MessageDelete_Emit;
-            //EV.OnMessageUpserted += EV_OnMessageUpserted;
-            //EV.OnMessageUpdated += EV_OnMessageUpdated;
-            //EV.OnMessagesDeleted += EV_OnMessagesDeleted;
 
             var chatUpsertEvent = EV.On<ChatModel>(EmitType.Upsert);
             chatUpsertEvent.Multi += ChatUpsertEvent_Emit;
@@ -68,17 +62,12 @@ namespace WhatsSocket.Core.NoSQL
             chatUpdateEvent.Multi += ChatUpdateEvent_Emit;
             var chatDeleteEvent = EV.On<ChatModel>(EmitType.Delete);
             chatDeleteEvent.Multi += ChatDeleteEvent_Emit;
-            //EV.OnChatUpserted += EV_OnChatUpserted;
-            //EV.OnChatUpdated += EV_OnChatUpdated;
-            //EV.OnChatDeleted += EV_OnChatDeleted;
 
 
-            var groupUpdateEvent = EV.On<GroupMetadataModel>(EmitType.Update);
+            var groupUpdateEvent = EV.On<GroupUpdateModel>(EmitType.Update);
             groupUpdateEvent.Multi += GroupUpdateEvent_Emit;
             var groupUpsertEvent = EV.On<GroupMetadataModel>(EmitType.Upsert);
             groupUpsertEvent.Multi += GroupUpsertEvent_Emit;
-            //EV.OnGroupsUpsert += EV_OnGroupInserted;
-            //EV.OnGroupUpdated += EV_OnGroupUpdated;
 
             //EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
             //EV.OnBlockListUpdate += EV_OnBlockListUpdate;
@@ -88,11 +77,15 @@ namespace WhatsSocket.Core.NoSQL
             messages = new Store<MessageModel>(database);
             groupMetaData = new Store<GroupMetadataModel>(database);
 
-            var json = JsonConvert.SerializeObject(contacts.ToArray());
 
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void GroupUpdateEvent_Emit(GroupUpdateModel[] args)
+        {
+
         }
 
         private void ConnectionEvent_Emit(ConnectionState[] args)
@@ -114,14 +107,6 @@ namespace WhatsSocket.Core.NoSQL
         }
 
 
-        private void GroupUpdateEvent_Emit(GroupMetadataModel[] args)
-        {
-            foreach (var item in args)
-            {
-
-            }
-            ///
-        }
 
         private void ChatDeleteEvent_Emit(ChatModel[] args)
         {
@@ -315,6 +300,11 @@ namespace WhatsSocket.Core.NoSQL
         public void AddGroup(ContactModel contactModel)
         {
 
+        }
+
+        internal GroupMetadataModel? GetGroup(string jid)
+        {
+            return groupMetaData.FindByID(jid);
         }
 
         public EventEmitter EV { get; }

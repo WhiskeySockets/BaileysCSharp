@@ -1,8 +1,14 @@
 ﻿namespace WhatsSocket.Core.Models.Sending
 {
     // types to generate WA messages
-    public abstract class AnyMessageContent
+    public interface IAnyMessageContent
     {
+        public bool? DisappearingMessagesInChat { get; set; }
+    }
 
+
+    public class AnyMessageContent : IAnyMessageContent
+    {
+        public bool? DisappearingMessagesInChat { get; set; }
     }
 }

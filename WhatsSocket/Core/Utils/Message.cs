@@ -161,7 +161,7 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static async Task<WebMessageInfo> GenerateWAMessage(string jid, AnyMessageContent content, IMessageGenerationOptions? options = null)
+        public static async Task<WebMessageInfo> GenerateWAMessage(string jid, IAnyMessageContent content, IMessageGenerationOptions? options = null)
         {
             return GenerateWAMessageFromContent(jid,
                 await GenerateWAMessageContent(content, options),
@@ -169,7 +169,7 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        public static async Task<Message> GenerateWAMessageContent<T>(T message, IMessageContentGenerationOptions? options = null) where T : AnyMessageContent
+        public static async Task<Message> GenerateWAMessageContent<T>(T message, IMessageContentGenerationOptions? options = null) where T : IAnyMessageContent
         {
             var m = new Message();
 

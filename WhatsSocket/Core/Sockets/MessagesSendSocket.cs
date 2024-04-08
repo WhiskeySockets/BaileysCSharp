@@ -212,12 +212,20 @@ namespace WhatsSocket.Core.Sockets
         }
 
 
-        public async Task<WebMessageInfo?> SendMessage(string jid, AnyMessageContent content, IMiscMessageGenerationOptions? options = null)
+        public async Task<WebMessageInfo?> SendMessage(string jid, IAnyMessageContent content, IMiscMessageGenerationOptions? options = null)
         {
             var userJid = Creds.Me.ID;
-            if (IsJidGroup(jid))
+            //This needs to be implemented better
+            if (IsJidGroup(jid) && content.DisappearingMessagesInChat.HasValue)
             {
-                ///TODO: groupToggleEphemeral
+                if (content.DisappearingMessagesInChat == true)
+                {
+                    await GroupToggleEphemeral(jid, 7 * 24 * 60 * 60);
+                }
+                else
+                {
+                    await GroupToggleEphemeral(jid, 0);
+                }
                 return null;
             }
             else
@@ -323,6 +331,15 @@ namespace WhatsSocket.Core.Sockets
             var mediaType = GetMediaType(message);
             if (isGroup || isStatus) // Group and Status
             {
+
+                var groupData = Store.GetGroup(jid);
+                if (groupData == null)
+                {
+                    groupData = await GroupMetaData(jid);
+                }
+                if (options.Participant == null)
+                {
+                }
                 //TODO: handle status and group
             }
             else

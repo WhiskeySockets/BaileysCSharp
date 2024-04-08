@@ -24,6 +24,7 @@ using Google.Protobuf;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Models.Sending.Media;
 using WhatsSocket.Core.Models.Sending.NonMedia;
+using WhatsSocket.Core.Models.Sending;
 
 namespace WhatsSocketConsole
 {
@@ -225,6 +226,23 @@ namespace WhatsSocketConsole
             if (connection.Connection == WAConnectionState.Open)
             {
                 Console.WriteLine("Now you can send messages");
+
+
+                //var group = await socket.GroupCreate("Test", ["27797798179@s.whatsapp.net"]);
+                //await socket.GroupUpdateSubject("120363280294352768@g.us", "Subject Nice");
+                //await socket.GroupUpdateDescription("120363280294352768@g.us", "Description Nice");
+
+                //await socket.GroupSettingUpdate("120363280294352768@g.us", GroupSetting.Not_Announcement);
+
+                //await socket.GroupMemberAddMode("120363280294352768@g.us", MemberAddMode.All_Member_Add); 
+
+                //await socket.GroupParticipantsUpdate("120363280294352768@g.us", ["27810841958@s.whatsapp.net"], ParticipantAction.Promote);
+                //await socket.GroupParticipantsUpdate("120363280294352768@g.us", ["27810841958@s.whatsapp.net"], ParticipantAction.Demote);
+
+                //EzZfmQJDoyY7VPklVxVV9l
+                //var result = await socket.GroupInviteCode("120363280294352768@g.us");
+                //var link = "https://chat.whatsapp.com/EzZfmQJDoyY7VPklVxVV9l";
+                //var result = await socket.GroupGetInviteInfo("EzZfmQJDoyY7VPklVxVV9l");
             }
         }
 

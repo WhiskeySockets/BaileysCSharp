@@ -1,6 +1,6 @@
 ﻿using static Proto.Message.Types;
 
-namespace WhatsSocket.Core.Models.Sending.NonMedia
+namespace WhatsSocket.Core.Models.Sending
 {
     public class LocationMessageContent : AnyMessageContent
     {

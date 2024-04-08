@@ -16,14 +16,14 @@ namespace WhatsSocket.Core.Sockets
         Add = 1,
         Remove = 2,
         Promote = 3,
-        Demote = 1
+        Demote = 4
     }
     public enum GroupSetting
     {
         Announcement = 1,
         Not_Announcement = 2,
         Locked = 3,
-        Unlocked = 1
+        Unlocked = 4
     }
     public enum MemberAddMode
     {
@@ -237,7 +237,7 @@ namespace WhatsSocket.Core.Sockets
             {
                 attrs["id"] = GenerateMessageID();
             }
-            if (!string.IsNullOrWhiteSpace(description))
+            if (!string.IsNullOrWhiteSpace(prev))
             {
                 attrs["prev"] = prev;
             }
@@ -245,7 +245,7 @@ namespace WhatsSocket.Core.Sockets
 
             var node = new BinaryNode()
             {
-                tag = "subject",
+                tag = "description",
                 attrs = attrs,
             };
 
