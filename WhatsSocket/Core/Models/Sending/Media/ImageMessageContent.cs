@@ -8,7 +8,7 @@ namespace WhatsSocket.Core.Models.Sending.Media
 {
     public class ImageMessageContent : AnyMediaMessageContent, IWithDimentions
     {
-        private Stream image;
+        private MemoryStream image;
 
         public ImageMessageContent()
         {
@@ -30,9 +30,8 @@ namespace WhatsSocket.Core.Models.Sending.Media
             }
             else
             {
-                memoryStream = new MemoryStream();
-                value.CopyTo(memoryStream);
-                image = memoryStream;
+                image = new MemoryStream();
+                value.CopyTo(image);
 
             }
             image.Position = 0;

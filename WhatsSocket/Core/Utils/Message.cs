@@ -254,7 +254,8 @@ namespace WhatsSocket.Core.Utils
         {
             {typeof(ImageMessageContent).Name, "Image" },
             {typeof(AudioMessageContent).Name, "Audio" },
-            {typeof(VideoMessageContent).Name, "Video" }
+            {typeof(VideoMessageContent).Name, "Video" },
+            {typeof(DocumentMessageContent).Name,"Document" }
         };
 
         private static async Task<Message> PrepareWAMessageMedia<T>(T message, IMediaGenerationOptions? options) where T : AnyMediaMessageContent

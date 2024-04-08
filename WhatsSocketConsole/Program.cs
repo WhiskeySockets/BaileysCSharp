@@ -23,6 +23,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using Google.Protobuf;
 using WhatsSocket.Core.WABinary;
 using WhatsSocket.Core.Models.Sending.Media;
+using WhatsSocket.Core.Models.Sending.NonMedia;
 
 namespace WhatsSocketConsole
 {
@@ -93,6 +94,7 @@ namespace WhatsSocketConsole
         static List<WebMessageInfo> messages = new List<WebMessageInfo>();
         private static async void MessageEvent_Single(MessageUpsertModel args)
         {
+            //Append is old messages (happens when service was offline)
             if (args.Type == MessageUpsertType.Notify)
             {
                 foreach (var msg in args.Messages)
@@ -101,60 +103,78 @@ namespace WhatsSocketConsole
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = "Hi there from C#" });
+                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { 
+                            Text = "Hi there from C#" });
 
-                        // send a reply messagge
-                        //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
-                        //    new TextMessageContent() { Text = "Hi this is a C# reply" },
-                        //    new MessageGenerationOptionsFromContent()
-                        //    {
-                        //        Quoted = msg
-                        //    });
+                        //send a reply messagge
+                        var quoted = await socket.SendMessage(msg.Key.RemoteJid,
+                            new TextMessageContent() { Text = "Hi this is a C# reply" },
+                            new MessageGenerationOptionsFromContent()
+                            {
+                                Quoted = msg
+                            });
 
 
                         // send a mentions message
-                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
+                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { 
+                            Text = $"Hi @{jid.User} from C# with mention", 
+                            Mentions = [msg.Key.RemoteJid] });
 
                         // send a contact!
-                        //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
-                        //{
-                        //    Contact = new ContactShareModel()
-                        //    {
-                        //        ContactNumber = jid.User,
-                        //        FullName = $"{msg.PushName}",
-                        //        Organization = ""
-                        //    }
-                        //});
+                        var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
+                        {
+                            Contact = new ContactShareModel()
+                            {
+                                ContactNumber = jid.User,
+                                FullName = $"{msg.PushName}",
+                                Organization = ""
+                            }
+                        });
 
                         // send a location! //48.858221124792756, 2.294466243303683
-                        //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
-                        //{
-                        //    Location = new Message.Types.LocationMessage()
-                        //    {
-                        //        DegreesLongitude = 48.858221124792756,
-                        //        DegreesLatitude = 2.294466243303683,
-                        //    }
-                        //});
+                        var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
+                        {
+                            Location = new Message.Types.LocationMessage()
+                            {
+                                DegreesLongitude = 48.858221124792756,
+                                DegreesLatitude = 2.294466243303683,
+                            }
+                        });
 
                         //react
-                        //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
-                        //{
-                        //    Key = msg.Key,
-                        //    ReactText = "💖"
-                        //});
+                        var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
+                        {
+                            Key = msg.Key,
+                            ReactText = "💖"
+                        });
 
                         // Sending image
-                        //var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
-                        //{
-                        //    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
-                        //    Caption = "Cat.jpeg"
-                        //});
+                        var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
+                        {
+                            Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                            Caption = "Cat.jpeg"
+                        });
 
                         // send an audio file
-                        //var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new AudioMessageContent()
-                        //{
-                        //    Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
-                        //});
+                        var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new AudioMessageContent()
+                        {
+                            Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
+                        });
+
+                        // send an audio file
+                        var videoMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new VideoMessageContent()
+                        {
+                            Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
+                            GifPlayback = true
+                        });
+
+                        // send a document file
+                        var documentMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new DocumentMessageContent()
+                        {
+                            Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
+                            Mimetype = "application/pdf",
+                            FileName = "proposal.pdf",
+                        });
                     }
                     messages.Add(msg);
                 }
@@ -212,10 +232,11 @@ namespace WhatsSocketConsole
             {
                 Console.WriteLine("Now you can send messages");
                 // send an audio file
-                var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new VideoMessageContent()
+                var documentMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new DocumentMessageContent()
                 {
-                    Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
-                    GifPlayback = true
+                    Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
+                    Mimetype = "application/pdf",
+                    FileName = "proposal.pdf",
                 });
 
             }

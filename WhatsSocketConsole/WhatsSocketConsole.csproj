@@ -25,6 +25,9 @@
     <None Update="Media\cat.jpeg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Media\file.pdf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Media\icon.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

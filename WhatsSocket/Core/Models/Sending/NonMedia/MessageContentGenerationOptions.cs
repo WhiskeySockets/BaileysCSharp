@@ -1,4 +1,6 @@
-﻿using WhatsSocket.Core.Models.Sending.Media;
+﻿using Proto;
+using WhatsSocket.Core.Models.Sending.Interfaces;
+using WhatsSocket.Core.Models.Sending.Media;
 
 namespace WhatsSocket.Core.Models.Sending.NonMedia
 {
@@ -7,5 +9,17 @@ namespace WhatsSocket.Core.Models.Sending.NonMedia
 
 
 
+    }
+
+    public class MessageGenerationOptionsFromContent : IMiscMessageGenerationOptions
+    {
+        public WebMessageInfo Quoted { get; set; }
+        public ulong Timestamp { get; set; }
+        public ulong? EphemeralExpiration { get; set; }
+        public List<string>? StatusJidList { get; set; }
+        public string MessageID { get; set; }
+        public ulong? MediaUploadTimeoutMs { get; set; }
+        public string? BackgroundColor { get; set; }
+        public ulong? Font { get; set; }
     }
 }

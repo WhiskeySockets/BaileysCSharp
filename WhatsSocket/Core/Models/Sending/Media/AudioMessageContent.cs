@@ -40,24 +40,17 @@ namespace WhatsSocket.Core.Models.Sending.Media
             }
             else
             {
-                memoryStream = new MemoryStream();
-                value.CopyTo(memoryStream);
-                audio = memoryStream;
-
+                audio = new MemoryStream();
+                value.CopyTo(audio);
             }
             audio.Position = 0;
             FileLength = (ulong)audio.Length;
-
-
         }
 
         public override async Task Process()
         {
             byte[] copy = audio.ToArray();
             audio.Position = 0;
-
-
-
             var temp = Path.GetTempFileName();
             File.WriteAllBytes(temp, copy);
             var mediaInfo = await FFProbe.AnalyseAsync(temp);

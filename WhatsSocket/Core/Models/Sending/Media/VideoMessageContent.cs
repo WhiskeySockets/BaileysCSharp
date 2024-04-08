@@ -42,15 +42,12 @@ namespace WhatsSocket.Core.Models.Sending.Media
             }
             else
             {
-                memoryStream = new MemoryStream();
-                value.CopyTo(memoryStream);
-                video = memoryStream;
+                video = new MemoryStream();
+                value.CopyTo(video);
 
             }
             video.Position = 0;
             FileLength = (ulong)video.Length;
-
-
         }
 
         public override async Task Process()
