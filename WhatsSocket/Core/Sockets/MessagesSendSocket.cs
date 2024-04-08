@@ -17,6 +17,8 @@ using WhatsSocket.Core.Signal;
 using Google.Protobuf;
 using WhatsSocket.Core.Events;
 using WhatsSocket.LibSignal;
+using WhatsSocket.Core.Models.Sending;
+using WhatsSocket.Core.Models.Sending.Interfaces;
 
 namespace WhatsSocket.Core.Sockets
 {

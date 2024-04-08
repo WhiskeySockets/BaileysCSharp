@@ -15,6 +15,7 @@ using WhatsSocket.Core.Events;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Ocsp;
+using WhatsSocket.Core.Models.Sending;
 
 namespace WhatsSocket.Core.Sockets
 {

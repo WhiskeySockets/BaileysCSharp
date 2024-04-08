@@ -22,6 +22,7 @@ using WhatsSocket.Exceptions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Google.Protobuf;
 using WhatsSocket.Core.WABinary;
+using WhatsSocket.Core.Models.Sending.Media;
 
 namespace WhatsSocketConsole
 {
@@ -32,7 +33,6 @@ namespace WhatsSocketConsole
         static void Main(string[] args)
         {
             Tests.RunTests();
-
 
 
             var config = new SocketConfig()
@@ -102,19 +102,20 @@ namespace WhatsSocketConsole
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
                         //var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = "Hi there from C#" });
-                        //
-                        ////// send a reply messagge
+
+                        // send a reply messagge
                         //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
                         //    new TextMessageContent() { Text = "Hi this is a C# reply" },
                         //    new MessageGenerationOptionsFromContent()
                         //    {
                         //        Quoted = msg
                         //    });
-                        //
-                        ////// send a mentions message
+                        
+
+                        // send a mentions message
                         //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent() { Text = $"Hi @{jid.User} from C# with mention", Mentions = [msg.Key.RemoteJid] });
-                        //
-                        ////// send a contact!
+                        
+                        // send a contact!
                         //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
                         //{
                         //    Contact = new ContactShareModel()
@@ -124,8 +125,8 @@ namespace WhatsSocketConsole
                         //        Organization = ""
                         //    }
                         //});
-                        //
-                        ////// send a location! //48.858221124792756, 2.294466243303683
+                        
+                        // send a location! //48.858221124792756, 2.294466243303683
                         //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
                         //{
                         //    Location = new Message.Types.LocationMessage()
@@ -134,20 +135,26 @@ namespace WhatsSocketConsole
                         //        DegreesLatitude = 2.294466243303683,
                         //    }
                         //});
-                        //
-                        //////react
+
+                        //react
                         //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
                         //{
                         //    Key = msg.Key,
                         //    ReactText = "💖"
                         //});
 
+                        // Sending image
+                        //var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
+                        //{
+                        //    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                        //    Caption = "Cat.jpeg"
+                        //});
 
-                        var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
-                        {
-                            Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
-                            Caption = "Cat.jpeg"
-                        });
+                        // send an audio file
+                        //var audioMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new AudioMessageContent()
+                        //{
+                        //    Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
+                        //});
                     }
                     messages.Add(msg);
                 }
@@ -205,11 +212,6 @@ namespace WhatsSocketConsole
             {
                 Console.WriteLine("Now you can send messages");
 
-
-                var imageMessage = await socket.SendMessage("27797798179@s.whatsapp.net", new ImageMessageContent()
-                {
-                    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open)
-                });
             }
         }
 

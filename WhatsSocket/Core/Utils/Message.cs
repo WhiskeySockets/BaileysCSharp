@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Models;
 using WhatsSocket.Core.WABinary;
 using static Proto.Message.Types;
 using static WhatsSocket.Core.WABinary.JidUtils;
@@ -19,6 +18,10 @@ using WhatsSocket.LibSignal;
 using WhatsSocket.Core.Helper;
 using Newtonsoft.Json;
 using Google.Protobuf;
+using WhatsSocket.Core.Models.Sending;
+using WhatsSocket.Core.Models.Sending.Media;
+using WhatsSocket.Core.Models.Sending.Interfaces;
+using WhatsSocket.Core.Models.Sending.NonMedia;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -249,12 +252,12 @@ namespace WhatsSocket.Core.Utils
 
         public static Dictionary<string, string> MEDIA_KEYS = new Dictionary<string, string>
         {
-            {typeof(ImageMessageContent).Name, "Image" }
+            {typeof(ImageMessageContent).Name, "Image" },
+            {typeof(AudioMessageContent).Name, "Audio" }
         };
 
         private static async Task<Message> PrepareWAMessageMedia<T>(T message, IMediaGenerationOptions? options) where T : AnyMediaMessageContent
         {
-            IMediaMessage? media = message.ToMediaMessage();
             var key = message.GetType().Name;
             string mediaType = null;
             if (MEDIA_KEYS.ContainsKey(key))
@@ -308,7 +311,6 @@ namespace WhatsSocket.Core.Utils
 
 
             var result = EncryptedStream(uploadData.Media, mediaType);
-            media.CopyMatchingValues(result);
 
 
             // url safe Base64 encode the SHA256 hash of the body
@@ -323,14 +325,26 @@ namespace WhatsSocket.Core.Utils
             });
 
 
-            media.CopyMatchingValues(uploaded);
 
 
-
+            if (requiresDurationComputation)
+            {
+                await message.Process();
+            }
             if (requiresThumbnailComputation)
+            {
+                await message.Process();
+            }
+
+            if (requiresWaveformProcessing)
             {
 
             }
+
+            IMediaMessage? media = message.ToMediaMessage();
+            media.CopyMatchingValues(result);
+            media.CopyMatchingValues(uploaded);
+
 
             //Set Values
 

@@ -118,7 +118,15 @@ namespace WhatsSocket.Core.Utils
 
         public static Dictionary<string, string> MEDIA_PATH_MAP = new Dictionary<string, string>()
         {
-            { "Image","/mms/image" }
+            { "Image","/mms/image" },
+            { "Video","/mms/video" },
+            { "Document","/mms/document" },
+            { "Audio","/mms/audio" },
+            { "Sticker","/mms/sticker" },
+            { "thumbnail-link","/mms/sticker" },
+            { "product-catalog-image","/product/image" },
+            { "md-app-state","" },
+            { "md-msg-hist","/mms/md-app-state" }
         };
 
         public static int GetStatusCodeForMediaRetry(string errorCode)
