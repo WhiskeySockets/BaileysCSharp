@@ -249,7 +249,7 @@ namespace WhatsSocket.Core.Utils
             return iq;
         }
 
-        private static BinaryNode XmppSignedPreKey(SignedPreKey signedPreKey)
+        public static BinaryNode XmppSignedPreKey(SignedPreKey signedPreKey)
         {
             return new BinaryNode("skey")
             {
@@ -262,7 +262,7 @@ namespace WhatsSocket.Core.Utils
             };
         }
 
-        private static BinaryNode XmppPreKey(KeyPair value, string key)
+        public static BinaryNode XmppPreKey(KeyPair value, string key)
         {
             return new BinaryNode("key")
             {
@@ -274,7 +274,7 @@ namespace WhatsSocket.Core.Utils
             };
         }
 
-        private static Dictionary<string, PreKeyPair> GetNextPreKeys(AuthenticationCreds creds, BaseKeyStore keys, uint count)
+        public static Dictionary<string, PreKeyPair> GetNextPreKeys(AuthenticationCreds creds, BaseKeyStore keys, uint count)
         {
             var keySet = GenerateOrGetPreKeys(creds, count);
 

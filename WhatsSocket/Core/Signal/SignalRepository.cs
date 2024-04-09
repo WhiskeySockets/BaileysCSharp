@@ -71,5 +71,9 @@ namespace WhatsSocket.Core.Signal
             sessionBuilder.InitOutGoing(session);
         }
 
+        internal object EncryptGroupMessage(string destinationJid, byte[] bytes, string meId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

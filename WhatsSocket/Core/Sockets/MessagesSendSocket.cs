@@ -19,6 +19,7 @@ using WhatsSocket.Core.Events;
 using WhatsSocket.LibSignal;
 using WhatsSocket.Core.Models.Sending;
 using WhatsSocket.Core.Models.Sending.Interfaces;
+using WhatsSocket.Core.Models.SenderKeys;
 
 namespace WhatsSocket.Core.Sockets
 {
@@ -333,14 +334,29 @@ namespace WhatsSocket.Core.Sockets
             {
 
                 var groupData = Store.GetGroup(jid);
-                if (groupData == null)
+                if (groupData != null)
                 {
                     groupData = await GroupMetaData(jid);
                 }
-                if (options.Participant == null)
+
+                var participantsList =  groupData.Participants.Select(x => x.ID).ToArray();
+
+                var additionalDevices = await GetUSyncDevices(participantsList, options.UseUserDevicesCache ?? false, true);
+
+                if (isStatus)//TODO
                 {
+
                 }
+
+                var senderKeyMap = Keys.Get<SenderKeyRecord>(jid);
+
+
+                var patched = SocketConfig.PatchMessageBeforeSending(message, participantsList);
+                var bytes = EncodeWAMessage(patched);//.ToByteArray();
+
+                var encGroup = Repository.EncryptGroupMessage(destinationJid, bytes, meId);
                 //TODO: handle status and group
+
             }
             else
             {

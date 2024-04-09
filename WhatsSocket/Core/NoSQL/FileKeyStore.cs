@@ -35,18 +35,23 @@ namespace WhatsSocket.Core.NoSQL
                     Debug.WriteLine($"{typeof(T).Name} does not have FolderPrefix attribute");
                     throw new NotSupportedException($"{typeof(T).Name} does not have FolderPrefix attribute");
                 }
+                if (memory.ContainsKey($"{attributes.Prefix}-{id}"))
+                {
+                    return (T)memory[$"{attributes.Prefix}-{id}"];
+                }
+
 
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
 
 
-                var file = $"{path}\\{attributes.Prefix}-{id.Replace("/", "__")}.json";
+                var file = $"{path}\\{attributes.Prefix}-{id.Replace("/", "__").Replace("::", "__")}.json";
 
                 if (File.Exists(file))
                 {
                     var mv = file;
-                    file = $"{path}\\{id.Replace("/", "__")}.json";
+                    file = $"{path}\\{id.Replace("/", "__").Replace("::", "__")}.json";
                     if (File.Exists(file))
                     {
                         File.Delete(file);
@@ -54,12 +59,7 @@ namespace WhatsSocket.Core.NoSQL
                     File.Move(mv, file);
                 }
 
-                if (memory.ContainsKey($"{attributes.Prefix}-{id}"))
-                {
-                    return (T)memory[$"{attributes.Prefix}-{id}"];
-                }
-
-                file = $"{path}\\{id.Replace("/", "__")}.json";
+                file = $"{path}\\{id.Replace("/", "__").Replace("::", "__")}.json";
                 if (File.Exists(file))
                 {
                     var data = File.ReadAllText(file) ?? "";
@@ -76,10 +76,6 @@ namespace WhatsSocket.Core.NoSQL
                 }
                 return default(T);
             }
-
-            //var collection = context?.GetCollection<T>();
-            //var result = (T)collection.FindById(id);
-            //return result;
         }
 
         public override Dictionary<string, T> Get<T>(List<string> ids)
@@ -127,26 +123,8 @@ namespace WhatsSocket.Core.NoSQL
                 else if (File.Exists(file))
                 {
                     memory.Remove($"{attributes.Prefix}-{id}");
-                    //File.Delete(file);
                 }
             }
-            //Use Below
-            //var collection = context?.GetCollection<T>();
-            //if (value != null)
-            //{
-            //    if (collection.FindById(id) == null)
-            //    {
-            //        collection.Insert(value);
-            //    }
-            //    else
-            //    {
-            //        collection.Update(id, value);
-            //    }
-            //}
-            //else
-            //{
-            //    collection.Delete(id);
-            //}
         }
     }
 

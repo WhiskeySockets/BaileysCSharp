@@ -10,7 +10,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WhatsSocket.Core.Helper
 {
-    public static class EndodingHelper
+    public static class EncodingHelper
     {
         public static byte[] UInt8ToBigEndianBytes(this int value)
         {

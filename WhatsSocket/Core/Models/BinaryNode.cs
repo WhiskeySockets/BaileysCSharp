@@ -1,10 +1,11 @@
 ﻿
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Dynamic;
 
 namespace WhatsSocket.Core.Models
 {
-    public class BinaryNode
+    public class BinaryNode 
     {
         private object _content;
 
@@ -58,5 +59,6 @@ namespace WhatsSocket.Core.Models
             }
             return default;
         }
+
     }
 }

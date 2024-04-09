@@ -543,10 +543,7 @@ namespace WhatsSocket.Core.Sockets
                 if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
                 {
                     var encNode = GetBinaryNodeChild(node, "enc");
-                    if (encNode != null)
-                    {
-                        SendRetryRequest(node, encNode != null);
-                    }
+                    SendRetryRequest(node, encNode != null);
                 }
                 else
                 {
@@ -698,7 +695,79 @@ namespace WhatsSocket.Core.Sockets
             retryCount++;
             MessageRetries[msgId] = retryCount;
 
-            //var deviceIdentity = SocketHelper.EncodeSignedDeviceIdentity(Creds, true);
+            var deviceIdentity = ValidateConnectionUtil.EncodeSignedDeviceIdentity(Creds.Account, true);
+
+            var receipt = new BinaryNode()
+            {
+                tag = "receipt",
+                attrs =
+                {
+                    {"id", msgId },
+                    {"type","retry" },
+                    {"to",node.attrs["from"] }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "retry",
+                        attrs =
+                        {
+                            {"count",retryCount.ToString() },
+                            {"id", node.attrs["id"] },
+                            { "t", node.attrs["t"] },
+                            {"v","1" }
+                        }
+                    },
+                    new BinaryNode()
+                    {
+                        tag = "registration",
+                        attrs = { },
+                        content = EncodingHelper.EncodeBigEndian(Creds.RegistrationId)
+                    }
+                }
+            };
+
+            if (node.getattr("recipient") != null)
+            {
+                receipt.attrs["recipient"] = node.attrs["recipient"];
+            }
+            if (node.getattr("participant") != null)
+            {
+                receipt.attrs["participant"] = node.attrs["participant"];
+            }
+            if (node.getattr("participant") != null)
+            {
+                receipt.attrs["participant"] = node.attrs["participant"];
+            }
+
+            if (retryCount > 1 || forceIncludeKeys)
+            {
+                var preKeys = ValidateConnectionUtil.GetNextPreKeys(Creds, Keys, 1).FirstOrDefault();
+
+                BinaryNode[] content = receipt.content as BinaryNode[];
+                Array.Resize(ref content, content.Length + 1);
+
+                content[content.Length - 1] = new BinaryNode()
+                {
+                    tag = "keys",
+                    attrs = { },
+                    content = new BinaryNode[]
+                    {
+                        new BinaryNode(){ tag = "type", content = KEY_BUNDLE_TYPE},
+                        new BinaryNode(){ tag = "identity", content = KEY_BUNDLE_TYPE},
+                        ValidateConnectionUtil.XmppPreKey(preKeys.Value,preKeys.Key),
+                        ValidateConnectionUtil.XmppSignedPreKey(Creds.SignedPreKey),
+                        new BinaryNode(){tag = "device-identity", content = deviceIdentity}
+                    }
+
+                };
+
+                EV.Emit(EmitType.Update, Creds);
+            }
+
+            SendNode(receipt);
+            Logger.Info(new { msgAttrs = node.attrs, retryCount }, "sent retry receipt");
         }
 
 

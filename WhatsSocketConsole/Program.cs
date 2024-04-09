@@ -90,6 +90,12 @@ namespace WhatsSocketConsole
             {
                 foreach (var msg in args.Messages)
                 {
+                    if (msg.Message == null)
+                        continue;
+
+                    if (msg.Message.ExtendedTextMessage == null)
+                        continue;
+
                     if (msg.Key.FromMe == false && msg.Message.ExtendedTextMessage != null && msg.Message.ExtendedTextMessage.Text == "runtests")
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
@@ -231,6 +237,9 @@ namespace WhatsSocketConsole
                 //var group = await socket.GroupCreate("Test", ["27797798179@s.whatsapp.net"]);
                 //await socket.GroupUpdateSubject("120363280294352768@g.us", "Subject Nice");
                 //await socket.GroupUpdateDescription("120363280294352768@g.us", "Description Nice");
+
+
+                
 
                 //await socket.GroupSettingUpdate("120363280294352768@g.us", GroupSetting.Not_Announcement);
 
