@@ -117,7 +117,7 @@ namespace WhatsSocket.Core.NoSQL
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                var file = $"{path}\\{id.Replace("/", "__")}.json";
+                var file = $"{path}\\{id.Replace("/", "__").Replace("::", "__")}.json";
 
                 if (value != null)
                 {
