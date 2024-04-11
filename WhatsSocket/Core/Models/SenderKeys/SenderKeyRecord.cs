@@ -1,8 +1,21 @@
 ﻿using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.Core.NoSQL;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models.SenderKeys
 {
+
+
+    [FolderPrefix("sender-key-memory")]
+    public class SenderKeyMemory : Dictionary<string, bool>
+    {
+        public SenderKeyMemory()
+        {
+
+        }
+    }
+
     [FolderPrefix("sender-key")]
     public class SenderKeyRecord
     {
@@ -33,6 +46,11 @@ namespace WhatsSocket.Core.Models.SenderKeys
 
         public SenderKeyState? GetSenderStateKey(uint keyId)
         {
+            if (keyId == 0 && SenderKeys.Count > 0)
+            {
+                return SenderKeys[SenderKeys.Count - 1];
+            }
+
             return SenderKeys.FirstOrDefault(x => x.SenderKeyId == keyId);
         }
 
@@ -61,6 +79,11 @@ namespace WhatsSocket.Core.Models.SenderKeys
             {
                 SenderKeys.RemoveAt(0);
             }
+        }
+
+        internal void SetSenderKeyState(uint id, uint iteration, byte[] chainKey, KeyPair keyPair)
+        {
+            SenderKeys = [new SenderKeyState(id, iteration, chainKey, keyPair)];
         }
     }
 

@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Google.Protobuf;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WhatsSocket.Core.Helper;
 using WhatsSocket.Exceptions;
 using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
 {
 
-    internal class SenderKeyMessage : CipherTextMessage
+    public class SenderKeyMessage : CipherTextMessage
     {
         public const int SIGNATURE_LENGTH = 64;
         public SenderKeyMessage(uint keyId, uint iteration, byte[] ciphertext, byte[] signatureKey)
@@ -18,6 +20,20 @@ namespace WhatsSocket.Core.Models
             Iteration = iteration;
             Ciphertext = ciphertext;
             SignatureKey = signatureKey;
+
+
+
+            int version = (((CURRENT_VERSION << 4) | CURRENT_VERSION) & 0xff) % 256;
+
+            var message = new Proto.SenderKeyMessage()
+            {
+                Id = keyId,
+                Ciphertext = ciphertext.ToByteString(),
+                Iteration = iteration
+            }.ToByteArray();
+
+            var signature = GetSignature(signatureKey, new byte[] { (byte)version }.Concat(message).ToArray());
+            _serialized = new byte[] { (byte)version }.Concat(message).Concat(signature).ToArray();
         }
 
         public SenderKeyMessage(byte[] serialized)
@@ -34,6 +50,7 @@ namespace WhatsSocket.Core.Models
             Ciphertext = senderKeyMessage.Ciphertext.ToByteArray();
             SignatureKey = signature;
             _serialized = serialized;
+
         }
 
         private byte[] _serialized;
@@ -53,6 +70,16 @@ namespace WhatsSocket.Core.Models
             {
                 throw new GroupCipherException("Invalid Signature");
             }
+        }
+
+        public byte[] GetSignature(byte[] signatureKey, byte[] serialized)
+        {
+            return CryptoUtils.Sign(signatureKey, serialized);
+        }
+
+        internal byte[] Serialize()
+        {
+            return _serialized;
         }
     }
 }

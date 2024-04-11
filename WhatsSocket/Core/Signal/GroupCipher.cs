@@ -9,19 +9,18 @@ namespace WhatsSocket.Core.Signal
 {
     internal class GroupCipher
     {
-        public GroupCipher(BaseKeyStore keys, string senderName)
+        public GroupCipher(SignalStorage store, string senderName)
         {
-            Keys = keys;
+            Store = store;
             SenderName = senderName;
         }
 
-        public BaseKeyStore Keys { get; }
+        public SignalStorage Store { get; }
         public string SenderName { get; }
 
         public byte[] Decrypt(byte[] data)
         {
-            //var record = Storage.LoadSenderKey(SenderName);
-            var record = Keys.Get<SenderKeyRecord>(SenderName);
+            var record = Store.LoadSenderKey(SenderName);
 
             if (record == null)
             {
@@ -42,10 +41,36 @@ namespace WhatsSocket.Core.Signal
             var plainText = GetPlainText(senderKey.IV, senderKey.CipherKey, senderKeyMessage.Ciphertext);
 
 
-            Keys.Set(SenderName, record);
-            //Storage.StoreSenderKey(SenderName, record);
+            Store.StoreSenderKey(SenderName, record);
 
             return plainText;
+        }
+
+        internal byte[] Encrypt(byte[] paddedPlaintext)
+        {
+            var record = Store.LoadSenderKey(SenderName);
+
+            if (record == null)
+            {
+                throw new GroupCipherException("No SenderKeyRecord found for Encryption");
+            }
+
+            var senderKeyState = record.GetSenderStateKey(0);
+            if (senderKeyState == null)
+            {
+                throw new GroupCipherException("No session found to encrypt message");
+            }
+
+            var iteration = senderKeyState.GetSenderChainKey().Iteration;
+            var senderKey = GetSenderKey(senderKeyState, iteration == 0 ? 0 : iteration + 1);
+
+            var cipherText = CryptoUtils.EncryptAesCbc(paddedPlaintext, senderKey.CipherKey, senderKey.IV);
+
+            var senderKeyMessage = new SenderKeyMessage(senderKeyState.SenderKeyId, senderKey.Iteration, cipherText, senderKeyState.GetSigningKeyPrivate());
+
+            Store.StoreSenderKey(SenderName, record);
+
+            return senderKeyMessage.Serialize();
         }
 
         private byte[] GetPlainText(byte[] iv, byte[] cipherKey, byte[] ciphertext)

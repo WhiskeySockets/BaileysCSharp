@@ -1,4 +1,5 @@
-﻿using Proto;
+﻿using Google.Protobuf;
+using Proto;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.Models.SenderKeys;
 using WhatsSocket.Core.Models.Sessions;
@@ -22,7 +23,7 @@ namespace WhatsSocket.Core.Signal
         public byte[] DecryptGroupMessage(string group, string authorJid, byte[] content)
         {
             var senderName = JidToSignalSenderKeyName(group, authorJid);
-            var session = new GroupCipher(Auth.Keys, senderName);
+            var session = new GroupCipher(Storage, senderName);
             return session.Decrypt(content);
         }
 
@@ -57,7 +58,7 @@ namespace WhatsSocket.Core.Signal
 
         public void ProcessSenderKeyDistributionMessage(string author, Message.Types.SenderKeyDistributionMessage senderKeyDistributionMessage)
         {
-            var builder = new GroupSessionBuilder(Auth.Keys);
+            var builder = new GroupSessionBuilder(Storage);
             var senderName = JidToSignalSenderKeyName(senderKeyDistributionMessage.GroupId, author);
             var senderMsg = Proto.SenderKeyDistributionMessage.Parser.ParseFrom(senderKeyDistributionMessage.AxolotlSenderKeyDistributionMessage.ToByteArray().Skip(1).ToArray());
             Auth.Keys.Set(senderName, new SenderKeyRecord());
@@ -71,9 +72,34 @@ namespace WhatsSocket.Core.Signal
             sessionBuilder.InitOutGoing(session);
         }
 
-        internal object EncryptGroupMessage(string destinationJid, byte[] bytes, string meId)
+        public GroupCipherMessage EncryptGroupMessage(string group, string meId, byte[] bytes)
         {
-            throw new NotImplementedException();
+            var senderName = JidToSignalSenderKeyName(group, meId);
+            var builder = new GroupSessionBuilder(Storage);
+
+            var senderKey = Auth.Keys.Get<SenderKeyRecord>(senderName);
+            if (senderKey == null)
+            {
+                Auth.Keys.Set(senderName, new SenderKeyRecord());
+            }
+
+            var senderKeyDistributionMessage = builder.Create(senderName);
+
+            var session = new GroupCipher(Storage, senderName);
+            var ciphertext = session.Encrypt(bytes);
+
+
+            return new GroupCipherMessage()
+            {
+                CipherText = ciphertext,
+                SenderKeyDistributionMessage = new byte[] { 51 }.Concat(senderKeyDistributionMessage.ToByteArray()).ToArray()
+            };
         }
+    }
+
+    public class GroupCipherMessage
+    {
+        public byte[] CipherText { get; set; }
+        public byte[] SenderKeyDistributionMessage { get; set; }
     }
 }

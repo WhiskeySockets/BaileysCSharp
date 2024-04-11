@@ -26,6 +26,16 @@ namespace WhatsSocket.LibSignal
             return buffer[0] & 0x3fff;
         }
 
+        internal static byte[] GenerateSenderKey()
+        {
+            return RandomBytes(32);
+        }
+
+        internal static KeyPair GenerateSenderSigningKey()
+        {
+            return NodeCrypto.GenerateKeyPair();
+        }
+
 
 
         //generateSignedPreKey

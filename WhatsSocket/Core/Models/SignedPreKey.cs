@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models
@@ -20,6 +22,7 @@ namespace WhatsSocket.Core.Models
         [JsonProperty("keyId")]
         public ulong KeyId { get; set; }
     }
+
 
 
 }

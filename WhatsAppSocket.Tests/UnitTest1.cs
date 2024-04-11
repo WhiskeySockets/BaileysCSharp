@@ -542,5 +542,54 @@ Outgoing: 27797798179.17 done";
             }
         }
 
+
+        [Test]
+        public static void TestGroupMessageEncrypt()
+        {
+            var config = new SocketConfig()
+            {
+                ID = "TestGroupEnc",
+            };
+            var credsFile = Path.Join(config.CacheRoot, $"creds.json");
+            AuthenticationCreds? authentication = null;
+            if (File.Exists(credsFile))
+            {
+                authentication = AuthenticationCreds.Deserialize(File.ReadAllText(credsFile));
+            }
+
+            var file = Path.Join(config.CacheRoot, "sender-key", "120363264521029662@g.us__27665245067.91.json");
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+
+            BaseKeyStore keys = new FileKeyStore(config.CacheRoot);
+            config.Auth = new AuthenticationState()
+            {
+                Creds = authentication,
+                Keys = keys
+            };
+            var storage = new SignalStorage(config.Auth);
+
+            var repository = new SignalRepository(config.Auth);
+
+            var groupId = "120363264521029662@g.us";
+            var meId = "27665245067:91@s.whatsapp.net";
+            var data = Convert.FromBase64String("MgcKBUhlbGxvBAQEBA==");
+
+            var result = repository.EncryptGroupMessage(groupId, meId, data);
+
+
+            var skmsg = result.SenderKeyDistributionMessage.ToBase64() == "Mwi9hOPJBBAAGiCY6wHeNXADNM6OrTwOlcmlYzgtroi+rItJOnNJ5lCMaiIhBetS2PNKwvg7xDFgSg62k0kZFsq3QGb9Fx60+ikazut6";
+            var b64 = result.CipherText.ToBase64() == "Mwi9hOPJBBAAGhA2p8UGDXCGJSU/Sf4mrx0jzn9FAB/Ko3IUyebmAYVh8livG2lfReUgS8eLzxvwDpJuPDwOWz1XRea8V+AzrdrOqNii+wNdfF+SUMFq9CDEiA==";
+            if (b64 && skmsg)
+            {
+                Assert.Pass();
+            }
+            else
+            {
+                Assert.Fail();
+            }
+        }
     }
 }

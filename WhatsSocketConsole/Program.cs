@@ -239,7 +239,12 @@ namespace WhatsSocketConsole
                 //await socket.GroupUpdateDescription("120363280294352768@g.us", "Description Nice");
 
 
-                
+                // send a simple text!
+                var standard = await socket.SendMessage("120363264521029662@g.us", new TextMessageContent()
+                {
+                    Text = "Hi there from C#"
+                });
+
 
                 //await socket.GroupSettingUpdate("120363280294352768@g.us", GroupSetting.Not_Announcement);
 

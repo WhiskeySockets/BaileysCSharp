@@ -51,6 +51,8 @@ namespace WhatsSocket.Core.WABinary
 
         public static string JidEncode(string user, string server, int? device = null, int? agent = null)
         {
+            if (device == 0)
+                device = null;
             return $"{user ?? ""}{(agent != null ? $"_{agent}" : "")}{(device != null ? $":{device}" : "")}@{server}";
         }
 

@@ -6,6 +6,8 @@ namespace WhatsSocket.Core.Models.SenderKeys
     {
         [JsonProperty("public")]
         public byte[] Public { get; set; }
+        [JsonProperty("private")]
+        public byte[] Private { get; set; }
     }
 
 

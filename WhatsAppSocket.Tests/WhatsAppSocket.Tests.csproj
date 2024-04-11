@@ -32,6 +32,9 @@
     <None Update="CreateSession\pre-key\7.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestGroupEnc\creds.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TEST\creds.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

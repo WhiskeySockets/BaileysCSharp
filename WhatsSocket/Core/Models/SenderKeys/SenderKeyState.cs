@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using WhatsSocket.LibSignal;
 
 namespace WhatsSocket.Core.Models.SenderKeys
 {
@@ -21,6 +22,22 @@ namespace WhatsSocket.Core.Models.SenderKeys
 
         public SenderKeyState()
         {
+            SenderMessages = new List<SenderMessageKeyStructure>();
+        }
+
+        public SenderKeyState(uint id, uint iteration, byte[] chainKey, KeyPair keyPair)
+        {
+            SenderKeyId = id;
+            SenderChainKey = new SenderChainKeyStructure()
+            {
+                Iteration = iteration,
+                Seed = chainKey
+            };
+            SenderSigningKey = new SenderSigningKeyStructure()
+            {
+                Private = keyPair.Private,
+                Public = keyPair.Public,
+            };
             SenderMessages = new List<SenderMessageKeyStructure>();
         }
 
@@ -78,6 +95,15 @@ namespace WhatsSocket.Core.Models.SenderKeys
                 Iteration = chainKey.Iteration,
                 Seed = chainKey.ChainKey
             };
+        }
+
+        public byte[] GetSigningKeyPrivate()
+        {
+            return SenderSigningKey.Private;
+        }
+        public byte[] GetSigningKeyPublic()
+        {
+            return SenderSigningKey.Public;
         }
     }
 

@@ -20,6 +20,8 @@ using WhatsSocket.LibSignal;
 using WhatsSocket.Core.Models.Sending;
 using WhatsSocket.Core.Models.Sending.Interfaces;
 using WhatsSocket.Core.Models.SenderKeys;
+using WhatsSocket.Core.Helper;
+using Org.BouncyCastle.Asn1.X509;
 
 namespace WhatsSocket.Core.Sockets
 {
@@ -334,29 +336,89 @@ namespace WhatsSocket.Core.Sockets
             {
 
                 var groupData = Store.GetGroup(jid);
-                if (groupData != null)
+                if (groupData == null)
                 {
                     groupData = await GroupMetaData(jid);
                 }
 
-                var participantsList =  groupData.Participants.Select(x => x.ID).ToArray();
 
-                var additionalDevices = await GetUSyncDevices(participantsList, options.UseUserDevicesCache ?? false, true);
+                var senderKeyMap = Keys.Get<SenderKeyMemory>(jid) ?? new SenderKeyMemory();
 
-                if (isStatus)//TODO
+                if (options.Participant == null)
                 {
+                    var participantsList = groupData.Participants.Select(x => x.ID).ToList();
 
+                    if (isStatus && options.StatusJidList?.Count > 0)//TODO
+                    {
+                        participantsList.AddRange(options.StatusJidList);
+                    }
+
+
+                    var additionalDevices = await GetUSyncDevices(participantsList.ToArray(), options.UseUserDevicesCache ?? false, false);
+
+                    devices.AddRange(additionalDevices);
                 }
 
-                var senderKeyMap = Keys.Get<SenderKeyRecord>(jid);
 
-
-                var patched = SocketConfig.PatchMessageBeforeSending(message, participantsList);
+                var patched = SocketConfig.PatchMessageBeforeSending(message, devices.Select(x => JidEncode(x.User, isLid ? "lid" : "s.whatsapp.net", x.Device)).ToArray());
                 var bytes = EncodeWAMessage(patched);//.ToByteArray();
 
-                var encGroup = Repository.EncryptGroupMessage(destinationJid, bytes, meId);
-                //TODO: handle status and group
+                var encGroup = Repository.EncryptGroupMessage(destinationJid, meId, bytes);
 
+
+                List<string> senderKeyJids = new List<string>();
+                // ensure a connection is established with every device
+                foreach (var item in devices)
+                {
+                    var deviceJid = JidEncode(item.User, isLid ? "lid" : "s.whatsapp.net", item.Device);
+                    if (!senderKeyMap.ContainsKey(deviceJid) || options.Participant != null)
+                    {
+                        senderKeyJids.Add(deviceJid);
+                        // store that this person has had the sender keys sent to them
+                        senderKeyMap[deviceJid] = true;
+                    }
+                }
+
+                // if there are some participants with whom the session has not been established
+                // if there are, we re-send the senderkey
+                if (senderKeyJids.Count > 0)
+                {
+                    var senderKeyMsg = new Message()
+                    {
+                        SenderKeyDistributionMessage = new Message.Types.SenderKeyDistributionMessage()
+                        {
+                            AxolotlSenderKeyDistributionMessage = encGroup.SenderKeyDistributionMessage.ToByteString(),
+                            GroupId = jid
+                        }
+                    };
+
+                    await AssertSessions(senderKeyJids, false);
+
+                    Dictionary<string, string> mediaTypeAttr = new Dictionary<string, string>()
+                {
+                    {"mediatype",mediaType }
+                };
+                    var result = CreateParticipantNodes(senderKeyJids.ToArray(), senderKeyMsg, mediaType != null ? mediaTypeAttr : null);
+                    shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || result.ShouldIncludeDeviceIdentity;
+
+                    participants.AddRange(result.Nodes);
+                }
+
+
+                binaryNodeContent.Add(new BinaryNode()
+                {
+                    tag = "enc",
+                    attrs =
+                    {
+                        {"v","2" },
+                        {"type","skmsg" },
+
+                    },
+                    content = encGroup.CipherText
+
+                });
+
+                Keys.Set(jid, senderKeyMap);
             }
             else
             {
@@ -601,7 +663,7 @@ namespace WhatsSocket.Core.Sockets
             }
             else
             {
-                return "unknown"; // Or handle any other cases accordingly
+                return null; // Or handle any other cases accordingly
             }
         }
 
