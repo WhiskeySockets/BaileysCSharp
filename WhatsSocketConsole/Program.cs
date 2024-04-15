@@ -233,6 +233,10 @@ namespace WhatsSocketConsole
             {
                 Console.WriteLine("Now you can send messages");
 
+                var standard = await socket.SendMessage("27797798179@s.whatsapp.net", new TextMessageContent()
+                {
+                    Text = "Hi *there* from C#"
+                });
 
                 //var group = await socket.GroupCreate("Test", ["27797798179@s.whatsapp.net"]);
                 //await socket.GroupUpdateSubject("120363280294352768@g.us", "Subject Nice");
@@ -240,10 +244,10 @@ namespace WhatsSocketConsole
 
 
                 // send a simple text!
-                var standard = await socket.SendMessage("120363264521029662@g.us", new TextMessageContent()
-                {
-                    Text = "Hi there from C#"
-                });
+                //var standard = await socket.SendMessage("120363264521029662@g.us", new TextMessageContent()
+                //{
+                //    Text = "Hi there from C#"
+                //});
 
 
                 //await socket.GroupSettingUpdate("120363280294352768@g.us", GroupSetting.Not_Announcement);

@@ -1,4 +1,5 @@
-﻿using LiteDB;
+﻿using Google.Protobuf;
+using LiteDB;
 using Newtonsoft.Json;
 using Proto;
 using System;
@@ -14,6 +15,7 @@ using WhatsSocket.Core.Extensions;
 using WhatsSocket.Core.Helper;
 using WhatsSocket.Core.Models;
 using WhatsSocket.Core.WABinary;
+using static WhatsSocket.Core.WABinary.JidUtils;
 
 namespace WhatsSocket.Core.NoSQL
 {
@@ -55,6 +57,9 @@ namespace WhatsSocket.Core.NoSQL
             messageUpsert.Multi += MessageUpsert_Emit;
             var messageDelete = EV.On<MessageUpdate>(EmitType.Delete);
             messageDelete.Multi += MessageDelete_Emit;
+            var messageReceipt = EV.On<MessageReceipt>(EmitType.Upsert);
+            messageReceipt.Multi += MessageReceipt_Multi;
+
 
             var chatUpsertEvent = EV.On<ChatModel>(EmitType.Upsert);
             chatUpsertEvent.Multi += ChatUpsertEvent_Emit;
@@ -81,6 +86,73 @@ namespace WhatsSocket.Core.NoSQL
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void MessageReceipt_Multi(MessageReceipt[] args)
+        {
+            List<MessageReceipt> updates = new List<MessageReceipt>();
+
+            foreach (var item in args)
+            {
+                var msg = GetMessage(item.MessageID);
+                if (msg != null)
+                {
+                    msg.Receipts = msg.Receipts ?? new List<MessageReceipt>();
+
+                    var info = msg.ToMessageInfo();
+
+                    var receipt = info.UserReceipt.FirstOrDefault(x => x.UserJid == item.RemoteJid);
+                    if (receipt == null)
+                    {
+                        receipt = new UserReceipt()
+                        {
+                            UserJid = item.RemoteJid
+                        };
+                        info.UserReceipt.Add(receipt);
+                    }
+
+                    switch (item.Status)
+                    {
+                        case WebMessageInfo.Types.Status.ServerAck:
+                        case WebMessageInfo.Types.Status.DeliveryAck:
+                            if (!receipt.HasReceiptTimestamp)
+                            {
+                                receipt.ReceiptTimestamp = item.Time;
+                            }
+                            break;
+                        case WebMessageInfo.Types.Status.Read:
+                            receipt.ReadTimestamp = item.Time;
+                            break;
+                        case WebMessageInfo.Types.Status.Played:
+                            receipt.PlayedTimestamp = item.Time;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    var jid = JidEncode(JidDecode(item.RemoteJid)?.User ?? "", "s.whatsapp.net");
+
+                    if (!msg.Receipts.Any(x => x.RemoteJid == jid && x.Status == item.Status))
+                    {
+                        var recpt = new MessageReceipt()
+                        {
+                            MessageID = item.MessageID,
+                            RemoteJid = jid,
+                            Status = item.Status,
+                            Time = item.Time,
+                        };
+                        updates.Add(recpt);
+                        msg.Receipts.Add(recpt);
+                    }
+
+                    msg.Message = info.ToByteArray();
+
+                    messages.Update(msg);
+                }
+            }
+
+            if (updates.Count > 0)
+                EV.Emit(EmitType.Update, updates.ToArray());
         }
 
         private void GroupUpdateEvent_Emit(GroupUpdateModel[] args)
@@ -302,6 +374,11 @@ namespace WhatsSocket.Core.NoSQL
             }
             var web = WebMessageInfo.Parser.ParseFrom(raw.Message);
             return web.Message;
+        }
+        public MessageModel GetMessage(string key)
+        {
+            var raw = messages.FindByID(key);
+            return raw;
         }
 
         public List<ContactModel> GetAllGroups()

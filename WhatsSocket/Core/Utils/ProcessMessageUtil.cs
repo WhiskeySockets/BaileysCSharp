@@ -72,7 +72,6 @@ namespace WhatsSocket.Core.Utils
                 chat.ReadOnly = false;
             }
 
-            //TODO Impmlement below
             var protocolMsg = content?.ProtocolMessage;
             if (protocolMsg != null)
             {
@@ -92,11 +91,8 @@ namespace WhatsSocket.Core.Utils
                                     MessageTimestamp = message.MessageTimestamp
                                 });
                                 ev.Emit(EmitType.Update, creds);
-                                //ev.CredsUpdate(creds);
-
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
                                 ev.Emit(EmitType.Set, data);
-                                //ev.MessageHistorySet((data.contacts, data.chats, data.messages, isLatest));
                             }
                         }
                         break;
@@ -108,17 +104,15 @@ namespace WhatsSocket.Core.Utils
                             {
                                 var id = item.KeyId.KeyId.ToBase64();
                                 var keyData = new AppStateSyncKeyStructure(item.KeyData);
-                                keyStore.Set<AppStateSyncKeyStructure>(id, keyData);
+                                keyStore.Set(id, keyData);
                                 newAppStateSyncKeyId = id;
                             }
                             creds.MyAppStateKeyId = newAppStateSyncKeyId;
                             ev.Emit(EmitType.Update, creds);
-                            //ev.CredsUpdate(creds);
                         }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
                         ev.Emit(EmitType.Update, [MessageUpdate.FromRevoke(message, protocolMsg)]);
-                        //ev.MessageUpdated([MessageUpdate.FromRevoke(message, protocolMsg)]);
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
                         chat.EphemeralSettingTimestamp = message.MessageTimestamp;

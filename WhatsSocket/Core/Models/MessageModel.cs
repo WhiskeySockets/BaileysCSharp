@@ -106,6 +106,19 @@ namespace WhatsSocket.Core.Models
         }
     }
 
+    public class MessageReceipt
+    {
+        public string MessageID { get; set; }
+        public string RemoteJid { get; set; }
+        public WebMessageInfo.Types.Status Status { get; set; }
+        public long Time { get; set; }
+
+        public override string ToString()
+        {
+            return $"[{DateTimeOffset.FromUnixTimeSeconds(Time).LocalDateTime:yyyy-MM-dd HH:mm}] -> {MessageID} status {Status} for {RemoteJid}";
+        }
+    }
+
     public class MessageModel : IMayHaveID
     {
         [BsonId]
@@ -113,13 +126,13 @@ namespace WhatsSocket.Core.Models
 
         public string MessageType { get; set; }
         public string RemoteJid { get; set; }
+        public bool FromMe { get; internal set; }
 
         public byte[] Message { get; set; }
-        public bool FromMe { get; internal set; }
+        public DateTime MessageDate { get; set; }
 
         public MessageModel()
         {
-
         }
 
         public MessageModel(WebMessageInfo info)
@@ -129,6 +142,7 @@ namespace WhatsSocket.Core.Models
             RemoteJid = info.Key.RemoteJid;
             Message = info.ToByteArray();
             FromMe = info.Key.FromMe;
+            MessageDate = DateTimeOffset.FromUnixTimeSeconds((long)info.MessageTimestamp).LocalDateTime;
         }
 
         public string GetID()
@@ -140,6 +154,10 @@ namespace WhatsSocket.Core.Models
         {
             return WebMessageInfo.Parser.ParseFrom(Message);
         }
+
+
+        public List<MessageReceipt> Receipts { get; set; }
+
     }
 
     public class MessageUpdate

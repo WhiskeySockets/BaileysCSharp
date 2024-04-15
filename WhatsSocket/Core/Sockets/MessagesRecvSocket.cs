@@ -438,7 +438,7 @@ namespace WhatsSocket.Core.Sockets
 
             var key = new MessageKey()
             {
-                RemoteJid = node.attrs["from"],
+                RemoteJid = remoteJid,
                 FromMe = true,
                 Id = node.attrs["id"]
             };
@@ -469,6 +469,47 @@ namespace WhatsSocket.Core.Sockets
                     {
 
                     }
+                }
+            }
+            else
+            {
+                if (JidUtils.IsJidGroup(remoteJid))
+                {
+
+                }
+                else
+                {
+                    var statuses = Enum.GetValues(typeof(WebMessageInfo.Types.Status))
+                        .Cast<WebMessageInfo.Types.Status>()
+                        .ToDictionary(t => t.ToString().ToLower(), t => t);
+
+                    var statusCode = node.getattr("type") ?? "";
+
+
+                    List<MessageReceipt> messages = new List<MessageReceipt>();
+                    var t = Convert.ToInt64(node.attrs["t"]);
+                    foreach (var item in ids)
+                    {
+
+                        var receipt = new MessageReceipt()
+                        {
+                            MessageID = item,
+                            RemoteJid = remoteJid,
+                            Status = WebMessageInfo.Types.Status.Pending,
+                            Time = t
+                        };
+
+                        if (statuses.ContainsKey(statusCode))
+                        {
+                            receipt.Status = statuses[statusCode];
+                        }
+                        else
+                        {
+                            receipt.Status = WebMessageInfo.Types.Status.DeliveryAck;
+                        }
+                        messages.Add(receipt);
+                    }
+                    EV.Emit(EmitType.Upsert, messages.ToArray());
                 }
             }
 
