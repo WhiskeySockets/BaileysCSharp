@@ -46,7 +46,7 @@ namespace WhatsSocket.Core.Utils
         }
 
 
-        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, EventEmitter ev)
+        internal static async Task ProcessMessage(WebMessageInfo message, bool shouldProcessHistoryMsg, AuthenticationCreds? creds, BaseKeyStore keyStore, MemoryStore store, EventEmitter ev)
         {
             var meId = creds.Me.ID;
             var chat = new ChatModel()
@@ -143,14 +143,6 @@ namespace WhatsSocket.Core.Utils
                                             Message = webMessageInfo.Message
                                         }
                                     }]);
-                                    //ev.MessageUpdated([new MessageUpdate()
-                                    //{
-                                    //    Key = webMessageInfo.Key,
-                                    //    Update = new MessageUpdateModel()
-                                    //    {
-                                    //        Message = webMessageInfo.Message
-                                    //    }
-                                    //}]);
                                 }
                             }
                         }
@@ -160,7 +152,6 @@ namespace WhatsSocket.Core.Utils
             else if (content?.ReactionMessage != null)
             {
                 ev.Emit(EmitType.Reaction, new MessageReactionModel(content.ReactionMessage, content.ReactionMessage.Key));
-                //ev.MessageReaction(content.ReactionMessage, content.ReactionMessage.Key);
             }
             else if (message.HasMessageStubType)
             {
@@ -170,12 +161,10 @@ namespace WhatsSocket.Core.Utils
                 var emitParticipantsUpdate = new Action<string>(action =>
                 {
                     ev.Emit(EmitType.Update, new GroupParticipantUpdateModel(jid, message.Participant, action));
-                    //ev.GroupParticipantUpdate(jid, message.Participant, action);
                 });
                 var emitGroupUpdate = new Action<GroupMetadataModel>(update =>
                 {
                     ev.Emit(EmitType.Update, new GroupUpdateModel(jid, update));
-                    //ev.GroupUpdate(jid, update);
                 });
 
                 var participantsIncludesMe = new Func<bool>(() =>
@@ -210,23 +199,53 @@ namespace WhatsSocket.Core.Utils
                         emitParticipantsUpdate("promote");
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeAnnounce:
-                        emitGroupUpdate(new GroupMetadataModel() { Announce = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        var group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            group.Announce = message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on";
+                            emitGroupUpdate(group);
+                        }
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeRestrict:
-                        emitGroupUpdate(new GroupMetadataModel() { Restrict = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            group.Restrict = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on");
+                            emitGroupUpdate(group);
+                        }
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeSubject:
-                        chat.Name = message.MessageStubParameters[0];
-                        emitGroupUpdate(new GroupMetadataModel() { Subject = chat.Name });
+                        group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            chat.Name = message.MessageStubParameters[0];
+                            group.Subject = chat.Name;
+                            emitGroupUpdate(group);
+                        }
                         break;
                     case WebMessageInfo.Types.StubType.GroupChangeInviteLink:
-                        emitGroupUpdate(new GroupMetadataModel() { InviteCode = message.MessageStubParameters[0] });
+                        group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            group.InviteCode = message.MessageStubParameters[0];
+                            emitGroupUpdate(group);
+                        }
                         break;
                     case WebMessageInfo.Types.StubType.GroupMemberAddMode:
-                        emitGroupUpdate(new GroupMetadataModel() { MemberAddMode = message.MessageStubParameters[0] == "all_member_add" });
+                        group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            group.MemberAddMode = message.MessageStubParameters[0] == "all_member_add";
+                            emitGroupUpdate(group);
+                        }
                         break;
                     case WebMessageInfo.Types.StubType.GroupMembershipJoinApprovalMode:
-                        emitGroupUpdate(new GroupMetadataModel() { JoinApprovalMode = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on") });
+                        group = store.GetGroup(jid);
+                        if (group != null)
+                        {
+                            group.JoinApprovalMode = (message.MessageStubParameters[0] == "true" || message.MessageStubParameters[0] == "on");
+                            emitGroupUpdate(group);
+                        }
                         break;
                     default:
                         break;
@@ -238,7 +257,6 @@ namespace WhatsSocket.Core.Utils
             }
 
             ev.Emit(EmitType.Update, chat);
-            //ev.ChatsUpdate([chat]);
         }
 
         private static bool ShouldIncrementChatUnread(WebMessageInfo message)

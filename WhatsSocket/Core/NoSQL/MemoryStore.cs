@@ -192,13 +192,25 @@ namespace WhatsSocket.Core.NoSQL
                                 }
                                 messageList[jid].Add(msg);
                                 messages.Add(new MessageModel(msg));
-                                EV.Emit(EmitType.Upsert, [new ChatModel()
-                            {
-                                ID = jid,
-                                ConversationTimestamp = msg.MessageTimestamp,
-                                UnreadCount = 1
-                            }]);
-                                //EV.ChatsUpsert();
+
+                                var chat = chats.FirstOrDefault(x => x.ID == jid);
+                                if (chat != null)
+                                {
+                                    chat.UnreadCount++;
+                                    chat.ConversationTimestamp = msg.MessageTimestamp;
+                                    EV.Emit(EmitType.Update, chat);
+                                }
+                                else
+                                {
+                                    chat = new ChatModel()
+                                    {
+                                        ID = jid,
+                                        ConversationTimestamp = msg.MessageTimestamp,
+                                        UnreadCount = 1
+                                    };
+                                    EV.Emit(EmitType.Upsert, chat);
+                                }
+
                             }
                             break;
                         default:
@@ -305,6 +317,16 @@ namespace WhatsSocket.Core.NoSQL
         internal GroupMetadataModel? GetGroup(string jid)
         {
             return groupMetaData.FindByID(jid);
+        }
+
+        public ContactModel? GetContact(string jid)
+        {
+            return contacts.FirstOrDefault(x => x.ID == jid);
+        }
+
+        internal ChatModel? GetChat(string? jid)
+        {
+            return chats.FirstOrDefault(x => x.ID == jid);
         }
 
         public EventEmitter EV { get; }

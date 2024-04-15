@@ -21,6 +21,7 @@ using WhatsSocket.Exceptions;
 using static WhatsSocket.Core.Utils.MediaMessageUtil;
 using static WhatsSocket.Core.Utils.GenericUtils;
 using WhatsSocket.Core.Events;
+using System.Runtime.CompilerServices;
 
 namespace WhatsSocket.Core.Utils
 {
@@ -354,7 +355,7 @@ namespace WhatsSocket.Core.Utils
             return stream;
         }
 
-        internal static void ProcessSyncAction(ChatMutation syncAction, EventEmitter eV, AuthenticationCreds creds, AccountSettings? accountSettings, Logger logger)
+        internal static void ProcessSyncAction(ChatMutation syncAction, EventEmitter eV, AuthenticationCreds creds, AccountSettings? accountSettings, MemoryStore store, Logger logger)
         {
             var isInitialSync = accountSettings == null;
 
@@ -376,12 +377,12 @@ namespace WhatsSocket.Core.Utils
 
             if (action?.MuteAction != null)
             {
-                eV.Emit(EmitType.Update, [new ChatModel {
-                    ID = id,
-                    MuteEndTime = action.MuteAction.Muted == true ? action.MuteAction.MuteEndTimestamp : 0
-                    //conditional
-                }]);
-                //eV.ChatsUpdate();
+                var chat = store.GetChat(id);
+                if (chat != null)
+                {
+                    chat.MuteEndTime = action.MuteAction.Muted == true ? action.MuteAction.MuteEndTimestamp : 0;
+                    eV.Emit(EmitType.Update, chat);
+                }
             }
             else if (action?.ArchiveChatAction != null || type == "archive" || type == "unarchive")
             {
@@ -400,17 +401,12 @@ namespace WhatsSocket.Core.Utils
                     ? archiveAction.Archived
                     : type == "archive";
 
-                //var msgRange = accountSettings?.UnarchiveChats == true ? 0 : archiveAction?.MessageRange
-                eV.Emit(EmitType.Update, [new ChatModel {
-                    ID = id,
-                    Archived = isArchived
-                    //conditional
-                }]);
-                //eV.ChatsUpdate([new ChatModel {
-                //ID = id,
-                //    Archived = isArchived
-                //    //conditional: getChatUpdateConditional(id, msgRange)
-                //}]);
+                var chat = store.GetChat(id);
+                if (chat != null)
+                {
+                    chat.Archived = isArchived;
+                    eV.Emit(EmitType.Update, chat);
+                }
             }
             else if (action?.MarkChatAsReadAction != null)
             {
@@ -420,16 +416,13 @@ namespace WhatsSocket.Core.Utils
                 // this only applies for the initial sync
                 var isNullUpdate = isInitialSync && markReadAction.Read;
 
-                eV.Emit(EmitType.Update, [new ChatModel {
-                    ID = id,
-                    UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L))
-                    //conditional
-                }]);
-                //eV.ChatsUpdate([new ChatModel {
-                //    ID = id,
-                //    UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L))
-                //    //conditional: getChatUpdateConditional(id, markReadAction?.messageRange)
-                //}]);
+                var chat = store.GetChat(id);
+                if (chat != null)
+                {
+                    chat.UnreadCount = (ulong)(isNullUpdate ? 0L : (markReadAction.Read ? 0L : -1L));
+                    eV.Emit(EmitType.Update, chat);
+                }
+
             }
             else if (action?.DeleteMessageForMeAction != null || type == "deleteMessageForMe")
             {
@@ -439,12 +432,11 @@ namespace WhatsSocket.Core.Utils
                     RemoteJid = id,
                     FromMe = fromMe == "1"
                 }]);
-                //eV.MessagesDelete();
             }
             else if (action?.ContactAction != null)
             {
-                eV.Emit(EmitType.Upsert, [new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
-                //eV.ContactUpsert([new ContactModel() { ID = id, Name = action.ContactAction.FullName }]);
+                var contact = new ContactModel() { ID = id, Name = action.ContactAction.FullName };
+                eV.Emit(EmitType.Upsert, contact);
             }
             else if (action?.PushNameSetting != null)
             {
@@ -453,28 +445,22 @@ namespace WhatsSocket.Core.Utils
                 {
                     creds.Me.Name = name;
                     eV.Emit(EmitType.Update, creds);
-                    //eV.CredsUpdate(creds);
                 }
             }
             else if (action?.PinAction != null)
             {
-                eV.Emit(EmitType.Update, [new ChatModel {
-                    ID = id,
-                    Pinned = action.PinAction.Pinned ? action.Timestamp : 0,
-                    //conditional: getChatUpdateConditional(id, undefined)
-                }]);
-                //eV.ChatsUpdate([new ChatModel {
-                //    ID = id,
-                //    Pinned = action.PinAction.Pinned ? action.Timestamp : 0,
-                //    //conditional: getChatUpdateConditional(id, undefined)
-                //}]);
+                var chat = store.GetChat(id);
+                if (chat != null)
+                {
+                    chat.Pinned = action.PinAction.Pinned ? action.Timestamp : 0;
+                    eV.Emit(EmitType.Update, chat);
+                }
             }
             else if (action?.UnarchiveChatsSetting != null)
             {
                 var unarchiveChats = action.UnarchiveChatsSetting.UnarchiveChats;
                 creds.AccountSettings.UnarchiveChats = unarchiveChats;
                 eV.Emit(EmitType.Update, creds);
-                //eV.CredsUpdate(creds);
             }
             else if (action?.StarAction != null)
             {
@@ -489,21 +475,10 @@ namespace WhatsSocket.Core.Utils
                         Starred = starred,
                     }
                 }]);
-                //eV.MessageUpdated([new MessageUpdate() {
-                //    Key = new MessageKey(){
-                //        RemoteJid = id,
-                //        Id = msgId,
-                //        FromMe = fromMe == "1"
-                //    },
-                //    Update = new MessageUpdateModel(){
-                //        Starred = starred,
-                //    }
-                //}]);
             }
             else if (action?.DeleteChatAction != null)
             {
                 eV.Emit(EmitType.Delete, new ChatModel() { ID = id });
-                //eV.ChatsDelete([id]);
             }
             else if (action?.LabelEditAction != null)
             {

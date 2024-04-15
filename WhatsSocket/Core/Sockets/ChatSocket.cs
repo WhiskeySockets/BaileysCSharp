@@ -157,13 +157,13 @@ namespace WhatsSocket.Core
 
                 if (!msg.Key.FromMe)
                 {
-                    EV.Emit(EmitType.Update, [new ContactModel()
+                    var contact = Store.GetContact(jid);
+                    if (contact != null)
                     {
-                        ID = jid,
-                        Notify = msg.PushName,
-                        VerifiedName = msg.VerifiedBizName
-                    }]);
-                    //EV.ContactUpdated();
+                        contact.Notify = msg.PushName;
+                        contact.VerifiedName = msg.VerifiedBizName;
+                        EV.Emit(EmitType.Update, [contact]);
+                    }
                 }
 
                 if (msg.Key.FromMe && !string.IsNullOrEmpty(msg.PushName) && Creds.Me.Name != msg.PushName)
@@ -199,7 +199,7 @@ namespace WhatsSocket.Core
 
             var t2 = new Task(async () =>
             {
-                await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Keys, EV);
+                await ProcessMessageUtil.ProcessMessage(msg, shouldProcessHistoryMsg, Creds, Keys, Store, EV);
             });
             t1.Start();
             t2.Start();
@@ -386,7 +386,7 @@ namespace WhatsSocket.Core
         {
             return new Action<ChatMutation>((syncAction) =>
             {
-                ProcessSyncAction(syncAction, EV, Creds, isInitialSync ? Creds.AccountSettings : null, Logger);
+                ProcessSyncAction(syncAction, EV, Creds, isInitialSync ? Creds.AccountSettings : null, Store, Logger);
             });
         }
 

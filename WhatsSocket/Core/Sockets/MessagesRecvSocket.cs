@@ -153,13 +153,12 @@ namespace WhatsSocket.Core.Sockets
                     foreach (var item in tokenList)
                     {
                         var jid = item.getattr("jid");
-                        EV.Emit(EmitType.Update, [new ChatModel()
+                        var chat = Store.GetChat(jid);
+                        if (chat != null)
                         {
-                            ID = jid,
-                            TcToken = item.ToByteArray(),
-                        }]);
-                        //EV.ChatsUpdate();
-
+                            chat.TcToken = item.ToByteArray();
+                            EV.Emit(EmitType.Update, chat);
+                        }
                         Logger.Debug(new { jid }, "got privacy token update");
                     }
                     break;
@@ -194,7 +193,12 @@ namespace WhatsSocket.Core.Sockets
                     var setPicture = GetBinaryNodeChild(node, "set");
                     var delPicture = GetBinaryNodeChild(node, "delete");
 
-                    EV.Emit(EmitType.Update, [new ContactModel() { ID = from, ImgUrl = setPicture != null ? "changed" : null }]);
+                    var contact = Store.GetContact(from);
+                    if (contact != null)
+                    {
+                        contact.ImgUrl = (setPicture != null ? "changed" : null);
+                        EV.Emit(EmitType.Update, contact);
+                    }
 
                     if (JidUtils.IsJidGroup(from))
                     {
@@ -247,7 +251,12 @@ namespace WhatsSocket.Core.Sockets
 
                 case "status":
                     var newStatus = GetBinaryNodeChildString(node, "set");
-                    EV.Emit(EmitType.Update, [new ContactModel() { ID = from, Status = newStatus }]);
+                    contact = Store.GetContact(from);
+                    if (contact != null)
+                    {
+                        contact.Status = newStatus;
+                        EV.Emit(EmitType.Update, contact);
+                    }
                     break;
 
                 default:
@@ -332,13 +341,15 @@ namespace WhatsSocket.Core.Sockets
                         Participant = metadata.Owner,
                     };
 
-                    EV.Emit(EmitType.Upsert, [new ChatModel()
+                    var chat = new ChatModel()
                     {
                         ID = metadata.ID,
                         Name = metadata.Subject ?? "",
                         ConversationTimestamp = metadata.Creation,
-                    }]);
-                    EV.Emit(EmitType.Upsert, [metadata]);
+                    };
+
+                    EV.Emit(EmitType.Upsert, chat);
+                    EV.Emit(EmitType.Upsert, metadata);
 
                     break;
                 case "ephemeral":
