@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Events
+﻿namespace WhatsSocket.Core.Helper
 {
     public class ProcessingMutex
     {

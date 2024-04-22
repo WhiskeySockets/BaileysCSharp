@@ -15,7 +15,7 @@ namespace WhatsSocket.Core.Models
 {
     public class SocketConfig
     {
-        public string? ID { get; set; }
+        public string? SessionName { get; set; }
         public SocketConfig()
         {
             Logger = new Logger();
@@ -78,7 +78,7 @@ namespace WhatsSocket.Core.Models
         {
             get
             {
-                var path = Path.Combine(Root, ID);
+                var path = Path.Combine(Root, SessionName);
                 if (!Directory.Exists(path))
                 {
                     Directory.CreateDirectory(path);

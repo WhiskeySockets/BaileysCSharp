@@ -29,15 +29,17 @@ namespace WhatsSocket.Core.Sockets
             events["CB:receipt"] = OnReceipt;
             events["CB:notification"] = OnNotification;
             events["CB:ack,class:message"] = OnHandleAck;
-            var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Multi += ConnectionEvent_Emit;
+
+
+            EV.Connection.Update += Connection_Update;
+
         }
 
-        private void ConnectionEvent_Emit(ConnectionState[] args)
+        private void Connection_Update(object? sender, ConnectionState e)
         {
-            if (args[0].IsOnline.HasValue)
+            if (e.IsOnline.HasValue)
             {
-                SendActiveReceipts = args[0].IsOnline.Value;
+                SendActiveReceipts =e.IsOnline.Value;
                 Logger.Trace($"sendActiveReceipts set to '{SendActiveReceipts}'");
             }
         }
@@ -129,7 +131,7 @@ namespace WhatsSocket.Core.Sockets
                     msg.Key.Id = node.getattr("id");
                     msg.Participant = msg.Key.Participant;
                     msg.MessageTimestamp = node.getattr("t").ToUInt64();
-                    await UpsertMessage(msg, MessageUpsertType.Append);
+                    await UpsertMessage(msg, MessageEventType.Append);
                 }
             });
 
@@ -634,7 +636,7 @@ namespace WhatsSocket.Core.Sockets
                 CleanMessage(result.Msg, Creds.Me.ID);
 
 
-                await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageUpsertType.Append : MessageUpsertType.Notify);
+                await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageEventType.Append : MessageEventType.Notify);
 
                 //When upsert works this is to be implemented
             });

@@ -33,13 +33,13 @@ namespace WhatsSocket.Core
             events["CB:chatstate"] = HandlePresenceUpdate;
             events["CB:ib,,dirty"] = HandleDirtyUpdate;
 
-            var connectionUpdateEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionUpdateEvent.Multi += ConnectionUpdateEvent_Emit;
+
+            EV.Connection.Update += Connection_Update;
         }
 
-        private void ConnectionUpdateEvent_Emit(ConnectionState[] args)
+        private void Connection_Update(object? sender, ConnectionState e)
         {
-            var arg = args[0];
+            var arg = e;
             if (arg.Connection == WAConnectionState.Open)
             {
                 if (SocketConfig.FireInitQueries)
@@ -62,6 +62,7 @@ namespace WhatsSocket.Core
                 }
             }
         }
+
 
 
         private void SendPresenceUpdate(WAPresence type, string toJid = "")
@@ -146,9 +147,9 @@ namespace WhatsSocket.Core
 
         #region chats
 
-        protected async Task UpsertMessage(WebMessageInfo msg, MessageUpsertType type)
+        protected async Task UpsertMessage(WebMessageInfo msg, MessageEventType type)
         {
-            EV.Emit(EmitType.Upsert, new MessageUpsertModel(type, msg));
+            EV.Emit(EmitType.Upsert, new MessageEventModel(type, msg));
             //EV.MessageUpsert([msg], type);
             if (!string.IsNullOrWhiteSpace(msg.PushName))
             {

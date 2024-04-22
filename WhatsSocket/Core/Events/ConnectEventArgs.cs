@@ -10,7 +10,7 @@ namespace WhatsSocket.Core.Events
 
     public delegate void ConnectEventArgs(AbstractSocketClient sender);
     public delegate void DisconnectEventArgs(AbstractSocketClient sender, DisconnectReason reason);
-
+    
 
 
     public class DataFrame

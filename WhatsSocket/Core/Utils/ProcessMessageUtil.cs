@@ -113,6 +113,7 @@ namespace WhatsSocket.Core.Utils
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.Revoke:
                         ev.Emit(EmitType.Update, [MessageUpdate.FromRevoke(message, protocolMsg)]);
+                        //TODO: check this
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.EphemeralSetting:
                         chat.EphemeralSettingTimestamp = message.MessageTimestamp;
@@ -129,14 +130,7 @@ namespace WhatsSocket.Core.Utils
                                 if (retryResponse != null)
                                 {
                                     var webMessageInfo = WebMessageInfo.Parser.ParseFrom(retryResponse.WebMessageInfoBytes);
-                                    ev.Emit(EmitType.Update, [new MessageUpdate()
-                                    {
-                                        Key = webMessageInfo.Key,
-                                        Update = new MessageUpdateModel()
-                                        {
-                                            Message = webMessageInfo.Message
-                                        }
-                                    }]);
+                                    ev.Emit(EmitType.Update,new MessageEventModel(MessageEventType.Update, webMessageInfo));
                                 }
                             }
                         }
@@ -158,7 +152,7 @@ namespace WhatsSocket.Core.Utils
                 });
                 var emitGroupUpdate = new Action<GroupMetadataModel>(update =>
                 {
-                    ev.Emit(EmitType.Update, new GroupUpdateModel(jid, update));
+                    ev.Emit(EmitType.Update, update);
                 });
 
                 var participantsIncludesMe = new Func<bool>(() =>

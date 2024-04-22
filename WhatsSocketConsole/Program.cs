@@ -31,7 +31,10 @@ namespace WhatsSocketConsole
     internal class Program
     {
 
+        static List<WebMessageInfo> messages = new List<WebMessageInfo>();
         static WASocket socket;
+        public static object locker = new object();
+
         static void Main(string[] args)
         {
             Tests.RunTests();
@@ -39,7 +42,7 @@ namespace WhatsSocketConsole
 
             var config = new SocketConfig()
             {
-                ID = "27665245067",
+                SessionName = "27665245067",
             };
 
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
@@ -61,34 +64,42 @@ namespace WhatsSocketConsole
             socket = new WASocket(config);
 
 
-            var authEvent = socket.EV.On<AuthenticationCreds>(EmitType.Update);
-            authEvent.Multi += AuthEvent_OnEmit;
-
-            var connectionEvent = socket.EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Multi += ConnectionEvent_Emit;
-
-
-            var messageEvent = socket.EV.On<MessageUpsertModel>(EmitType.Upsert);
-            messageEvent.Single += MessageEvent_Single;
-
-            var history = socket.EV.On<MessageHistoryModel>(EmitType.Set);
-            history.Multi += History_Emit;
-
-            var presence = socket.EV.On<PresenceModel>(EmitType.Update);
-            presence.Multi += Presence_Emit;
+            socket.EV.Auth.Update += Auth_Update;
+            socket.EV.Connection.Update += Connection_Update;
+            socket.EV.Message.Upsert += Message_Upsert;
+            socket.EV.MessageHistory.Set += MessageHistory_Set;
+            socket.EV.Pressence.Update += Pressence_Update;
 
             socket.MakeSocket();
 
             Console.ReadLine();
         }
 
-        static List<WebMessageInfo> messages = new List<WebMessageInfo>();
-        private static async void MessageEvent_Single(MessageUpsertModel args)
+        private static void Pressence_Update(object? sender, PresenceModel e)
         {
-            //Append is old messages (happens when service was offline)
-            if (args.Type == MessageUpsertType.Notify)
+            Console.WriteLine(JsonConvert.SerializeObject(e, Formatting.Indented));
+        }
+
+        private static void MessageHistory_Set(object? sender, MessageHistoryModel[] e)
+        {
+            messages.AddRange(e[0].Messages);
+            var jsons = messages.Select(x => x.ToJson()).ToArray();
+            var array = $"[\n{string.Join(",", jsons)}\n]";
+            Debug.WriteLine(array);
+        }
+
+        private static async void Message_Upsert(object? sender, MessageEventModel e)
+        {
+            //offline messages synced
+            if (e.Type == MessageEventType.Append)
             {
-                foreach (var msg in args.Messages)
+
+            }
+
+            //new messages
+            if (e.Type == MessageEventType.Notify)
+            {
+                foreach (var msg in e.Messages)
                 {
                     if (msg.Message == null)
                         continue;
@@ -182,23 +193,9 @@ namespace WhatsSocketConsole
             }
         }
 
-        private static void Presence_Emit(PresenceModel[] args)
+        private static async void Connection_Update(object? sender, ConnectionState e)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(args[0], Formatting.Indented));
-        }
-
-        private static void History_Emit(MessageHistoryModel[] args)
-        {
-            messages.AddRange(args[0].Messages);
-            var jsons = messages.Select(x => x.ToJson()).ToArray();
-            var array = $"[\n{string.Join(",", jsons)}\n]";
-            Debug.WriteLine(array);
-        }
-
-
-        private static async void ConnectionEvent_Emit(ConnectionState[] args)
-        {
-            var connection = args[0];
+            var connection = e;
             Debug.WriteLine(JsonConvert.SerializeObject(connection, Formatting.Indented));
             if (connection.QR != null)
             {
@@ -231,49 +228,53 @@ namespace WhatsSocketConsole
 
             if (connection.Connection == WAConnectionState.Open)
             {
+                var groupId = "@g.us";
+                var chatId = "@s.whatsapp.net";
+                var chatId2 = "@s.whatsapp.net";
+
                 Console.WriteLine("Now you can send messages");
 
-                var standard = await socket.SendMessage("27797798179@s.whatsapp.net", new TextMessageContent()
+                var standard = await socket.SendMessage(chatId, new TextMessageContent()
                 {
                     Text = "Hi *there* from C#"
                 });
 
-                //var group = await socket.GroupCreate("Test", ["27797798179@s.whatsapp.net"]);
-                //await socket.GroupUpdateSubject("120363280294352768@g.us", "Subject Nice");
-                //await socket.GroupUpdateDescription("120363280294352768@g.us", "Description Nice");
+                //var group = await socket.GroupCreate("Test", [chatId]);
+                //await socket.GroupUpdateSubject(groupId, "Subject Nice");
+                //await socket.GroupUpdateDescription(groupId, "Description Nice");
 
 
                 // send a simple text!
-                //var standard = await socket.SendMessage("120363264521029662@g.us", new TextMessageContent()
+                //var standard = await socket.SendMessage(groupId, new TextMessageContent()
                 //{
                 //    Text = "Hi there from C#"
                 //});
 
 
-                //await socket.GroupSettingUpdate("120363280294352768@g.us", GroupSetting.Not_Announcement);
+                //await socket.GroupSettingUpdate(groupId, GroupSetting.Not_Announcement);
 
-                //await socket.GroupMemberAddMode("120363280294352768@g.us", MemberAddMode.All_Member_Add); 
+                //await socket.GroupMemberAddMode(groupId, MemberAddMode.All_Member_Add); 
 
-                //await socket.GroupParticipantsUpdate("120363280294352768@g.us", ["27810841958@s.whatsapp.net"], ParticipantAction.Promote);
-                //await socket.GroupParticipantsUpdate("120363280294352768@g.us", ["27810841958@s.whatsapp.net"], ParticipantAction.Demote);
+                //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Promote);
+                //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Demote);
 
-                //EzZfmQJDoyY7VPklVxVV9l
-                //var result = await socket.GroupInviteCode("120363280294352768@g.us");
-                //var link = "https://chat.whatsapp.com/EzZfmQJDoyY7VPklVxVV9l";
+                //var result = await socket.GroupInviteCode(groupId);
                 //var result = await socket.GroupGetInviteInfo("EzZfmQJDoyY7VPklVxVV9l");
             }
         }
 
-        public static object locker = new object();
-        private static void AuthEvent_OnEmit(AuthenticationCreds[] args)
+        private static void Auth_Update(object? sender, AuthenticationCreds e)
         {
             lock (locker)
             {
                 var credsFile = Path.Join(socket.SocketConfig.CacheRoot, $"creds.json");
-                var json = AuthenticationCreds.Serialize(args[0]);
+                var json = AuthenticationCreds.Serialize(e);
                 File.WriteAllText(credsFile, json);
             }
         }
+
+
+
 
 
 

@@ -38,54 +38,284 @@ namespace WhatsSocket.Core.NoSQL
             State = new ConnectionState();
             EV = ev;
             Logger = logger;
-            database = new LiteDB.LiteDatabase($"{root}\\store.db");
-
-            var historyEvent = EV.On<MessageHistoryModel>(EmitType.Set);
-            historyEvent.Multi += HistoryEvent_Emit;
-
-            var connectionEvent = EV.On<ConnectionState>(EmitType.Update);
-            connectionEvent.Multi += ConnectionEvent_Emit;
-
-            var contactUpdateEvent = EV.On<ContactModel>(EmitType.Update);
-            contactUpdateEvent.Multi += ContactUpdateEvent_Emit;
-            var contactUpsert = EV.On<ContactModel>(EmitType.Upsert);
-            contactUpsert.Multi += ContactUpsert_Emit;
-
-            var messageUpdateEvent = EV.On<WebMessageInfo>(EmitType.Update);
-            messageUpdateEvent.Multi += MessageUpdateEvent_Emit;
-            var messageUpsert = EV.On<MessageUpsertModel>(EmitType.Upsert);
-            messageUpsert.Multi += MessageUpsert_Emit;
-            var messageDelete = EV.On<MessageUpdate>(EmitType.Delete);
-            messageDelete.Multi += MessageDelete_Emit;
-            var messageReceipt = EV.On<MessageReceipt>(EmitType.Upsert);
-            messageReceipt.Multi += MessageReceipt_Multi;
-
-
-            var chatUpsertEvent = EV.On<ChatModel>(EmitType.Upsert);
-            chatUpsertEvent.Multi += ChatUpsertEvent_Emit;
-            var chatUpdateEvent = EV.On<ChatModel>(EmitType.Update);
-            chatUpdateEvent.Multi += ChatUpdateEvent_Emit;
-            var chatDeleteEvent = EV.On<ChatModel>(EmitType.Delete);
-            chatDeleteEvent.Multi += ChatDeleteEvent_Emit;
-
-
-            var groupUpdateEvent = EV.On<GroupUpdateModel>(EmitType.Update);
-            groupUpdateEvent.Multi += GroupUpdateEvent_Emit;
-            var groupUpsertEvent = EV.On<GroupMetadataModel>(EmitType.Upsert);
-            groupUpsertEvent.Multi += GroupUpsertEvent_Emit;
-
-            //EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
-            //EV.OnBlockListUpdate += EV_OnBlockListUpdate;
+            database = new LiteDatabase($"{root}\\store.db");
 
             chats = new Store<ChatModel>(database);
             contacts = new Store<ContactModel>(database);
             messages = new Store<MessageModel>(database);
             groupMetaData = new Store<GroupMetadataModel>(database);
 
+            EV.MessageHistory.Set += MessageHistory_Set;
+
+            EV.Connection.Update += Connection_Update;
+
+
+            EV.Contacts.Update += Contacts_Update;
+            EV.Contacts.Upsert += Contacts_Upsert;
+
+            EV.Message.Upsert += Message_Upsert;
+            EV.Message.Update += Message_Update;
+            EV.Message.Delete += Message_Delete;
+            EV.Receipt.Upsert += Receipt_Upsert;
+
+
+            EV.Chats.Upsert += Chats_Upsert;
+            EV.Chats.Update += Chats_Update;
+            EV.Chats.Delete += Chats_Delete;
+
+
+            EV.Group.Update += Group_Update;
+            EV.Group.Upsert += Group_Upsert;
+
+            EV.GroupParticipant.Update += GroupParticipant_Update;
+
+            //EV.OnMessagesMediaUpdate += EV_OnMessagesMediaUpdate;
+            //EV.OnBlockListUpdate += EV_OnBlockListUpdate;
+
+
 
             messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
+        private void GroupParticipant_Update(object? sender, GroupParticipantUpdateModel e)
+        {
+            //TODO:
+        }
+
+        private void Group_Upsert(object? sender, GroupMetadataModel e)
+        {
+            lock (locker)
+            {
+                groupMetaData.Add(e);
+            }
+        }
+
+        private void Group_Update(object? sender, GroupMetadataModel e)
+        {
+            //TODO:
+        }
+
+        private void Chats_Delete(object? sender, ChatModel[] e)
+        {
+            //TODO
+        }
+
+        private void Chats_Update(object? sender, ChatModel[] e)
+        {
+            lock (locker)
+            {
+                changes = true;
+                foreach (var update in e)
+                {
+                    var existing = GetChat(update.ID);
+                    if (existing != null)
+                    {
+                        existing.Update(update);
+                        chats.Update(existing);
+                    }
+                }
+            }
+        }
+
+        private void Chats_Upsert(object? sender, ChatModel[] e)
+        {
+            lock (locker)
+            {
+                changes = true;
+                chats.Upsert(e);
+            }
+        }
+
+        private void Receipt_Upsert(object? sender, MessageReceipt[] e)
+        {
+            List<MessageReceipt> updates = new List<MessageReceipt>();
+
+            foreach (var item in e)
+            {
+                var msg = GetMessage(item.MessageID);
+                if (msg != null)
+                {
+                    msg.Receipts = msg.Receipts ?? new List<MessageReceipt>();
+
+                    var info = msg.ToMessageInfo();
+
+                    var receipt = info.UserReceipt.FirstOrDefault(x => x.UserJid == item.RemoteJid);
+                    if (receipt == null)
+                    {
+                        receipt = new UserReceipt()
+                        {
+                            UserJid = item.RemoteJid
+                        };
+                        info.UserReceipt.Add(receipt);
+                    }
+
+                    switch (item.Status)
+                    {
+                        case WebMessageInfo.Types.Status.ServerAck:
+                        case WebMessageInfo.Types.Status.DeliveryAck:
+                            if (!receipt.HasReceiptTimestamp)
+                            {
+                                receipt.ReceiptTimestamp = item.Time;
+                            }
+                            break;
+                        case WebMessageInfo.Types.Status.Read:
+                            receipt.ReadTimestamp = item.Time;
+                            break;
+                        case WebMessageInfo.Types.Status.Played:
+                            receipt.PlayedTimestamp = item.Time;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    var jid = JidEncode(JidDecode(item.RemoteJid)?.User ?? "", "s.whatsapp.net");
+
+                    if (!msg.Receipts.Any(x => x.RemoteJid == jid && x.Status == item.Status))
+                    {
+                        var recpt = new MessageReceipt()
+                        {
+                            MessageID = item.MessageID,
+                            RemoteJid = jid,
+                            Status = item.Status,
+                            Time = item.Time,
+                        };
+                        updates.Add(recpt);
+                        msg.Receipts.Add(recpt);
+                    }
+
+                    msg.Message = info.ToByteArray();
+
+                    messages.Update(msg);
+                }
+            }
+
+            if (updates.Count > 0)
+                EV.Emit(EmitType.Update, updates.ToArray());
+        }
+
+        private void Message_Delete(object? sender, WebMessageInfo[] e)
+        {
+            //TODO
+        }
+
+        private void Message_Update(object? sender, WebMessageInfo[] e)
+        {
+            //TODO
+        }
+
+        private void Message_Upsert(object? sender, MessageEventModel e)
+        {
+            lock (locker)
+            {
+                var item = e;
+                switch (item.Type)
+                {
+                    case MessageEventType.Append:
+                    case MessageEventType.Notify:
+                        foreach (var msg in item.Messages)
+                        {
+                            var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
+                            if (messageList.ContainsKey(jid) == false)
+                            {
+                                messageList[jid] = new List<WebMessageInfo>();
+                            }
+                            messageList[jid].Add(msg);
+                            messages.Add(new MessageModel(msg));
+
+                            var chat = GetChat(jid);
+                            if (chat != null)
+                            {
+                                chat.UnreadCount++;
+                                chat.ConversationTimestamp = msg.MessageTimestamp;
+                                EV.Emit(EmitType.Update, chat);
+                            }
+                            else
+                            {
+                                chat = new ChatModel()
+                                {
+                                    ID = jid,
+                                    ConversationTimestamp = msg.MessageTimestamp,
+                                    UnreadCount = 1
+                                };
+                                EV.Emit(EmitType.Upsert, chat);
+                            }
+
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+
+        private void Contacts_Upsert(object? sender, ContactModel[] e)
+        {
+            ContactsUpsert(e.ToList());
+        }
+
+        private void Contacts_Update(object? sender, ContactModel[] e)
+        {
+            //TODO
+        }
+
+        private void Connection_Update(object? sender, ConnectionState e)
+        {
+            State.Connection = e.Connection;
+            State.QR = e.QR;
+            State.LastDisconnect = e.LastDisconnect;
+            State.IsOnline = e.IsOnline;
+            State.ReceivedPendingNotifications = e.ReceivedPendingNotifications;
+            State.IsNewLogin = e.IsNewLogin;
+        }
+
+        private void MessageHistory_Set(object? sender, MessageHistoryModel[] e)
+        {
+            foreach (var item in e)
+            {
+
+                lock (locker)
+                {
+                    changes = true;
+                    if (item.IsLatest)
+                    {
+                        chats.DeleteAll();
+                        messages.DeleteAll();
+                    }
+                    var chatsAdded = chats.InsertIfAbsent(item.Chats);
+                    Logger.Debug(new { chatsAdded }, "synced chats");
+
+                    var oldContacts = ContactsUpsert(item.Contacts);
+                    if (item.IsLatest)
+                    {
+                        foreach (var contact in oldContacts)
+                        {
+                            var deleted = contacts.Delete(contact);
+                        }
+                    }
+
+                    Logger.Debug(new { deletedContacts = item.IsLatest ? oldContacts.Length : 0, item.Contacts }, "synced contacts");
+
+                    var newMessages = new List<MessageModel>();
+                    foreach (var msg in item.Messages)
+                    {
+                        var storeMessage = new MessageModel(msg);
+                        var jid = msg.Key.RemoteJid;
+                        if (messageList.ContainsKey(jid) == false)
+                        {
+                            messageList[jid] = new List<WebMessageInfo>();
+                        }
+                        messageList[jid].Insert(0, msg);
+                        newMessages.Add(storeMessage);
+
+                    }
+                    messages.InsertIfAbsent(newMessages);
+
+                    Logger.Debug(new { messages = item.Messages.Count }, "synced messages");
+                }
+            }
         }
 
         private void MessageReceipt_Multi(MessageReceipt[] args)
@@ -155,20 +385,6 @@ namespace WhatsSocket.Core.NoSQL
                 EV.Emit(EmitType.Update, updates.ToArray());
         }
 
-        private void GroupUpdateEvent_Emit(GroupUpdateModel[] args)
-        {
-
-        }
-
-        private void ConnectionEvent_Emit(ConnectionState[] args)
-        {
-            State.Connection = args[0].Connection;
-            State.QR = args[0].QR;
-            State.LastDisconnect = args[0].LastDisconnect;
-            State.IsOnline = args[0].IsOnline;
-            State.ReceivedPendingNotifications = args[0].ReceivedPendingNotifications;
-            State.IsNewLogin = args[0].IsNewLogin;
-        }
 
         private void GroupUpsertEvent_Emit(GroupMetadataModel[] args)
         {
@@ -180,46 +396,6 @@ namespace WhatsSocket.Core.NoSQL
 
 
 
-        private void ChatDeleteEvent_Emit(ChatModel[] args)
-        {
-            ///TODO
-        }
-
-        private void ChatUpdateEvent_Emit(ChatModel[] args)
-        {
-            lock (locker)
-            {
-                changes = true;
-                foreach (var update in args)
-                {
-                    var existing = chats.FindByID(update.ID);
-                    if (existing != null)
-                    {
-                        existing.Update(update);
-                        chats.Update(existing);
-                    }
-                }
-            }
-        }
-
-        private void ChatUpsertEvent_Emit(ChatModel[] args)
-        {
-            lock (locker)
-            {
-                changes = true;
-                chats.Upsert(args);
-            }
-        }
-
-        private void ContactUpsert_Emit(ContactModel[] args)
-        {
-            ContactsUpsert(args.ToList());
-        }
-
-        private void ContactUpdateEvent_Emit(ContactModel[] args)
-        {
-            ///TODO
-        }
 
 
         private ContactModel[] ContactsUpsert(List<ContactModel> newContacts)
@@ -243,106 +419,6 @@ namespace WhatsSocket.Core.NoSQL
             ///TODO
         }
 
-        private void MessageUpsert_Emit(MessageUpsertModel[] args)
-        {
-            lock (locker)
-            {
-                foreach (var item in args)
-                {
-
-                    changes = true;
-                    switch (item.Type)
-                    {
-                        case MessageUpsertType.Append:
-                        case MessageUpsertType.Notify:
-                            foreach (var msg in item.Messages)
-                            {
-                                var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
-                                if (messageList.ContainsKey(jid) == false)
-                                {
-                                    messageList[jid] = new List<WebMessageInfo>();
-                                }
-                                messageList[jid].Add(msg);
-                                messages.Add(new MessageModel(msg));
-
-                                var chat = chats.FirstOrDefault(x => x.ID == jid);
-                                if (chat != null)
-                                {
-                                    chat.UnreadCount++;
-                                    chat.ConversationTimestamp = msg.MessageTimestamp;
-                                    EV.Emit(EmitType.Update, chat);
-                                }
-                                else
-                                {
-                                    chat = new ChatModel()
-                                    {
-                                        ID = jid,
-                                        ConversationTimestamp = msg.MessageTimestamp,
-                                        UnreadCount = 1
-                                    };
-                                    EV.Emit(EmitType.Upsert, chat);
-                                }
-
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-
-        private void MessageUpdateEvent_Emit(WebMessageInfo[] args)
-        {
-            ///TODO
-        }
-
-        private void HistoryEvent_Emit(MessageHistoryModel[] args)
-        {
-            foreach (var item in args)
-            {
-
-                lock (locker)
-                {
-                    changes = true;
-                    if (item.IsLatest)
-                    {
-                        chats.DeleteAll();
-                        messages.DeleteAll();
-                    }
-                    var chatsAdded = chats.InsertIfAbsent(item.Chats);
-                    Logger.Debug(new { chatsAdded }, "synced chats");
-
-                    var oldContacts = ContactsUpsert(item.Contacts);
-                    if (item.IsLatest)
-                    {
-                        foreach (var contact in oldContacts)
-                        {
-                            var deleted = contacts.Delete(contact);
-                        }
-                    }
-
-                    Logger.Debug(new { deletedContacts = item.IsLatest ? oldContacts.Length : 0, item.Contacts }, "synced contacts");
-
-                    var newMessages = new List<MessageModel>();
-                    foreach (var msg in item.Messages)
-                    {
-                        var storeMessage = new MessageModel(msg);
-                        var jid = msg.Key.RemoteJid;
-                        if (messageList.ContainsKey(jid) == false)
-                        {
-                            messageList[jid] = new List<WebMessageInfo>();
-                        }
-                        messageList[jid].Insert(0, msg);
-                        newMessages.Add(storeMessage);
-
-                    }
-                    messages.InsertIfAbsent(newMessages);
-
-                    Logger.Debug(new { messages = item.Messages.Count }, "synced messages");
-                }
-            }
-        }
 
 
         bool changes = true;

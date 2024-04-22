@@ -35,7 +35,7 @@ namespace WhatsAppSocket.Tests
         {
             var config = new SocketConfig()
             {
-                ID = "CreateSession",
+                SessionName = "CreateSession",
             };
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
             AuthenticationCreds? authentication = null;
@@ -94,7 +94,7 @@ namespace WhatsAppSocket.Tests
         {
             var config = new SocketConfig()
             {
-                ID = "TEST",
+                SessionName = "TEST",
             };
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
             AuthenticationCreds? authentication = null;
@@ -144,7 +144,7 @@ namespace WhatsAppSocket.Tests
         {
             var config = new SocketConfig()
             {
-                ID = "TEST",
+                SessionName = "TEST",
             };
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
             AuthenticationCreds? authentication = null;
@@ -548,7 +548,7 @@ Outgoing: 27797798179.17 done";
         {
             var config = new SocketConfig()
             {
-                ID = "TestGroupEnc",
+                SessionName = "TestGroupEnc",
             };
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
             AuthenticationCreds? authentication = null;

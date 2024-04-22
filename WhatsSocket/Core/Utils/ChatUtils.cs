@@ -426,12 +426,12 @@ namespace WhatsSocket.Core.Utils
             }
             else if (action?.DeleteMessageForMeAction != null || type == "deleteMessageForMe")
             {
-                eV.Emit(EmitType.Delete, [new MessageModel()
+                var message = store.GetMessage(id);
+                if (message != null)
                 {
-                    ID = msgId,
-                    RemoteJid = id,
-                    FromMe = fromMe == "1"
-                }]);
+                    var msg = message.ToMessageInfo();
+                    eV.Emit(EmitType.Delete, new MessageEventModel(MessageEventType.Delete, msg));
+                }
             }
             else if (action?.ContactAction != null)
             {
@@ -465,20 +465,22 @@ namespace WhatsSocket.Core.Utils
             else if (action?.StarAction != null)
             {
                 var starred = action.StarAction.Starred;
-                eV.Emit(EmitType.Update, [new MessageUpdate() {
-                    Key = new MessageKey(){
-                        RemoteJid = id,
-                        Id = msgId,
-                        FromMe = fromMe == "1"
-                    },
-                    Update = new MessageUpdateModel(){
-                        Starred = starred,
-                    }
-                }]);
+                var message = store.GetMessage(id);
+                if (message != null)
+                {
+                    var msg = message.ToMessageInfo();
+                    msg.Starred = starred;
+                    eV.Emit(EmitType.Update, new MessageEventModel(MessageEventType.Update, msg));
+                }
+
             }
             else if (action?.DeleteChatAction != null)
             {
-                eV.Emit(EmitType.Delete, new ChatModel() { ID = id });
+                var chat = store.GetContact(id);
+                if (chat != null)
+                {
+                    eV.Emit(EmitType.Delete, chat);
+                }
             }
             else if (action?.LabelEditAction != null)
             {

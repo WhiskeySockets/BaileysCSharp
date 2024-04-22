@@ -6,10 +6,12 @@ using WhatsSocket.Core.NoSQL;
 
 namespace WhatsSocket.Core.Models
 {
-    public enum MessageUpsertType
+    public enum MessageEventType
     {
         Append = 1,
-        Notify = 2
+        Notify = 2,
+        Delete = 3,
+        Update = 4,
     }
 
     public interface IEventManage
@@ -73,22 +75,22 @@ namespace WhatsSocket.Core.Models
         public bool IsLatest { get; set; }
     }
 
-    public class MessageUpsertModel : IEventManage
+    public class MessageEventModel : IEventManage
     {
-        public MessageUpsertModel(MessageUpsertType type, params WebMessageInfo[] messages)
+        public MessageEventModel(MessageEventType type, params WebMessageInfo[] messages)
         {
             Type = type;
             Messages = messages;
         }
 
-        public MessageUpsertType Type { get; set; }
+        public MessageEventType Type { get; set; }
         public WebMessageInfo[] Messages { get; set; }
 
         public bool CanMerge(IEventManage eventManage)
         {
             if (eventManage == null)
                 return false;
-            if (eventManage is MessageUpsertModel newEvent)
+            if (eventManage is MessageEventModel newEvent)
             {
                 if (newEvent.Type == Type)
                     return true;
@@ -99,7 +101,7 @@ namespace WhatsSocket.Core.Models
 
         public void Merge(IEventManage eventManage)
         {
-            if (eventManage is MessageUpsertModel newEvent)
+            if (eventManage is MessageEventModel newEvent)
             {
                 Messages = Messages.Concat(newEvent.Messages).ToArray();
             }
@@ -128,7 +130,9 @@ namespace WhatsSocket.Core.Models
         public string RemoteJid { get; set; }
         public bool FromMe { get; internal set; }
 
+        //THIS IS A VERY BAD APPROACH, TEMPORARY ONLY, I WAS LAZY
         public byte[] Message { get; set; }
+
         public DateTime MessageDate { get; set; }
 
         public MessageModel()
@@ -140,9 +144,11 @@ namespace WhatsSocket.Core.Models
             ID = info.Key.Id;
             MessageType = info.MessageStubType.ToString();
             RemoteJid = info.Key.RemoteJid;
-            Message = info.ToByteArray();
             FromMe = info.Key.FromMe;
             MessageDate = DateTimeOffset.FromUnixTimeSeconds((long)info.MessageTimestamp).LocalDateTime;
+
+            //THIS IS A VERY BAD APPROACH, TEMPORARY ONLY, I WAS LAZY
+            Message = info.ToByteArray();
         }
 
         public string GetID()
@@ -150,6 +156,7 @@ namespace WhatsSocket.Core.Models
             return ID;
         }
 
+        //THIS IS A VERY BAD APPROACH, TEMPORARY ONLY, I WAS LAZY
         public WebMessageInfo ToMessageInfo()
         {
             return WebMessageInfo.Parser.ParseFrom(Message);

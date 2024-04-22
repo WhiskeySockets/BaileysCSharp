@@ -271,7 +271,7 @@ namespace WhatsSocket.Core.Sockets
                 });
 
 
-                await UpsertMessage(fullMsg, MessageUpsertType.Append);
+                await UpsertMessage(fullMsg, MessageEventType.Append);
 
                 return fullMsg;
             }
