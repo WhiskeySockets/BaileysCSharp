@@ -1,4 +1,4 @@
-﻿namespace BaileysCSharp.Core.Models
+﻿namespace BaileysCSharp.Core.Types
 {
     public class CipherTextMessage
     {

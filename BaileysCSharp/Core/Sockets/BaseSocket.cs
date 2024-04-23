@@ -24,6 +24,7 @@ using static BaileysCSharp.Core.WABinary.Constants;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Extensions;
 using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core
 {

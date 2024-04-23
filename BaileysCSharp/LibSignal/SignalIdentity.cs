@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using BaileysCSharp.Core.Signal;
+using Newtonsoft.Json;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.LibSignal
 {
     public class SignalIdentity
     {

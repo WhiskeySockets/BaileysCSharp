@@ -1,7 +1,7 @@
 ﻿using Proto;
 using BaileysCSharp.Exceptions;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.WABinary
 {
     public class RetryNode
     {

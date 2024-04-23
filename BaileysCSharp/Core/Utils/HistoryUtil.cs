@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Models;
-using BaileysCSharp.Core.WABinary;
 using static Proto.Message.Types;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -95,9 +95,9 @@ namespace BaileysCSharp.Core.Utils
             return new MessageHistoryModel(contacts, chats, messages,false);
         }
 
-        private static async Task<HistorySync> DownloadHistory(Message.Types.HistorySyncNotification msg)
+        private static async Task<HistorySync> DownloadHistory(HistorySyncNotification msg)
         {
-            var stream = await MediaMessageUtil.DownloadContentFromMessage(msg, "md-msg-hist", new Models.MediaDownloadOptions());
+            var stream = await MediaMessageUtil.DownloadContentFromMessage(msg, "md-msg-hist", new MediaDownloadOptions());
             var buffer = BufferReader.Inflate(stream);
             var syncData = HistorySync.Parser.ParseFrom(buffer);
             return syncData;

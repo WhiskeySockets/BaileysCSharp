@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Converters;
 
 namespace BaileysCSharp.LibSignal
 {

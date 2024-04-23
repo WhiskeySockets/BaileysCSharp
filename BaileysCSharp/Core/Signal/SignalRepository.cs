@@ -1,12 +1,12 @@
 ﻿using Google.Protobuf;
 using Proto;
-using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Models.SenderKeys;
 using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Stores;
 using BaileysCSharp.LibSignal;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Signal
 {
@@ -33,11 +33,7 @@ namespace BaileysCSharp.Core.Signal
             var cipher = new SessionCipher(Storage, address);
 
             var enc = cipher.Encrypt(data);
-            return new CipherMessage()
-            {
-                Type = enc.Type == 3 ? "pkmsg" : "msg",
-                CipherText = enc.Data
-            };
+            return new CipherMessage(enc.Type == 3 ? "pkmsg" : "msg", enc.Data);
         }
 
         public byte[] DecryptMessage(string user, string type, byte[] ciphertext)

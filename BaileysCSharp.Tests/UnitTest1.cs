@@ -13,6 +13,7 @@ using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Utils;
 using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Tests
 {

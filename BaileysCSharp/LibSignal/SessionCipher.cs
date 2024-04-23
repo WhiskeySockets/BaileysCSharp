@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using Textsecure;
 using BaileysCSharp.Core.Helper;
-using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Exceptions;
 using BaileysCSharp.LibSignal;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.LibSignal
 {

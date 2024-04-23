@@ -3,8 +3,9 @@ using LiteDB;
 using Newtonsoft.Json;
 using Proto;
 using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Models;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     public enum MessageEventType
     {

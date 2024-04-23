@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Utils
 {
     internal class MutationKey
     {

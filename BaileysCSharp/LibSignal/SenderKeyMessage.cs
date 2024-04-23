@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Exceptions;
-using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Types;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.LibSignal
 {
 
     public class SenderKeyMessage : CipherTextMessage
@@ -23,7 +23,7 @@ namespace BaileysCSharp.Core.Models
 
 
 
-            int version = (((CURRENT_VERSION << 4) | CURRENT_VERSION) & 0xff) % 256;
+            int version = ((CURRENT_VERSION << 4 | CURRENT_VERSION) & 0xff) % 256;
 
             var message = new Proto.SenderKeyMessage()
             {

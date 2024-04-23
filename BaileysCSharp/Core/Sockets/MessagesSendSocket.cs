@@ -2,10 +2,9 @@
 using System.Diagnostics.CodeAnalysis;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Utils;
-using BaileysCSharp.Core.WABinary;
 using static BaileysCSharp.Core.Utils.MessageUtil;
 using static BaileysCSharp.Core.Utils.GenericUtils;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
 using static BaileysCSharp.Core.WABinary.Constants;
 using static BaileysCSharp.Core.Utils.ValidateConnectionUtil;
 using static BaileysCSharp.Core.Utils.SignalUtils;
@@ -22,6 +21,8 @@ using BaileysCSharp.Core.Models.Sending.Interfaces;
 using BaileysCSharp.Core.Models.SenderKeys;
 using BaileysCSharp.Core.Helper;
 using Org.BouncyCastle.Asn1.X509;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Sockets
 {

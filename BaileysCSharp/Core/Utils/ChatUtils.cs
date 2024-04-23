@@ -22,6 +22,7 @@ using static BaileysCSharp.Core.Utils.MediaMessageUtil;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Events;
 using System.Runtime.CompilerServices;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Utils
 {

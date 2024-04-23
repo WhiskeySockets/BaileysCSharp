@@ -5,11 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Models;
 using static BaileysCSharp.Core.Utils.GenericUtils;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
 using static BaileysCSharp.Core.Helper.CryptoUtils;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Stores;
 using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Utils
 {

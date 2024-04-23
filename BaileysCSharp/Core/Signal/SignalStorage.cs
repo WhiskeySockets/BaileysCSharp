@@ -5,6 +5,7 @@ using BaileysCSharp.Core.Models.SenderKeys;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.LibSignal;
 using static BaileysCSharp.Core.Helper.CryptoUtils;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Signal
 {

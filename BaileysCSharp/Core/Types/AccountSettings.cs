@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     public class AccountSettings
     {

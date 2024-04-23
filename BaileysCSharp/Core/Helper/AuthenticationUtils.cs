@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Types;
 using BaileysCSharp.LibSignal;
 using static BaileysCSharp.Core.Helper.CryptoUtils;
 using static BaileysCSharp.Core.Utils.GenericUtils;

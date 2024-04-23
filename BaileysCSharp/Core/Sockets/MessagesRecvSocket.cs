@@ -6,7 +6,6 @@ using BaileysCSharp.Core.Extensions;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Utils;
-using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.Exceptions;
 using static BaileysCSharp.Core.Utils.ProcessMessageUtil;
 using static BaileysCSharp.Core.Utils.GenericUtils;
@@ -14,6 +13,8 @@ using static BaileysCSharp.Core.WABinary.Constants;
 using BaileysCSharp.Core.Events;
 using BaileysCSharp.Core.Models.Sending;
 using System.Globalization;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Sockets
 {

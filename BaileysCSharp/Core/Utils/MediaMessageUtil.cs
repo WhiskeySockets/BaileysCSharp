@@ -14,6 +14,7 @@ using BaileysCSharp.Exceptions;
 using static Proto.Message.Types.BCallMessage.Types;
 using static Proto.Message.Types.InteractiveMessage.Types;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Utils
 {

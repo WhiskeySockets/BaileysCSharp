@@ -10,6 +10,7 @@ using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Models
 {

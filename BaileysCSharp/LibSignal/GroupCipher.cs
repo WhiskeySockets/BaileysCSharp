@@ -2,10 +2,11 @@
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Models.SenderKeys;
 using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Stores;
 using BaileysCSharp.Exceptions;
 
-namespace BaileysCSharp.Core.Signal
+namespace BaileysCSharp.LibSignal
 {
     internal class GroupCipher
     {

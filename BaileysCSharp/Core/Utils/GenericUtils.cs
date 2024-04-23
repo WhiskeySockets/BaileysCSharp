@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Utils
 {

@@ -14,10 +14,11 @@ using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Extensions;
 using BaileysCSharp.Core.Sockets;
 using BaileysCSharp.Exceptions;
-using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.Core.Models.Sending.Media;
 using BaileysCSharp.Core.Models.Sending.NonMedia;
 using BaileysCSharp.Core.Models.Sending;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.Utils;
 
 namespace WhatsSocketConsole
 {

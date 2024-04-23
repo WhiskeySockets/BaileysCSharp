@@ -7,8 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.NoSQL;
-using BaileysCSharp.Core.WABinary;
 using static BaileysCSharp.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Models
 {

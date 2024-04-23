@@ -17,6 +17,7 @@ using static BaileysCSharp.Core.WABinary.Constants;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Sockets;
 using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core
 {
@@ -65,57 +66,6 @@ namespace BaileysCSharp.Core
 
 
 
-        private void SendPresenceUpdate(WAPresence type, string toJid = "")
-        {
-            var me = Creds.Me;
-            if (type == WAPresence.Available || type == WAPresence.Unavailable)
-            {
-                if (me?.Name == null)
-                {
-                    Logger.Warn("no name present, ignoring presence update requests...");
-                    return;
-                }
-                EV.Emit(EmitType.Update, new ConnectionState() { IsOnline = type == WAPresence.Available });
-
-                SendNode(new BinaryNode()
-                {
-                    tag = "presence",
-                    attrs =
-                    {
-                        { "name", me.Name },
-                        { "type" , type.ToString().ToLowerInvariant() }
-                    }
-                });
-            }
-            else
-            {
-                var childNode = new BinaryNode()
-                {
-                    tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
-                };
-                if (type == WAPresence.Recording)
-                {
-                    childNode = new BinaryNode()
-                    {
-                        tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
-                        attrs = {
-                            {"media" ,"audio" }
-                        }
-                    };
-                }
-                SendNode(new BinaryNode()
-                {
-                    tag = "chatstate",
-                    attrs =
-                    {
-                        {"from", me.ID },
-                        {"to", toJid}
-                    },
-                    content = new BinaryNode[] { childNode }
-                });
-
-            }
-        }
 
         private bool PendingAppStateSync { get; set; } = false;
         private bool NeedToFlushWithAppStateSync { get; set; } = false;
@@ -396,8 +346,9 @@ namespace BaileysCSharp.Core
             return true;
         }
 
-        internal async Task CleanDirtyBits(string type, ulong? fromTimestamp = null)
+        public async Task CleanDirtyBits(string type, ulong? fromTimestamp = null)
         {
+            await Task.Yield();
             Logger.Info(new { DateTime.Now }, "clean dirty bits " + type);
 
             var attrs = new Dictionary<string, string>()
@@ -430,7 +381,6 @@ namespace BaileysCSharp.Core
             });
         }
 
-
         public async Task PrivacyQuery(string name, string value)
         {
             var node = new BinaryNode()
@@ -453,7 +403,6 @@ namespace BaileysCSharp.Core
             };
             var result = await Query(node);
         }
-
 
         public async void UpdateLastSeenPrivacy(WAPrivacyValue value)
         {
@@ -511,7 +460,6 @@ namespace BaileysCSharp.Core
         }
 
 
-        //TODO: THIS IS NOT WORKING
         public async Task<BinaryNode[]> InteractiveQuery(BinaryNode[] userNodes, BinaryNode queryNode)
         {
             var result = await Query(new BinaryNode()
@@ -616,8 +564,57 @@ namespace BaileysCSharp.Core
         }
 
         //TODO updateProfilePicture
-        //TODO removeProfilePicture
-        //TODO updateProfileStatus
+
+        public async Task RemoveProfilePicture(string jid)
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs = {
+                    {
+                        "to", JidUtils.JidNormalizedUser(jid)
+                    } ,
+                    {
+                        "type", "set"
+                    },
+                    {
+                        "xmlns", "w:profile:picture"
+                    }
+
+                }
+            };
+            await Query(node);
+        }
+
+        public async Task UpdateProfileStatus(string status)
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs = 
+                {
+                    {
+                        "to", S_WHATSAPP_NET
+                    } ,
+                    {
+                        "type", "set"
+                    },
+                    {
+                        "xmlns", "status"
+                    }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "status",
+                        content = Encoding.UTF8.GetBytes(status)
+                    }
+                }
+            };
+            await Query(node);
+        }
+
         //TODO updateProfileName
         private async void FetchBlocklist()
         {
@@ -641,9 +638,87 @@ namespace BaileysCSharp.Core
         //TODO updateBlockStatus
         //TODO getBusinessProfile
         //TODO getBusinessProfile
-        //TODO profilePictureUrl
-        //TODO presenceSubscribe
-        //TODO presenceSubscribe
+
+        private void SendPresenceUpdate(WAPresence type, string toJid = "")
+        {
+            var me = Creds.Me;
+            if (type == WAPresence.Available || type == WAPresence.Unavailable)
+            {
+                if (me?.Name == null)
+                {
+                    Logger.Warn("no name present, ignoring presence update requests...");
+                    return;
+                }
+                EV.Emit(EmitType.Update, new ConnectionState() { IsOnline = type == WAPresence.Available });
+
+                SendNode(new BinaryNode()
+                {
+                    tag = "presence",
+                    attrs =
+                    {
+                        { "name", me.Name },
+                        { "type" , type.ToString().ToLowerInvariant() }
+                    }
+                });
+            }
+            else
+            {
+                var childNode = new BinaryNode()
+                {
+                    tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
+                };
+                if (type == WAPresence.Recording)
+                {
+                    childNode = new BinaryNode()
+                    {
+                        tag = type == WAPresence.Recording ? "composing" : type.ToString().ToLowerInvariant(),
+                        attrs = {
+                            {"media" ,"audio" }
+                        }
+                    };
+                }
+                SendNode(new BinaryNode()
+                {
+                    tag = "chatstate",
+                    attrs =
+                    {
+                        {"from", me.ID },
+                        {"to", toJid}
+                    },
+                    content = new BinaryNode[] { childNode }
+                });
+
+            }
+        }
+
+        public void PresenceSubscribe(string toJid, byte[] tcToken)
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {
+                        "to", toJid
+                    } ,
+                    {
+                        "id", GenerateMessageTag()
+                    },
+                    {
+                        "type", "subscribe"
+                    }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "tctoken",
+                        content = tcToken
+                    }
+                }
+            };
+            SendNode(node);
+        }
 
         private async Task<bool> HandlePresenceUpdate(BinaryNode node)
         {

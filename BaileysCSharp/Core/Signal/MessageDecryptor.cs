@@ -1,7 +1,8 @@
 ﻿using Proto;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Signal
 {

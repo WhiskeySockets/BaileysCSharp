@@ -1,13 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using BaileysCSharp.Core.Models;
-using static BaileysCSharp.Core.Utils.ChatUtils;
-using static BaileysCSharp.Core.Models.ChatConstants;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Utils;
 using BaileysCSharp.Core.Extensions;
-using BaileysCSharp.Core.WABinary;
 using System.Text;
-using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Sockets
 {

@@ -14,8 +14,9 @@ using BaileysCSharp.Core.Events;
 using BaileysCSharp.Core.Extensions;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
-using BaileysCSharp.Core.WABinary;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.Utils;
 
 namespace BaileysCSharp.Core.NoSQL
 {

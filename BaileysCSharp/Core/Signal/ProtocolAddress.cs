@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Signal
 {
     public class ProtocolAddress
     {

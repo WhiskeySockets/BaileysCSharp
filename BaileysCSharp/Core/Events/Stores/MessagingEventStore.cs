@@ -1,5 +1,5 @@
 ﻿using Proto;
-using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Events.Stores
 {

@@ -1,7 +1,7 @@
 ﻿using LiteDB;
 using Newtonsoft.Json;
 using BaileysCSharp.Core.NoSQL;
-using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Core.Utils;
 
 namespace BaileysCSharp.Core.Models
 {

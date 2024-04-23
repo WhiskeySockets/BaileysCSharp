@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.NoSQL;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     public class AuthenticationState
     {

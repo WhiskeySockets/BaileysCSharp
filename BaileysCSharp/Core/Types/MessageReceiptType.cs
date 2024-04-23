@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
-    //    export type MessageReceiptType = 'read' | 'read-self' | 'hist_sync' | 'peer_msg' | 'sender' | 'inactive' | 'played' | undefined
     internal class MessageReceiptType
     {
         public const string Read = "read";

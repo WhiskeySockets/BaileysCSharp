@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Converters;
 
 namespace BaileysCSharp.Core.NoSQL
 {

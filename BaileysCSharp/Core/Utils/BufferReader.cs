@@ -7,8 +7,8 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using BaileysCSharp.Core.Models;
-using BaileysCSharp.Core.WABinary;
 using static BaileysCSharp.Core.WABinary.Constants;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Utils
 {

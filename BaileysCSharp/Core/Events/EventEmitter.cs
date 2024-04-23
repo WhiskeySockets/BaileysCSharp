@@ -11,7 +11,8 @@ using BaileysCSharp.Core.Events.Stores;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Stores;
 using BaileysCSharp.Core.WABinary;
-using ConnectionState = BaileysCSharp.Core.Models.ConnectionState;
+using ConnectionState = BaileysCSharp.Core.Types.ConnectionState;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Events
 {

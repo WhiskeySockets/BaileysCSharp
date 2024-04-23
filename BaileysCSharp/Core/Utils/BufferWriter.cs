@@ -1,7 +1,9 @@
 ﻿using System.Text;
 using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Signal;
 using static BaileysCSharp.Core.WABinary.Constants;
-using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Utils
 {

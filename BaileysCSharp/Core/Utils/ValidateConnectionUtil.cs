@@ -18,6 +18,8 @@ using static BaileysCSharp.Core.Helper.CryptoUtils;
 using BaileysCSharp.Core.Extensions;
 using Newtonsoft.Json;
 using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Utils
 {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Converters
 {
     internal class BufferConverter : JsonConverter<byte[]>
     {

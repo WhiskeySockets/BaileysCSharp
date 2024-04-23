@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     public class AppStateMacVerification
     {
-        public bool Patch { get;set; }
+        public bool Patch { get; set; }
         public bool Snapshot { get; set; }
     }
 }

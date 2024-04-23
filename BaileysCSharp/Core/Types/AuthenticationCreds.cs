@@ -3,8 +3,10 @@ using Newtonsoft.Json.Linq;
 using Proto;
 using System.Diagnostics.CodeAnalysis;
 using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Converters;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     //public class ProcessedHistoryMessageKey
     //{

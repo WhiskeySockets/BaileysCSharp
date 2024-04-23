@@ -5,8 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Types;
 
-namespace BaileysCSharp.Core.WABinary
+namespace BaileysCSharp.Core.Utils
 {
     public static class JidUtils
     {

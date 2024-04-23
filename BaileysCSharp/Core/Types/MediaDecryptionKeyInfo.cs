@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Helper;
 
-namespace BaileysCSharp.Core.Models
+namespace BaileysCSharp.Core.Types
 {
     public class MediaDecryptionKeyInfo
     {
