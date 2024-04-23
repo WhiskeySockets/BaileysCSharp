@@ -12,10 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhatsSocket\BaileysCSharp.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="CreateSession\pre-key\7.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -51,6 +47,10 @@
   <ItemGroup>
     <Folder Include="CreateSession\pre-key\" />
     <Folder Include="Media\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BaileysCSharp\BaileysCSharp.csproj" />
   </ItemGroup>
 
 </Project>
