@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.NoSQL
+﻿namespace BaileysCSharp.Core.NoSQL
 {
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
     sealed class FolderPrefix : Attribute

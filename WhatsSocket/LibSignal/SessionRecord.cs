@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     //SessionRecord
     [FolderPrefix("session")]

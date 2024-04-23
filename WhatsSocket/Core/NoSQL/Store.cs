@@ -1,7 +1,7 @@
 ﻿using LiteDB;
 using System.Collections;
 
-namespace WhatsSocket.Core.NoSQL
+namespace BaileysCSharp.Core.NoSQL
 {
     public class Store<T> : IEnumerable<T> where T : IMayHaveID
     {

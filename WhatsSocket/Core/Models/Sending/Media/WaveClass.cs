@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WhatsSocket.Core.Models.Sending.Media
+namespace BaileysCSharp.Core.Models.Sending.Media
 {
 
     /// <summary>

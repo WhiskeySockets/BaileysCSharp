@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.Events.Stores
+namespace BaileysCSharp.Core.Events.Stores
 {
     public class ContactsEventStore : DataEventStore<ContactModel>
     {

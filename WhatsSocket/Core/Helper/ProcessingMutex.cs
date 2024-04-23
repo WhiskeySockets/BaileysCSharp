@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Helper
+﻿namespace BaileysCSharp.Core.Helper
 {
     public class ProcessingMutex
     {

@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 
-namespace WhatsSocket.Core.Helper
+namespace BaileysCSharp.Core.Helper
 {
     public enum LogLevel
     {

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.WABinary
+namespace BaileysCSharp.Core.WABinary
 {
     public static class JidUtils
     {

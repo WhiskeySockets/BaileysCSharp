@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models
+﻿namespace BaileysCSharp.Core.Models
 {
     public enum WAConnectionState
     {

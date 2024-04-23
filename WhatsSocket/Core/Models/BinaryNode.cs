@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Dynamic;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class BinaryNode 
     {

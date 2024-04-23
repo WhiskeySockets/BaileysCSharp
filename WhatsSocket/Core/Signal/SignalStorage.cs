@@ -1,12 +1,12 @@
 ﻿using Google.Protobuf;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.LibSignal;
-using static WhatsSocket.Core.Helper.CryptoUtils;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.LibSignal;
+using static BaileysCSharp.Core.Helper.CryptoUtils;
 
-namespace WhatsSocket.Core.Signal
+namespace BaileysCSharp.Core.Signal
 {
     public class SignalStorage
     {

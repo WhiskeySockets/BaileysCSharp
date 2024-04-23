@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.Core.WABinary.JidUtils;
-using static WhatsSocket.Core.Helper.CryptoUtils;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.Models.Sessions;
+using BaileysCSharp.Core.Models;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Helper.CryptoUtils;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.Models.Sessions;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public static class SignalUtils
     {

@@ -1,11 +1,11 @@
-﻿using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Exceptions;
+﻿using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Exceptions;
 
-namespace WhatsSocket.Core.Signal
+namespace BaileysCSharp.Core.Signal
 {
     internal class GroupCipher
     {

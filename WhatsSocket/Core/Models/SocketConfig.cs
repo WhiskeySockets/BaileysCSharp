@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Core.Stores;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Stores;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class SocketConfig
     {

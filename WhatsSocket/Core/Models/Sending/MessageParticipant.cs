@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models.Sending
+﻿namespace BaileysCSharp.Core.Models.Sending
 {
     public class MessageParticipant
     {

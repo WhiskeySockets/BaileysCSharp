@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Proto;
-using WhatsSocket.Core.NoSQL;
+using BaileysCSharp.Core.NoSQL;
 
-namespace WhatsSocket.Core.Stores
+namespace BaileysCSharp.Core.Stores
 {
     [FolderPrefix("app-state-sync-key")]
     public class AppStateSyncKeyStructure

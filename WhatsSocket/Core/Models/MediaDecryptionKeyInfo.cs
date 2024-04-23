@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class MediaDecryptionKeyInfo
     {

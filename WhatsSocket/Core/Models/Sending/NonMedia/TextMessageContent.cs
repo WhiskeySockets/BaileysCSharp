@@ -1,7 +1,7 @@
 ﻿using Proto;
-using WhatsSocket.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
 
-namespace WhatsSocket.Core.Models.Sending.NonMedia
+namespace BaileysCSharp.Core.Models.Sending.NonMedia
 {
     public class TextMessageContent : AnyMessageContent, IMentionable, IContextable, IEditable
     {

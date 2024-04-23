@@ -3,16 +3,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Textsecure;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Exceptions;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.LibSignal;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
 
     public class SessionCipher

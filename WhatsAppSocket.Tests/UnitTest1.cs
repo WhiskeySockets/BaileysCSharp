@@ -4,17 +4,17 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Textsecure;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Core.Utils;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsAppSocket.Tests
+namespace BaileysCSharp.Tests
 {
     public class Tests
     {

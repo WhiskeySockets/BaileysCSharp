@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\Events\NodeEventStore.cs" />
     <Compile Remove="Core\Stores\AppStateSyncKeyStore.cs" />
     <Compile Remove="Core\Stores\AppStateSyncVersionStore.cs" />
     <Compile Remove="Core\Stores\KeyStore.cs" />

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     public class KeyPair
     {

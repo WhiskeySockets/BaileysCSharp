@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhatsSocket\WhatsSocket.csproj" />
+    <ProjectReference Include="..\WhatsSocket\BaileysCSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

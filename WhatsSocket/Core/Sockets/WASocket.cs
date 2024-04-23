@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.Sockets
+namespace BaileysCSharp.Core.Sockets
 {
     public class WASocket : BusinessSocket
     {

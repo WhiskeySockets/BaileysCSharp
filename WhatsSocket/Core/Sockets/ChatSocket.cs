@@ -5,20 +5,20 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.Utils;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Exceptions;
-using static WhatsSocket.Core.Utils.ChatUtils;
-using static WhatsSocket.Core.Models.ChatConstants;
-using static WhatsSocket.Core.WABinary.Constants;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using WhatsSocket.Core.Sockets;
-using WhatsSocket.Core.Events;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Exceptions;
+using static BaileysCSharp.Core.Utils.ChatUtils;
+using static BaileysCSharp.Core.Models.ChatConstants;
+using static BaileysCSharp.Core.WABinary.Constants;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.Sockets;
+using BaileysCSharp.Core.Events;
 
-namespace WhatsSocket.Core
+namespace BaileysCSharp.Core
 {
     public abstract class ChatSocket : BaseSocket
     {

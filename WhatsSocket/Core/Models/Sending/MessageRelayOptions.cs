@@ -1,6 +1,6 @@
-﻿using WhatsSocket.Core.Models.Sending.Interfaces;
+﻿using BaileysCSharp.Core.Models.Sending.Interfaces;
 
-namespace WhatsSocket.Core.Models.Sending
+namespace BaileysCSharp.Core.Models.Sending
 {
     public class MessageRelayOptions : IMessageRelayOptions
     {

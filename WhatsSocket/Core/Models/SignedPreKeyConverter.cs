@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
 
 

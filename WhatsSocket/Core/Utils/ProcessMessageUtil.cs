@@ -8,16 +8,16 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.WABinary;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.WABinary;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class ProcessMessageUtil
     {

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models.SenderKeys
+namespace BaileysCSharp.Core.Models.SenderKeys
 {
     public class SenderKeyState
     {

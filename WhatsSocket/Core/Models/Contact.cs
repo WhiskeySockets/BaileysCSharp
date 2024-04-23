@@ -1,9 +1,9 @@
 ﻿using LiteDB;
 using Newtonsoft.Json;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.WABinary;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.WABinary;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class ContactModel : IMayHaveID
     {

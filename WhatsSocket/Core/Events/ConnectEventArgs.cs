@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Sockets.Client;
+using BaileysCSharp.Core.Sockets.Client;
 
-namespace WhatsSocket.Core.Events
+namespace BaileysCSharp.Core.Events
 {
 
     public delegate void ConnectEventArgs(AbstractSocketClient sender);

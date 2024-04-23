@@ -2,9 +2,9 @@
 using LiteDB;
 using Newtonsoft.Json;
 using Proto;
-using WhatsSocket.Core.NoSQL;
+using BaileysCSharp.Core.NoSQL;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public enum MessageEventType
     {

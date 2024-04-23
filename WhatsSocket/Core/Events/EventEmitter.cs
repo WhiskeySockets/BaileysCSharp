@@ -7,13 +7,13 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events.Stores;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.WABinary;
-using ConnectionState = WhatsSocket.Core.Models.ConnectionState;
+using BaileysCSharp.Core.Events.Stores;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.WABinary;
+using ConnectionState = BaileysCSharp.Core.Models.ConnectionState;
 
-namespace WhatsSocket.Core.Events
+namespace BaileysCSharp.Core.Events
 {
 
     public delegate void EventEmitterHandler<T>(T args);

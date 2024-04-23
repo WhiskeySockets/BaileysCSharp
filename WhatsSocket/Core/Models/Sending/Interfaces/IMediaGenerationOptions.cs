@@ -1,7 +1,7 @@
-﻿using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Utils;
+﻿using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Utils;
 
-namespace WhatsSocket.Core.Models.Sending.Interfaces
+namespace BaileysCSharp.Core.Models.Sending.Interfaces
 {
     public interface IMediaGenerationOptions : IMediaUpload
     {

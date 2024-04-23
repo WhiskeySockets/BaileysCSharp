@@ -1,6 +1,6 @@
 ﻿using Proto;
 
-namespace WhatsSocket.Core.Models.Sending.NonMedia
+namespace BaileysCSharp.Core.Models.Sending.NonMedia
 {
     public class ReactMessageContent : IAnyMessageContent
     {

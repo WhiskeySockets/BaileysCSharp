@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models.Sending
+﻿namespace BaileysCSharp.Core.Models.Sending
 {
     // types to generate WA messages
     public interface IAnyMessageContent

@@ -1,8 +1,8 @@
 ﻿using LiteDB;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     [FolderPrefix("pre-key")]
     public class PreKeyPair : KeyPair

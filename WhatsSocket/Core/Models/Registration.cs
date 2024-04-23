@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
 
 

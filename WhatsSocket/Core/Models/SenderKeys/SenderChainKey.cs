@@ -1,6 +1,6 @@
-﻿using WhatsSocket.Core.Helper;
+﻿using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.Core.Models.SenderKeys
+namespace BaileysCSharp.Core.Models.SenderKeys
 {
     public class SenderChainKey
     {

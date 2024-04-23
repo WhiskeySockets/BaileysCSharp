@@ -1,15 +1,15 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.Core.Models;
-using static WhatsSocket.Core.Utils.ChatUtils;
-using static WhatsSocket.Core.Models.ChatConstants;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using WhatsSocket.Core.Utils;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.WABinary;
+using BaileysCSharp.Core.Models;
+using static BaileysCSharp.Core.Utils.ChatUtils;
+using static BaileysCSharp.Core.Models.ChatConstants;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.WABinary;
 using System.Text;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.Core.Sockets
+namespace BaileysCSharp.Core.Sockets
 {
     public enum ParticipantAction
     {

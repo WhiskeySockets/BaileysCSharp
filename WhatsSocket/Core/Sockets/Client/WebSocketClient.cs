@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net.WebSockets;
-namespace WhatsSocket.Core.Sockets.Client
+namespace BaileysCSharp.Core.Sockets.Client
 {
     public class WebSocketClient : AbstractSocketClient
     {

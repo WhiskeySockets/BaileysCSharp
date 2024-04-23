@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Events
+﻿namespace BaileysCSharp.Core.Events
 {
     public enum EmitType
     {

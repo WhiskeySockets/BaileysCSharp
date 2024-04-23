@@ -1,9 +1,9 @@
 ﻿using System.Text;
-using WhatsSocket.Core.Models;
-using static WhatsSocket.Core.WABinary.Constants;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using BaileysCSharp.Core.Models;
+using static BaileysCSharp.Core.WABinary.Constants;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class BufferWriter
     {

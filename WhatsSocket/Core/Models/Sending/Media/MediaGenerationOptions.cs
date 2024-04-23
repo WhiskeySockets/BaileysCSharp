@@ -1,8 +1,8 @@
-﻿using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.Sending.Interfaces;
-using WhatsSocket.Core.Utils;
+﻿using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Utils;
 
-namespace WhatsSocket.Core.Models.Sending.Media
+namespace BaileysCSharp.Core.Models.Sending.Media
 {
     public class MediaGenerationOptions : IMediaGenerationOptions
     {

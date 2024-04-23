@@ -7,15 +7,15 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Exceptions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Exceptions;
 using static Proto.Message.Types.BCallMessage.Types;
 using static Proto.Message.Types.InteractiveMessage.Types;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class MediaMessageUtil
     {

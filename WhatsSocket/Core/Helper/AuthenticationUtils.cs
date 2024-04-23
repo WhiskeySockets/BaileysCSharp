@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
-using WhatsSocket.LibSignal;
-using static WhatsSocket.Core.Helper.CryptoUtils;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.LibSignal.KeyHelper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.LibSignal;
+using static BaileysCSharp.Core.Helper.CryptoUtils;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.LibSignal.KeyHelper;
 
-namespace WhatsSocket.Core.Helper
+namespace BaileysCSharp.Core.Helper
 {
 
     public static class AuthenticationUtils

@@ -7,23 +7,23 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.WABinary;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.WABinary;
 using static Proto.Message.Types;
-using static WhatsSocket.Core.WABinary.JidUtils;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.Core.Utils.MediaMessageUtil;
-using WhatsSocket.Exceptions;
-using WhatsSocket.LibSignal;
-using WhatsSocket.Core.Helper;
+using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.Utils.MediaMessageUtil;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Helper;
 using Newtonsoft.Json;
 using Google.Protobuf;
-using WhatsSocket.Core.Models.Sending;
-using WhatsSocket.Core.Models.Sending.Media;
-using WhatsSocket.Core.Models.Sending.Interfaces;
-using WhatsSocket.Core.Models.Sending.NonMedia;
+using BaileysCSharp.Core.Models.Sending;
+using BaileysCSharp.Core.Models.Sending.Media;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Models.Sending.NonMedia;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class MessageUtil
     {

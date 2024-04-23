@@ -1,6 +1,6 @@
-﻿using WhatsSocket.LibSignal;
+﻿using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class PreKeySet
     {

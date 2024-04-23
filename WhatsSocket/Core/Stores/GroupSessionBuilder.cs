@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Stores
+namespace BaileysCSharp.Core.Stores
 {
     public class GroupSessionBuilder
     {

@@ -1,29 +1,29 @@
 ﻿using Proto;
 using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Utils;
-using WhatsSocket.Core.WABinary;
-using static WhatsSocket.Core.Utils.MessageUtil;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.Core.WABinary.JidUtils;
-using static WhatsSocket.Core.WABinary.Constants;
-using static WhatsSocket.Core.Utils.ValidateConnectionUtil;
-using static WhatsSocket.Core.Utils.SignalUtils;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
+using static BaileysCSharp.Core.Utils.MessageUtil;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.WABinary.Constants;
+using static BaileysCSharp.Core.Utils.ValidateConnectionUtil;
+using static BaileysCSharp.Core.Utils.SignalUtils;
 using Newtonsoft.Json;
-using WhatsSocket.Core.Extensions;
+using BaileysCSharp.Core.Extensions;
 using System.Collections.Generic;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.Signal;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.Signal;
 using Google.Protobuf;
-using WhatsSocket.Core.Events;
-using WhatsSocket.LibSignal;
-using WhatsSocket.Core.Models.Sending;
-using WhatsSocket.Core.Models.Sending.Interfaces;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Models.Sending;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.Helper;
 using Org.BouncyCastle.Asn1.X509;
 
-namespace WhatsSocket.Core.Sockets
+namespace BaileysCSharp.Core.Sockets
 {
     public class ParticipantNode
     {

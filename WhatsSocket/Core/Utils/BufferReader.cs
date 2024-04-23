@@ -6,11 +6,11 @@ using System;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.WABinary;
-using static WhatsSocket.Core.WABinary.Constants;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.WABinary;
+using static BaileysCSharp.Core.WABinary.Constants;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class BufferReader
     {

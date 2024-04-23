@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models.SenderKeys
+namespace BaileysCSharp.Core.Models.SenderKeys
 {
 
 

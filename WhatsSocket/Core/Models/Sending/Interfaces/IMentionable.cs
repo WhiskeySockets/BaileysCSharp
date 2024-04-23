@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models.Sending.Interfaces
+﻿namespace BaileysCSharp.Core.Models.Sending.Interfaces
 {
     public interface IMentionable
     {

@@ -13,9 +13,9 @@ using System.Linq;
 using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     public class NodeCrypto
     {

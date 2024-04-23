@@ -1,11 +1,11 @@
 ﻿using Proto;
 using SkiaSharp;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
 using static Proto.Message.Types;
 using static System.Net.Mime.MediaTypeNames;
 
-namespace WhatsSocket.Core.Models.Sending.Media
+namespace BaileysCSharp.Core.Models.Sending.Media
 {
     public class DocumentMessageContent : AnyMediaMessageContent
     {

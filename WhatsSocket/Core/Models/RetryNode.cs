@@ -1,7 +1,7 @@
 ﻿using Proto;
-using WhatsSocket.Exceptions;
+using BaileysCSharp.Exceptions;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class RetryNode
     {

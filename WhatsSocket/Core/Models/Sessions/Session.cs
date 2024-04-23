@@ -1,8 +1,8 @@
 ﻿using Google.Protobuf;
 using Newtonsoft.Json;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.Core.Models.Sessions
+namespace BaileysCSharp.Core.Models.Sessions
 {
     public class Session
     {

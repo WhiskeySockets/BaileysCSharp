@@ -7,24 +7,17 @@ using Proto;
 using QRCoder;
 using System.Buffers;
 using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
-using WhatsSocket.Core;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Sockets;
-using WhatsSocket.Exceptions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using Google.Protobuf;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Core.Models.Sending.Media;
-using WhatsSocket.Core.Models.Sending.NonMedia;
-using WhatsSocket.Core.Models.Sending;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Sockets;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Core.Models.Sending.Media;
+using BaileysCSharp.Core.Models.Sending.NonMedia;
+using BaileysCSharp.Core.Models.Sending;
 
 namespace WhatsSocketConsole
 {

@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models.Sending.Media
+﻿namespace BaileysCSharp.Core.Models.Sending.Media
 {
     public class MediaUploadData
     {

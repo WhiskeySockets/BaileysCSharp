@@ -12,18 +12,18 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Exceptions;
-using static WhatsSocket.Core.Utils.MediaMessageUtil;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using WhatsSocket.Core.Events;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Exceptions;
+using static BaileysCSharp.Core.Utils.MediaMessageUtil;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.Events;
 using System.Runtime.CompilerServices;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
 
     public class ChatUtils

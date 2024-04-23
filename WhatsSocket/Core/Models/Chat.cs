@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.WABinary;
-using static WhatsSocket.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.WABinary;
+using static BaileysCSharp.Core.Utils.GenericUtils;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
 
 

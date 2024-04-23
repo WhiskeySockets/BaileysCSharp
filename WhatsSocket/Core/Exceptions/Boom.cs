@@ -1,6 +1,6 @@
-﻿using WhatsSocket.Core.Events;
+﻿using BaileysCSharp.Core.Events;
 
-namespace WhatsSocket.Exceptions
+namespace BaileysCSharp.Exceptions
 {
     public class BoomData
     {

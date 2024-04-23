@@ -4,18 +4,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.Sockets.Client
+namespace BaileysCSharp.Core.Sockets.Client
 {
     public abstract class AbstractSocketClient
     {
-        Dictionary<string, NodeEventStore> Events;
         protected AbstractSocketClient(BaseSocket socket)
         {
             Socket = socket;
-            Events = new Dictionary<string, NodeEventStore>();
         }
 
         public event MessageArgs MessageRecieved;
@@ -57,32 +55,6 @@ namespace WhatsSocket.Core.Sockets.Client
             ConnectFailed?.Invoke(this, EventArgs.Empty);
         }
 
-
-
-        //public bool Emit(string type, BinaryNode args)
-        //{
-        //    if (!Events.ContainsKey(type))
-        //    {
-        //        Events[type] = new NodeEventStore(Socket);
-        //    }
-        //    var store = Events[type];
-        //    var result = store.Execute(args);
-        //    if (result)
-        //    {
-        //        Debug.Write($"{type} has been executed");
-        //    }
-        //    return result;
-        //}
-
-        //public NodeEventStore On(string type)
-        //{
-        //    if (!Events.ContainsKey(type))
-        //    {
-        //        Events[type] = new NodeEventStore(Socket);
-        //    }
-        //    var store = Events[type];
-        //    return store;
-        //}
 
         public abstract void MakeSocket();
     }

@@ -1,10 +1,10 @@
 ﻿using Newtonsoft.Json;
 using System.Text.RegularExpressions;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.NoSQL;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.NoSQL;
 
-namespace WhatsSocket.Core.Stores
+namespace BaileysCSharp.Core.Stores
 {
 
     [FolderPrefix("app-state-sync-version")]

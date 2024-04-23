@@ -5,14 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.Signal;
-using WhatsSocket.Exceptions;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Exceptions;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core
+namespace BaileysCSharp.Core
 {
 
     public class MessageDecoder

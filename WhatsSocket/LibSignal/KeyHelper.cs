@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     public static class KeyHelper
     {

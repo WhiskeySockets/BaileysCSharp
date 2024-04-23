@@ -4,13 +4,13 @@ using Proto;
 using System;
 using System.Buffers;
 using System.Text;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Helper;
 using Google.Protobuf;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class NoiseHandler
     {

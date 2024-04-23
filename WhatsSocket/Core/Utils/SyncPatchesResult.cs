@@ -1,6 +1,6 @@
 ﻿using Proto;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class SyncPatchesResult
     {

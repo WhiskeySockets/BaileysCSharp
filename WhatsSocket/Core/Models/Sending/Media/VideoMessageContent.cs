@@ -3,13 +3,13 @@ using Newtonsoft.Json;
 using Proto;
 using SkiaSharp;
 using System.Drawing;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models.Sending.Interfaces;
-using WhatsSocket.Core.Utils;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Utils;
 using static Proto.Message.Types;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WhatsSocket.Core.Models.Sending.Media
+namespace BaileysCSharp.Core.Models.Sending.Media
 {
     public class VideoMessageContent : AnyMediaMessageContent
     {

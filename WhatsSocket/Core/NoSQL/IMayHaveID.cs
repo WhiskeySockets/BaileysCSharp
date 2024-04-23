@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.NoSQL
+﻿namespace BaileysCSharp.Core.NoSQL
 {
     public interface IMayHaveID
     {

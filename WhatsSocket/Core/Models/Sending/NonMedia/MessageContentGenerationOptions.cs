@@ -1,8 +1,8 @@
 ﻿using Proto;
-using WhatsSocket.Core.Models.Sending.Interfaces;
-using WhatsSocket.Core.Models.Sending.Media;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Models.Sending.Media;
 
-namespace WhatsSocket.Core.Models.Sending.NonMedia
+namespace BaileysCSharp.Core.Models.Sending.NonMedia
 {
     public class MessageContentGenerationOptions : MediaGenerationOptions
     {

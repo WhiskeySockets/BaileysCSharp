@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Exceptions;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
 
     public class SenderKeyMessage : CipherTextMessage

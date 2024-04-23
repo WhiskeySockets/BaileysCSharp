@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Core.Models.Sessions
+﻿namespace BaileysCSharp.Core.Models.Sessions
 {
     public class MessageKeys
     {

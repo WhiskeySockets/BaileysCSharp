@@ -5,9 +5,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.Events
+namespace BaileysCSharp.Core.Events
 {
 
     public class EventStore<T> : IEventStore

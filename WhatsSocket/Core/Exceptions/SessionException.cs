@@ -1,4 +1,4 @@
-﻿namespace WhatsSocket.Exceptions
+﻿namespace BaileysCSharp.Exceptions
 {
     [Serializable]
     public class SessionException : Exception

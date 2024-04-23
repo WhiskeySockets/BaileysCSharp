@@ -7,9 +7,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.NoSQL
+namespace BaileysCSharp.Core.NoSQL
 {
 
     public class FileKeyStore : BaseKeyStore, IDisposable

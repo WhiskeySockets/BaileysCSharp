@@ -5,13 +5,13 @@ using Org.BouncyCastle.Crypto.Agreement;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
-using WhatsSocket.Core.Models;
+using BaileysCSharp.Core.Models;
 using System.Security.Cryptography;
 using System.Text;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.LibSignal;
 //using Sodium;
 
-namespace WhatsSocket.Core.Helper
+namespace BaileysCSharp.Core.Helper
 {
 
     public static class CryptoUtils

@@ -1,6 +1,6 @@
 ﻿using Google.Protobuf;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     [Serializable]
     public class SessonException : Exception

@@ -10,14 +10,14 @@ using System.Runtime.Remoting;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.WABinary;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.WABinary;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core.NoSQL
+namespace BaileysCSharp.Core.NoSQL
 {
 
     public class MemoryStore

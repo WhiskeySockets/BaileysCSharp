@@ -5,12 +5,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Stores;
+using BaileysCSharp.Core.Stores;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using WhatsSocket.Exceptions;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.Core.Helper;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class HashGenerator
     {

@@ -3,13 +3,13 @@ using System;
 using System.Diagnostics;
 using System.Text;
 using Textsecure;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Signal;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
 
     public class SessionBuilder

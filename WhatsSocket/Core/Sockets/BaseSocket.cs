@@ -1,31 +1,31 @@
 ﻿using Proto;
 using Google.Protobuf;
 using static Proto.ClientPayload.Types;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Sockets;
-using WhatsSocket.Core.Events;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Sockets;
+using BaileysCSharp.Core.Events;
 using System.Text;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Exceptions;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Exceptions;
 using System.Threading;
 using System.Diagnostics;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.Utils;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.Utils;
 using System.Linq;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Core.Sockets.Client;
-using WhatsSocket.Core.Signal;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Core.Sockets.Client;
+using BaileysCSharp.Core.Signal;
 using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.Core.NoSQL;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
-using static WhatsSocket.Core.WABinary.Constants;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.Core.NoSQL;
+using static BaileysCSharp.Core.Utils.ProcessMessageUtil;
+using static BaileysCSharp.Core.WABinary.Constants;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core
+namespace BaileysCSharp.Core
 {
 
 

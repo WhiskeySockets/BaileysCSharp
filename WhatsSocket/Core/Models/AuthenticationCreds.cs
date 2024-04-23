@@ -2,9 +2,9 @@
 using Newtonsoft.Json.Linq;
 using Proto;
 using System.Diagnostics.CodeAnalysis;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     //public class ProcessedHistoryMessageKey
     //{

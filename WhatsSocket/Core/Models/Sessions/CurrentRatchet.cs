@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Models.Sessions
+namespace BaileysCSharp.Core.Models.Sessions
 {
     public class CurrentRatchet
     {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace WhatsSocket.Core.Models.SenderKeys
+namespace BaileysCSharp.Core.Models.SenderKeys
 {
     public class SenderSigningKeyStructure
     {

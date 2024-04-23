@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WhatsSocket.Core.Helper
+namespace BaileysCSharp.Core.Helper
 {
     public static class EncodingHelper
     {

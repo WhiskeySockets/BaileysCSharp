@@ -1,8 +1,8 @@
-﻿using WhatsSocket.Core.Models;
+﻿using BaileysCSharp.Core.Models;
 using static Proto.Message.Types.HistorySyncNotification.Types;
 using static Proto.WebMessageInfo.Types;
 
-namespace WhatsSocket.Core.WABinary
+namespace BaileysCSharp.Core.WABinary
 {
 
 

@@ -2,20 +2,20 @@
 using Proto;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using WhatsSocket.Core.Extensions;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Utils;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Exceptions;
-using static WhatsSocket.Core.Utils.ProcessMessageUtil;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.Core.WABinary.Constants;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Models.Sending;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Exceptions;
+using static BaileysCSharp.Core.Utils.ProcessMessageUtil;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.WABinary.Constants;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Models.Sending;
 using System.Globalization;
 
-namespace WhatsSocket.Core.Sockets
+namespace BaileysCSharp.Core.Sockets
 {
 
     public abstract class MessagesRecvSocket : MessagesSendSocket

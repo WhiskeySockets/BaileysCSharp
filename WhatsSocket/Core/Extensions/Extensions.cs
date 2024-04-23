@@ -7,10 +7,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.NoSQL;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.NoSQL;
 
-namespace WhatsSocket.Core.Extensions
+namespace BaileysCSharp.Core.Extensions
 {
     public class IgnoreFalseBool : JsonConverter<bool>
     {

@@ -5,21 +5,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Proto.ClientPayload.Types;
-using WhatsSocket.Core.Helper;
+using BaileysCSharp.Core.Helper;
 using Google.Protobuf;
-using WhatsSocket.Core.Events;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Exceptions;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.Core.WABinary;
-using WhatsSocket.Core.NoSQL;
-using static WhatsSocket.Core.Utils.GenericUtils;
-using static WhatsSocket.Core.Helper.CryptoUtils;
-using WhatsSocket.Core.Extensions;
+using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Core.NoSQL;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.Helper.CryptoUtils;
+using BaileysCSharp.Core.Extensions;
 using Newtonsoft.Json;
-using WhatsSocket.LibSignal;
+using BaileysCSharp.LibSignal;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
 
     public class ValidateConnectionUtil

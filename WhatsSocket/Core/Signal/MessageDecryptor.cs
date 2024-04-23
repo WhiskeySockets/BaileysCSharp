@@ -1,9 +1,9 @@
 ﻿using Proto;
-using WhatsSocket.Core.Helper;
-using WhatsSocket.Core.Models;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core.Signal
+namespace BaileysCSharp.Core.Signal
 {
 
     public class MessageDecryptor

@@ -1,6 +1,6 @@
-﻿using WhatsSocket.Core.Models;
+﻿using BaileysCSharp.Core.Models;
 
-namespace WhatsSocket.Core.Events.Stores
+namespace BaileysCSharp.Core.Events.Stores
 {
     public class MessageHistoryEventStore : DataEventStore<MessageHistoryModel>
     {

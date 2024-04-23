@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core.Models
+namespace BaileysCSharp.Core.Models
 {
     public class ProtocolAddress
     {

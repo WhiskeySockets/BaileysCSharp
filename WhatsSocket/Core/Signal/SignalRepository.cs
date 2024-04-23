@@ -1,14 +1,14 @@
 ﻿using Google.Protobuf;
 using Proto;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.Models.SenderKeys;
-using WhatsSocket.Core.Models.Sessions;
-using WhatsSocket.Core.NoSQL;
-using WhatsSocket.Core.Stores;
-using WhatsSocket.LibSignal;
-using static WhatsSocket.Core.WABinary.JidUtils;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.Models.SenderKeys;
+using BaileysCSharp.Core.Models.Sessions;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.LibSignal;
+using static BaileysCSharp.Core.WABinary.JidUtils;
 
-namespace WhatsSocket.Core.Signal
+namespace BaileysCSharp.Core.Signal
 {
     public class SignalRepository
     {

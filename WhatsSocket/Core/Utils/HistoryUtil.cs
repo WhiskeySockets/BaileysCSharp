@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WhatsSocket.Core.Models;
-using WhatsSocket.Core.WABinary;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.WABinary;
 using static Proto.Message.Types;
 
-namespace WhatsSocket.Core.Utils
+namespace BaileysCSharp.Core.Utils
 {
     public class HistoryUtil
     {

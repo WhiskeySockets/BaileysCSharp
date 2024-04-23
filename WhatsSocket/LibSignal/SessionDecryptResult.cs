@@ -1,6 +1,6 @@
-﻿using WhatsSocket.Core.Models.Sessions;
+﻿using BaileysCSharp.Core.Models.Sessions;
 
-namespace WhatsSocket.LibSignal
+namespace BaileysCSharp.LibSignal
 {
     public class SessionDecryptResult
     {

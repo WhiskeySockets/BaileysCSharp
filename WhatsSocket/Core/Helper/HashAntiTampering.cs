@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WhatsSocket.Core.Helper
+namespace BaileysCSharp.Core.Helper
 {
     public class HashAntiTampering
     {
