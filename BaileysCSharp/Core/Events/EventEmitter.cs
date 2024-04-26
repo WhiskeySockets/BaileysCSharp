@@ -40,7 +40,7 @@ namespace BaileysCSharp.Core.Events
         public EventEmitter()
         {
             Events[typeof(ContactModel).Name] = Contacts = new ContactsEventStore();
-            Events[typeof(MessageHistoryEventStore).Name] = MessageHistory = new MessageHistoryEventStore();
+            Events[typeof(MessageHistoryModel).Name] = MessageHistory = new MessageHistoryEventStore();
             Events[typeof(ChatModel).Name] = Chats = new ChatEventStore();
             Events[typeof(ConnectionState).Name] = Connection = new ConnectionEventStore();
             Events[typeof(AuthenticationCreds).Name] = Auth = new AuthEventStore();

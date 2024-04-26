@@ -170,39 +170,6 @@ namespace BaileysCSharp.Core
             }
         }
 
-        //private async void OnFrameDeecoded2(BinaryNode message)
-        //{
-        //    lastReceived = DateTime.Now;
-        //    var anyTriggered = false;
-
-        //    var msgId = message.getattr("id");
-        //    /* Check if this is a response to a message we sent */
-        //    anyTriggered = anyTriggered || WS.Emit($"{DEF_TAG_PREFIX}{msgId}", message);
-
-        //    var l0 = message.tag;
-        //    var l1 = message.attrs;
-        //    var l2 = "";
-        //    if (message.content is BinaryNode[] children)
-        //    {
-        //        l2 = children[0].tag;
-        //    }
-
-        //    foreach (var item in l1)
-        //    {
-        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
-        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
-        //        anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
-        //    }
-        //    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},,{l2}", message);
-        //    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0}", message);
-
-        //    if (!anyTriggered)
-        //    {
-        //        Logger.Debug(new { unhandled = true, msgId, fromMe = false, message }, "communication recv");
-        //    }
-        //}
-
-        //Binary Node Received from WA
         private async void OnFrameDeecoded(BinaryNode message)
         {   
             bool fired = await Emit("frame", message);
@@ -213,7 +180,7 @@ namespace BaileysCSharp.Core
                 {
                     var msgId = message.attrs["id"];
                     /* Check if this is a response to a message we sent */
-                    fired = fired || await Emit($"{Constants.DEF_TAG_PREFIX}{msgId}", message);
+                    fired = fired || await Emit($"{DEF_TAG_PREFIX}{msgId}", message);
                 }
 
                 /* Check if this is a response to a message we are expecting */
@@ -228,12 +195,12 @@ namespace BaileysCSharp.Core
 
                 foreach (var item in l1)
                 {
-                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
-                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
-                    fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
+                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
+                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
+                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
                 }
-                fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0},,{l2}", message) || fired;
-                fired = fired || await Emit($"{Constants.DEF_CALLBACK_PREFIX}{l0}", message) || fired;
+                fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},,{l2}", message) || fired;
+                fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0}", message) || fired;
 
             }
 

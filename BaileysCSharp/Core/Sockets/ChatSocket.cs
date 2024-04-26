@@ -635,6 +635,7 @@ namespace BaileysCSharp.Core
             var count = binary.Count();
 
         }
+
         //TODO updateBlockStatus
         //TODO getBusinessProfile
         //TODO getBusinessProfile
@@ -776,6 +777,11 @@ namespace BaileysCSharp.Core
 
 
         //TODO: appPatch
+        public void AppPatch(WAPatchCreate patch)
+        {
+
+        }
+
         private async void FetchAbt()
         {
             var abtNode = new BinaryNode()
@@ -869,6 +875,23 @@ namespace BaileysCSharp.Core
             {
                 var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
             }
+        }
+
+
+        public void ChatModify(ChatModification modification)
+        {
+            var patch = ChatModificationToAppPatch(modification);
+            AppPatch(patch);
+        }
+
+        private WAPatchCreate ChatModificationToAppPatch(ChatModification modification)
+        {
+            var patch = new WAPatchCreate();
+            if (modification is MuteChatModification mute)
+            {
+
+            }
+            return patch;
         }
 
         //TODO: chatModify

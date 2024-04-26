@@ -273,7 +273,6 @@ namespace BaileysCSharp.Core.Helper
             var settings = new JsonSerializerOptions()
             {
                 Converters = { new Base64Converter(), new ByteStringConverter() },
-                WriteIndented = true,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
             //settings.Converters = new List<JsonConverter>() { new Base64Converter(), new ByteStringConverter(), new Newtonsoft.Json.Converters.StringEnumConverter() };

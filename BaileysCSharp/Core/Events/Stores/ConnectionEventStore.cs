@@ -4,7 +4,7 @@ namespace BaileysCSharp.Core.Events.Stores
 {
     public class ConnectionEventStore : DataEventStore<ConnectionState>
     {
-        public ConnectionEventStore() : base(true)
+        public ConnectionEventStore() : base(false)
         {
         }
 

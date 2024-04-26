@@ -57,6 +57,7 @@ namespace WhatsSocketConsole
             socket.EV.MessageHistory.Set += MessageHistory_Set;
             socket.EV.Pressence.Update += Pressence_Update;
 
+
             socket.MakeSocket();
 
             Console.ReadLine();
@@ -98,82 +99,110 @@ namespace WhatsSocketConsole
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
-                        {
-                            Text = "Hi there from C#"
-                        });
+                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
+                        //{
+                        //    Text = "Hi there from C#"
+                        //});
+                        //
+                        ////send a reply messagge
+                        //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
+                        //    new TextMessageContent() { Text = "Hi this is a C# reply" },
+                        //    new MessageGenerationOptionsFromContent()
+                        //    {
+                        //        Quoted = msg
+                        //    });
+                        //
+                        //
+                        //// send a mentions message
+                        //var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
+                        //{
+                        //    Text = $"Hi @{jid.User} from C# with mention",
+                        //    Mentions = [msg.Key.RemoteJid]
+                        //});
+                        //
+                        //// send a contact!
+                        //var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
+                        //{
+                        //    Contact = new ContactShareModel()
+                        //    {
+                        //        ContactNumber = jid.User,
+                        //        FullName = $"{msg.PushName}",
+                        //        Organization = ""
+                        //    }
+                        //});
+                        //
+                        //// send a location! //48.858221124792756, 2.294466243303683
+                        //var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
+                        //{
+                        //    Location = new Message.Types.LocationMessage()
+                        //    {
+                        //        DegreesLongitude = 48.858221124792756,
+                        //        DegreesLatitude = 2.294466243303683,
+                        //    }
+                        //});
+                        //
+                        ////react
+                        //var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
+                        //{
+                        //    Key = msg.Key,
+                        //    ReactText = "💖"
+                        //});
+                        //
+                        //// Sending image
+                        //var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
+                        //{
+                        //    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                        //    Caption = "Cat.jpeg"
+                        //});
+                        //
+                        //// send an audio file
+                        //var audioMessage = await socket.SendMessage(msg.Key.RemoteJid, new AudioMessageContent()
+                        //{
+                        //    Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
+                        //});
+                        //
+                        //// send an audio file
+                        //var videoMessage = await socket.SendMessage(msg.Key.RemoteJid, new VideoMessageContent()
+                        //{
+                        //    Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
+                        //    GifPlayback = true
+                        //});
+                        // 
+                        //// send a document file
+                        //var documentMessage = await socket.SendMessage(msg.Key.RemoteJid, new DocumentMessageContent()
+                        //{
+                        //    Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
+                        //    Mimetype = "application/pdf",
+                        //    FileName = "proposal.pdf",
+                        //});
 
-                        //send a reply messagge
-                        var quoted = await socket.SendMessage(msg.Key.RemoteJid,
-                            new TextMessageContent() { Text = "Hi this is a C# reply" },
-                            new MessageGenerationOptionsFromContent()
-                            {
-                                Quoted = msg
-                            });
 
 
-                        // send a mentions message
-                        var mentioned = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
-                        {
-                            Text = $"Hi @{jid.User} from C# with mention",
-                            Mentions = [msg.Key.RemoteJid]
-                        });
+                        //var group = await socket.GroupCreate("Test", [chatId]);
+                        //await socket.GroupUpdateSubject(groupId, "Subject Nice");
+                        //await socket.GroupUpdateDescription(groupId, "Description Nice");
 
-                        // send a contact!
-                        var contact = await socket.SendMessage(msg.Key.RemoteJid, new ContactMessageContent()
-                        {
-                            Contact = new ContactShareModel()
-                            {
-                                ContactNumber = jid.User,
-                                FullName = $"{msg.PushName}",
-                                Organization = ""
-                            }
-                        });
 
-                        // send a location! //48.858221124792756, 2.294466243303683
-                        var location = await socket.SendMessage(msg.Key.RemoteJid, new LocationMessageContent()
-                        {
-                            Location = new Message.Types.LocationMessage()
-                            {
-                                DegreesLongitude = 48.858221124792756,
-                                DegreesLatitude = 2.294466243303683,
-                            }
-                        });
+                        // send a simple text!
+                        //var standard = await socket.SendMessage(groupId, new TextMessageContent()
+                        //{
+                        //    Text = "Hi there from C#"
+                        //});
 
-                        //react
-                        var react = await socket.SendMessage(msg.Key.RemoteJid, new ReactMessageContent()
-                        {
-                            Key = msg.Key,
-                            ReactText = "💖"
-                        });
 
-                        // Sending image
-                        var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
-                        {
-                            Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
-                            Caption = "Cat.jpeg"
-                        });
+                        //var groupId = "@g.us";
+                        //var chatId = "@s.whatsapp.net";
+                        //var chatId2 = "@s.whatsapp.net";
 
-                        // send an audio file
-                        var audioMessage = await socket.SendMessage(msg.Key.RemoteJid, new AudioMessageContent()
-                        {
-                            Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
-                        });
+                        //await socket.GroupSettingUpdate(groupId, GroupSetting.Not_Announcement);
 
-                        // send an audio file
-                        var videoMessage = await socket.SendMessage(msg.Key.RemoteJid, new VideoMessageContent()
-                        {
-                            Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
-                            GifPlayback = true
-                        });
+                        //await socket.GroupMemberAddMode(groupId, MemberAddMode.All_Member_Add); 
 
-                        // send a document file
-                        var documentMessage = await socket.SendMessage(msg.Key.RemoteJid, new DocumentMessageContent()
-                        {
-                            Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
-                            Mimetype = "application/pdf",
-                            FileName = "proposal.pdf",
-                        });
+                        //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Promote);
+                        //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Demote);
+
+                        //var result = await socket.GroupInviteCode(groupId);
+                        //var result = await socket.GroupGetInviteInfo("EzZfmQJDoyY7VPklVxVV9l");
                     }
                     messages.Add(msg);
                 }
@@ -215,38 +244,7 @@ namespace WhatsSocketConsole
 
             if (connection.Connection == WAConnectionState.Open)
             {
-                var groupId = "@g.us";
-                var chatId = "@s.whatsapp.net";
-                var chatId2 = "@s.whatsapp.net";
-
                 Console.WriteLine("Now you can send messages");
-
-                var standard = await socket.SendMessage(chatId, new TextMessageContent()
-                {
-                    Text = "Hi *there* from C#"
-                });
-
-                //var group = await socket.GroupCreate("Test", [chatId]);
-                //await socket.GroupUpdateSubject(groupId, "Subject Nice");
-                //await socket.GroupUpdateDescription(groupId, "Description Nice");
-
-
-                // send a simple text!
-                //var standard = await socket.SendMessage(groupId, new TextMessageContent()
-                //{
-                //    Text = "Hi there from C#"
-                //});
-
-
-                //await socket.GroupSettingUpdate(groupId, GroupSetting.Not_Announcement);
-
-                //await socket.GroupMemberAddMode(groupId, MemberAddMode.All_Member_Add); 
-
-                //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Promote);
-                //await socket.GroupParticipantsUpdate(groupId, [chatId2], ParticipantAction.Demote);
-
-                //var result = await socket.GroupInviteCode(groupId);
-                //var result = await socket.GroupGetInviteInfo("EzZfmQJDoyY7VPklVxVV9l");
             }
         }
 

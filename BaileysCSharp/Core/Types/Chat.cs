@@ -96,7 +96,16 @@ namespace BaileysCSharp.Core.Models
 
     public class ChatConstants
     {
-        public static string[] ALL_WA_PATCH_NAMES = ["critical_block", "critical_unblock_low", "regular_high", "regular_low", "regular"];
+        public static string[] ALL_WA_PATCH_NAMES = [WAPatchName.CriticalBlock, WAPatchName.CriticalUnblockLow, WAPatchName.RegularHigh, WAPatchName.RegularLow, WAPatchName.Regular];
+    }
+
+    public class WAPatchName
+    {
+        public const string CriticalBlock = "critical_block";
+        public const string CriticalUnblockLow = "critical_unblock_low";
+        public const string RegularHigh = "regular_high";
+        public const string RegularLow = "regular_low";
+        public const string Regular = "regular";
     }
 
     public class ChatModel : IMayHaveID
@@ -209,5 +218,103 @@ namespace BaileysCSharp.Core.Models
                 Items.Add(new KeyValuePair<string, ChatMutation>(key, value));
             }
         }
+    }
+
+    public abstract class ChatModification
+    {
+
+    }
+
+    public class MinimalMessage
+    {
+        public MessageKey Key { get; set; }
+        public long MessageTimestamp { get; set; }
+    }
+
+    public class ArchiveChatModification : ChatModification
+    {
+        public bool Archive { get; set; }
+        public List<MinimalMessage> LastMessages { get; set; }
+    }
+    public class MuteChatModification : ChatModification
+    {
+        public long? Mute { get; set; }
+    }
+
+    public class PushNameChatModification : ChatModification
+    {
+        public string PushNameSetting { get; set; }
+    }
+
+    public class PinChatModification : ChatModification
+    {
+        public bool Pin { get; set; }
+    }
+
+    //TODO
+    public class ClearChatModification : ChatModification
+    {
+
+    }
+
+
+    public class StarMessage
+    {
+        public string ID { get; set; }
+        public bool FromMe { get; set; }
+    }
+
+    public class StarChatModification : ChatModification
+    {
+        public List<StarMessage> Messages { get; set; }
+        public bool Star { get; set; }
+    }
+
+    public class MarkReadChatModification : ChatModification
+    {
+        public bool MarkRead { get; set; }
+        public List<MinimalMessage> LastMessages { get; set; }
+    }
+
+    public class DeleteChatModification : ChatModification
+    {
+        public bool Delete { get; set; }
+        public List<MinimalMessage> LastMessages { get; set; }
+    }
+
+    public class ChatLabelAssociationActionBody
+    {
+        public string LabelID { get; set; }
+    }
+    public class MessageLabelAssociationActionBody
+    {
+        public string MessageID { get; set; }
+        public string LabelID { get; set; }
+    }
+
+
+    public class AddChatLableChatModification : ChatModification
+    {
+        public ChatLabelAssociationActionBody AddChatLabel { get; set; }
+    }
+
+    public class RemoveChatLableChatModification : ChatModification
+    {
+        public ChatLabelAssociationActionBody RemoveChatLabel { get; set; }
+    }
+
+    public class AddMessageLabelChatModification : ChatModification
+    {
+        public MessageLabelAssociationActionBody AddMessageLabel { get; set; }
+    }
+    public class RemoveMessageLabelChatModification : ChatModification
+    {
+        public MessageLabelAssociationActionBody RemoveMessageLabel { get; set; }
+    }
+
+    public class WAPatchCreate
+    {
+        public SyncActionValue SyncAction { get; set; }
+        public string[] Index { get; set; }
     }
 }
