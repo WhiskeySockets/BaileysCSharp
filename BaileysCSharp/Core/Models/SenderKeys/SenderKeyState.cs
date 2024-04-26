@@ -1,5 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using BaileysCSharp.Core.Helper;
 using BaileysCSharp.LibSignal;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.SenderKeys
 {
@@ -7,17 +9,17 @@ namespace BaileysCSharp.Core.Models.SenderKeys
     {
         const int MAX_MESSAGE_KEYS = 2000;
 
-        [JsonProperty("senderKeyId")]
+        [JsonPropertyName("senderKeyId")]
         public uint SenderKeyId { get; set; }
 
-        [JsonProperty("senderChainKey")]
+        [JsonPropertyName("senderChainKey")]
         public SenderChainKeyStructure SenderChainKey { get; set; }
 
-        [JsonProperty("senderSigningKey")]
+        [JsonPropertyName("senderSigningKey")]
         public SenderSigningKeyStructure SenderSigningKey { get; set; }
 
 
-        [JsonProperty("senderMessage")]
+        [JsonPropertyName("senderMessage")]
         public List<SenderMessageKeyStructure> SenderMessages { get; set; }
 
         public SenderKeyState()
@@ -85,7 +87,7 @@ namespace BaileysCSharp.Core.Models.SenderKeys
 
         internal string? Serialize()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this, JsonHelper.Options);
         }
 
         internal void SetSenderChainKey(SenderChainKey chainKey)

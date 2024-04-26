@@ -1,7 +1,5 @@
 ﻿using FFMpegCore;
-using Newtonsoft.Json;
 using Proto;
-using SkiaSharp;
 using System.Drawing;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models.Sending.Interfaces;

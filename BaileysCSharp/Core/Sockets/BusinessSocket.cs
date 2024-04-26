@@ -12,5 +12,12 @@ namespace BaileysCSharp.Core.Sockets
         public BusinessSocket([NotNull] SocketConfig config) : base(config)
         {
         }
+
+        //getOrderDetails
+        //getCatalog
+        //getCollections
+        //productUpdate
+        //productCreate
+        //productDelete
     }
 }

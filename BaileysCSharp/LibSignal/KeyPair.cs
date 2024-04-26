@@ -1,26 +1,27 @@
-﻿using Newtonsoft.Json;
-using BaileysCSharp.Core.Models;
-using BaileysCSharp.Core.Converters;
+﻿using BaileysCSharp.Core.Converters;
+using BaileysCSharp.Core.Helper;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.LibSignal
 {
     public class KeyPair
     {
-        [JsonProperty("private")]
+        [JsonPropertyName("private")]
         public byte[] Private { get; set; }
 
-        [JsonProperty("public")]
+        [JsonPropertyName("public")]
         public byte[] Public { get; set; }
 
         internal static KeyPair Deserialize(string data)
         {
             try
             {
-                return JsonConvert.DeserializeObject<KeyPair>(data);
+                return JsonSerializer.Deserialize<KeyPair>(data, JsonHelper.Options);
             }
             catch (Exception)
             {
-                return JsonConvert.DeserializeObject<KeyPair>(data, new BufferConverter());
+                return JsonSerializer.Deserialize<KeyPair>(data, JsonHelper.BufferOptions);
             }
         }
     }

@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.X509;
+﻿using Org.BouncyCastle.Asn1.X509;
 using Proto;
 using System;
 using System.Collections.Generic;
@@ -15,6 +14,7 @@ using static Proto.Message.Types.BCallMessage.Types;
 using static Proto.Message.Types.InteractiveMessage.Types;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using BaileysCSharp.Core.Types;
+using System.Text.Json;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -184,7 +184,7 @@ namespace BaileysCSharp.Core.Utils
                         if (response.IsSuccessStatusCode)
                         {
                             var json = await response.Content.ReadAsStringAsync();
-                            var result = JsonConvert.DeserializeObject<MediaUploadResult>(json);
+                            var result = JsonSerializer.Deserialize<MediaUploadResult>(json);
                             if (result != null)
                             {
                                 urls.Add(result);

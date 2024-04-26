@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using Proto;
+﻿using Proto;
 using System;
 using System.Collections.Generic;
 using System.Linq;

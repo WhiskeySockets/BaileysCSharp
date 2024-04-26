@@ -1,6 +1,5 @@
 ﻿using Google.Protobuf;
 using LiteDB;
-using Newtonsoft.Json;
 using Proto;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Models;

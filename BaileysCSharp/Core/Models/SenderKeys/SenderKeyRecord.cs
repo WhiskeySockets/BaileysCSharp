@@ -1,5 +1,6 @@
-﻿using Newtonsoft.Json;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.LibSignal;
 
@@ -24,7 +25,7 @@ namespace BaileysCSharp.Core.Models.SenderKeys
         {
             if (File.Exists(fileName))
             {
-                SenderKeys = JsonConvert.DeserializeObject<List<SenderKeyState>>(File.ReadAllText(fileName));
+                SenderKeys = JsonSerializer.Deserialize<List<SenderKeyState>>(File.ReadAllText(fileName));
             }
             else
             {
@@ -57,7 +58,7 @@ namespace BaileysCSharp.Core.Models.SenderKeys
 
         internal string? Serialize()
         {
-            return JsonConvert.SerializeObject(SenderKeys, Formatting.Indented);
+            return JsonSerializer.Serialize(SenderKeys, JsonHelper.Options);
         }
 
         internal void AddSenderKeyState(uint id, uint iteration, byte[] chainKey, byte[] signatureKey)

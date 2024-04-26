@@ -1,11 +1,9 @@
-﻿using Google.Protobuf;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
-using Proto;
+﻿using Proto;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Helper
 {
@@ -272,11 +270,16 @@ namespace BaileysCSharp.Core.Helper
 
         private void Write(object logEntry)
         {
-            var settings = new JsonSerializerSettings();
-            settings.Converters = new List<JsonConverter>() { new Base64Converter(), new ByteStringConverter(), new Newtonsoft.Json.Converters.StringEnumConverter() };
-            settings.ContractResolver = new ConditionalResolver();
-            settings.NullValueHandling = NullValueHandling.Ignore;
-            var json = JsonConvert.SerializeObject(logEntry, settings);
+            var settings = new JsonSerializerOptions()
+            {
+                Converters = { new Base64Converter(), new ByteStringConverter() },
+                WriteIndented = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+            //settings.Converters = new List<JsonConverter>() { new Base64Converter(), new ByteStringConverter(), new Newtonsoft.Json.Converters.StringEnumConverter() };
+            //settings.ContractResolver = new ConditionalResolver();
+            //settings.NullValueHandling = NullValueHandling.Ignore;
+            var json = JsonSerializer.Serialize(logEntry, settings);
             System.Diagnostics.Debug.WriteLine(json);
             Console.WriteLine(json);
         }
@@ -304,57 +307,19 @@ namespace BaileysCSharp.Core.Helper
             }
         }
     }
-    public class ConditionalResolver : DefaultContractResolver
-    {
+    //public class ConditionalResolver : DefaultContractResolver
+    //{
 
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-        {
-            JsonProperty prop = base.CreateProperty(member, memberSerialization);
+    //    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+    //    {
+    //        JsonProperty prop = base.CreateProperty(member, memberSerialization);
 
-            if (prop.PropertyName.StartsWith("Has") && prop.PropertyType == typeof(bool))
-            {
-                return null;
-            }
+    //        if (prop.PropertyName.StartsWith("Has") && prop.PropertyType == typeof(bool))
+    //        {
+    //            return null;
+    //        }
 
-            return prop;
-        }
-    }
-
-    public class Base64Converter : JsonConverter<byte[]>
-    {
-        public override byte[]? ReadJson(JsonReader reader, Type objectType, byte[]? existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, byte[]? value, JsonSerializer serializer)
-        {
-            if (value == null)
-            {
-                writer.WriteNull();
-                return;
-            }
-
-            writer.WriteValue(Convert.ToBase64String(value));
-        }
-    }
-
-    public class ByteStringConverter : JsonConverter<ByteString>
-    {
-        public override ByteString? ReadJson(JsonReader reader, Type objectType, ByteString? existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, ByteString? value, JsonSerializer serializer)
-        {
-            if (value == null)
-            {
-                writer.WriteNull();
-                return;
-            }
-
-            writer.WriteValue(Convert.ToBase64String(value.ToByteArray()));
-        }
-    }
+    //        return prop;
+    //    }
+    //}
 }

@@ -1,6 +1,4 @@
-﻿using LiteDB;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Converters;
+using System.Text.Json;
+using BaileysCSharp.Core.Helper;
 
 namespace BaileysCSharp.Core.NoSQL
 {
@@ -68,11 +68,17 @@ namespace BaileysCSharp.Core.NoSQL
                     data = data.Replace("privKey", "private");
                     try
                     {
-                        return JsonConvert.DeserializeObject<T>(data);
+                        return JsonSerializer.Deserialize<T>(data);
                     }
                     catch (Exception)
                     {
-                        return JsonConvert.DeserializeObject<T>(data, new BufferConverter());
+                        return JsonSerializer.Deserialize<T>(data, new JsonSerializerOptions()
+                        {
+                            Converters =
+                            {
+                                new BufferConverter()
+                            }
+                        });
                     }
                 }
                 return default(T);
@@ -119,7 +125,7 @@ namespace BaileysCSharp.Core.NoSQL
                 if (value != null)
                 {
                     memory[$"{attributes.Prefix}-{id}"] = value;
-                    File.WriteAllText(file, JsonConvert.SerializeObject(value, Formatting.Indented));
+                    File.WriteAllText(file, JsonSerializer.Serialize(value, JsonHelper.Options));
                 }
                 else if (File.Exists(file))
                 {

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
@@ -9,13 +10,13 @@ namespace BaileysCSharp.Core.Models.Sessions
             MessageKeys = new Dictionary<int, byte[]>();
         }
 
-        [JsonProperty("chainKey")]
+        [JsonPropertyName("chainKey")]
         public ChainKey ChainKey { get; set; }
 
-        [JsonProperty("chainType")]
+        [JsonPropertyName("chainType")]
         public int ChainType { get; set; }
 
-        [JsonProperty("messageKeys")]
+        [JsonPropertyName("messageKeys")]
         public Dictionary<int,byte[]> MessageKeys { get; set; }
     }
 }

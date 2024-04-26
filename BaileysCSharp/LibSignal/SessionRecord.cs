@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using BaileysCSharp.Core.Helper;
+﻿using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.NoSQL;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.LibSignal
 {
@@ -9,11 +9,11 @@ namespace BaileysCSharp.LibSignal
     [FolderPrefix("session")]
     public class SessionRecord
     {
-        [JsonProperty("_sessions")]
+        [JsonPropertyName("_sessions")]
         public Dictionary<string, Session> Sessions { get; set; }
 
 
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public string Version { get; set; }
 
         public SessionRecord()

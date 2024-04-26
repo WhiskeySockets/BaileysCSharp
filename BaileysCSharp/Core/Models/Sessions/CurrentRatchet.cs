@@ -1,20 +1,20 @@
-﻿using Newtonsoft.Json;
-using BaileysCSharp.LibSignal;
+﻿using BaileysCSharp.LibSignal;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
     public class CurrentRatchet
     {
-        [JsonProperty("ephemeralKeyPair")]
+        [JsonPropertyName("ephemeralKeyPair")]
         public KeyPair EphemeralKeyPair { get; set; }
 
-        [JsonProperty("lastRemoteEphemeralKey")]
+        [JsonPropertyName("lastRemoteEphemeralKey")]
         public byte[] LastRemoteEphemeralKey { get; set; }
 
-        [JsonProperty("previousCounter")]
+        [JsonPropertyName("previousCounter")]
         public int PreviousCounter { get; set; }
 
-        [JsonProperty("rootKey")]
+        [JsonPropertyName("rootKey")]
         public byte[] RootKey { get; set; }
     }
 }

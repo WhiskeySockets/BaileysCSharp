@@ -1,5 +1,4 @@
 ﻿using LiteDB;
-using Newtonsoft.Json;
 using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Utils;
 

@@ -1,5 +1,4 @@
 ﻿using Google.Protobuf;
-using Newtonsoft.Json;
 using Proto;
 using System;
 using System.Collections.Generic;
@@ -12,26 +11,6 @@ using BaileysCSharp.Core.NoSQL;
 
 namespace BaileysCSharp.Core.Extensions
 {
-    public class IgnoreFalseBool : JsonConverter<bool>
-    {
-        public override bool ReadJson(JsonReader reader, Type objectType, bool existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            return existingValue;
-        }
-
-        public override void WriteJson(JsonWriter writer, bool value, JsonSerializer serializer)
-        {
-            if (value)
-            {
-                writer.WriteValue("true");
-            }
-            else
-            {
-                writer.WriteNull();
-            }
-        }
-    }
-
     public static class Extensions
     {
         public static string ToJson(this IMessage proto)

@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using BaileysCSharp.LibSignal;
 
 namespace BaileysCSharp.Core.Models
@@ -13,13 +13,13 @@ namespace BaileysCSharp.Core.Models
     //For Compatibility Conversion
     public class SignedPreKeyModel
     {
-        [JsonProperty("keyPair")]
+        [JsonPropertyName("keyPair")]
         public KeyPair KeyPair { get; set; }
 
-        [JsonProperty("signature")]
+        [JsonPropertyName("signature")]
         public byte[] Signature { get; set; }
 
-        [JsonProperty("keyId")]
+        [JsonPropertyName("keyId")]
         public ulong KeyId { get; set; }
     }
 

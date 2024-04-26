@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
-using Proto;
+﻿using Proto;
 using BaileysCSharp.Core.NoSQL;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using BaileysCSharp.Core.Helper;
 
 namespace BaileysCSharp.Core.Stores
 {
@@ -19,17 +21,17 @@ namespace BaileysCSharp.Core.Stores
 
         }
 
-        [JsonProperty("keyData")]
+        [JsonPropertyName("keyData")]
         public byte[] KeyData { get; set; }
 
-        [JsonProperty("fingerprint")]
+        [JsonPropertyName("fingerprint")]
         public Fingerprint Fingerprint { get; set; }
 
-        [JsonProperty("timestamp")]
+        [JsonPropertyName("timestamp")]
         public long Timestamp { get; set; }
         internal string? Serialize()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this, JsonHelper.Options);
         }
     }
 
@@ -46,13 +48,13 @@ namespace BaileysCSharp.Core.Stores
             DeviceIndexes = fingerprint.DeviceIndexes.ToList();
         }
 
-        [JsonProperty("rawId")]
+        [JsonPropertyName("rawId")]
         public uint RawId { get; set; }
 
-        [JsonProperty("currentIndex")]
+        [JsonPropertyName("currentIndex")]
         public uint CurrentIndex { get; set; }
 
-        [JsonProperty("deviceIndexes")]
+        [JsonPropertyName("deviceIndexes")]
         public List<uint> DeviceIndexes { get; set; }
     }
 }

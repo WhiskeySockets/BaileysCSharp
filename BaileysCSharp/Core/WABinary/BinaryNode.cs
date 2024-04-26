@@ -1,11 +1,11 @@
-﻿
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using BaileysCSharp.Core.Helper;
 using System.Dynamic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace BaileysCSharp.Core.WABinary
 {
-    public class BinaryNode 
+    public class BinaryNode
     {
         private object _content;
 
@@ -31,9 +31,9 @@ namespace BaileysCSharp.Core.WABinary
 
         private void setContent(object value)
         {
-            if (value is JArray array)
+            if (value is JsonArray array)
             {
-                _content = array.ToObject<BinaryNode[]>();
+                _content = array.Deserialize<BinaryNode[]>();
             }
             else
             {
@@ -48,7 +48,7 @@ namespace BaileysCSharp.Core.WABinary
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            return JsonSerializer.Serialize(this, JsonHelper.Options);
         }
 
         internal string? getattr(string attribute)

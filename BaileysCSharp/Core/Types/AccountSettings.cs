@@ -1,23 +1,25 @@
-﻿using Newtonsoft.Json;
+﻿
+
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Types
 {
     public class AccountSettings
     {
-        [JsonProperty("unarchiveChats")]
+        [JsonPropertyName("unarchiveChats")]
         public bool UnarchiveChats { get; set; }
 
 
-        [JsonProperty("defaultDisappearingMode")]
+        [JsonPropertyName("defaultDisappearingMode")]
         public DissapearingMode DefaultDissapearingMode { get; set; }
     }
 
 
     public class DissapearingMode
     {
-        [JsonProperty("ephemeralExpiration")]
+        [JsonPropertyName("ephemeralExpiration")]
         public ulong EphemeralExpiration { get; set; }
-        [JsonProperty("ephemeralSettingTimestamp")]
+        [JsonPropertyName("ephemeralSettingTimestamp")]
         public ulong EphemeralSettingTimestamp { get; set; }
 
     }

@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.SenderKeys
 {
     public class SenderChainKeyStructure
     {
-        [JsonProperty("iteration")]
+        [JsonPropertyName("iteration")]
         public uint Iteration { get; set; }
 
-        [JsonProperty("seed")]
+        [JsonPropertyName("seed")]
         public byte[] Seed { get; set; }
 
     }

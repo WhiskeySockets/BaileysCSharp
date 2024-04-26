@@ -1,36 +1,36 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
     public class IndexInfo
     {
-        [JsonProperty("baseKey")]
+        [JsonPropertyName("baseKey")]
         public byte[] BaseKey { get; set; }
 
-        [JsonProperty("baseKeyType")]
+        [JsonPropertyName("baseKeyType")]
         public int BaseKeyType { get; set; }
 
-        [JsonProperty("closed")]
+        [JsonPropertyName("closed")]
         public long Closed { get; set; }
 
-        [JsonProperty("used")]
+        [JsonPropertyName("used")]
         public long Used { get; set; }
 
-        [JsonProperty("created")]
+        [JsonPropertyName("created")]
         public long Created { get; set; }
 
-        [JsonProperty("remoteIdentityKey")]
+        [JsonPropertyName("remoteIdentityKey")]
         public byte[] RemoteIdentityKey { get; set; }
     }
 
 
     public class PendingPreKey
     {
-        [JsonProperty("signedKeyId")]
+        [JsonPropertyName("signedKeyId")]
         public uint SignedKeyId { get; set; }
-        [JsonProperty("preKeyId")]
+        [JsonPropertyName("preKeyId")]
         public uint PreKeyId { get; set; }
-        [JsonProperty("baseKey")]
+        [JsonPropertyName("baseKey")]
         public byte[]? BaseKey { get; set; }
     }
 }

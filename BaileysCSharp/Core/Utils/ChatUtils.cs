@@ -1,7 +1,6 @@
 ﻿using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Google.Protobuf.Compiler;
-using Newtonsoft.Json;
 using Org.BouncyCastle.Cms;
 using Proto;
 using System;
@@ -23,6 +22,7 @@ using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Events;
 using System.Runtime.CompilerServices;
 using BaileysCSharp.Core.Types;
+using System.Text.Json;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -119,7 +119,7 @@ namespace BaileysCSharp.Core.Utils
                     if (mutation != null)
                     {
                         var indexStr = Encoding.UTF8.GetString(mutation.SyncAction.Index.ToByteArray());
-                        var index = JsonConvert.DeserializeObject<string[]>(indexStr);
+                        var index = JsonSerializer.Deserialize<string[]>(indexStr);
                         if (index != null)
                         {
                             mutationMap[index[0]] = mutation;
@@ -219,7 +219,7 @@ namespace BaileysCSharp.Core.Utils
                 if (areMutationsRequired)
                 {
                     var indexStr = Encoding.UTF8.GetString(mutation.SyncAction.Index.ToByteArray());
-                    var index = JsonConvert.DeserializeObject<string[]>(indexStr);
+                    var index = JsonSerializer.Deserialize<string[]>(indexStr);
                     if (index != null)
                     {
                         mutationMap[index[0]] = mutation;
@@ -296,7 +296,7 @@ namespace BaileysCSharp.Core.Utils
             }
 
             var indexStr = Encoding.UTF8.GetString(syncAction.Index.ToByteArray());
-            onMutation(new ChatMutation() { SyncAction = syncAction, Index = JsonConvert.DeserializeObject<string[]>(indexStr) });
+            onMutation(new ChatMutation() { SyncAction = syncAction, Index = JsonSerializer.Deserialize<string[]>(indexStr) });
 
             ltGenerator.Mix(record.Index.Blob, ogValueMac, operation);
         }

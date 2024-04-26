@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using BaileysCSharp.Core.Helper;
+using System.Text.Json;
 
 namespace BaileysCSharp.Core.Signal
 {
@@ -10,7 +11,7 @@ namespace BaileysCSharp.Core.Signal
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this);   
+            return JsonSerializer.Serialize(this, JsonHelper.Options);
         }
     }
 }

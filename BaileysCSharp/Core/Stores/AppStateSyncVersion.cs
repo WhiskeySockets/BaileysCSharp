@@ -1,5 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Models.SenderKeys;
 using BaileysCSharp.Core.NoSQL;
@@ -10,14 +12,14 @@ namespace BaileysCSharp.Core.Stores
     [FolderPrefix("app-state-sync-version")]
     public class AppStateSyncVersion
     {
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public ulong Version { get; set; }
 
-        [JsonProperty("hash")]
+        [JsonPropertyName("hash")]
         public byte[] Hash { get; set; }
 
 
-        [JsonProperty("indexValueMap")]
+        [JsonPropertyName("indexValueMap")]
         public Dictionary<string, byte[]> IndexValueMap { get; set; }
 
         public AppStateSyncVersion()
@@ -29,7 +31,7 @@ namespace BaileysCSharp.Core.Stores
 
         public string Serialize()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this, JsonHelper.Options);
         }
     }
 

@@ -1,12 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.SenderKeys
 {
     public class SenderSigningKeyStructure
     {
-        [JsonProperty("public")]
+        [JsonPropertyName("public")]
         public byte[] Public { get; set; }
-        [JsonProperty("private")]
+        [JsonPropertyName("private")]
         public byte[] Private { get; set; }
     }
 

@@ -15,8 +15,6 @@ using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.Core.NoSQL;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using static BaileysCSharp.Core.Helper.CryptoUtils;
-using BaileysCSharp.Core.Extensions;
-using Newtonsoft.Json;
 using BaileysCSharp.LibSignal;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Types;

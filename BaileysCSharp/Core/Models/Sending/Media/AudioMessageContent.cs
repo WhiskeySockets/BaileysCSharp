@@ -1,5 +1,4 @@
 ﻿using FFMpegCore;
-using Newtonsoft.Json;
 using Proto;
 using SkiaSharp;
 using System.Diagnostics;

@@ -1,10 +1,11 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Proto;
+﻿using Proto;
 using System.Diagnostics.CodeAnalysis;
 using BaileysCSharp.LibSignal;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Converters;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using BaileysCSharp.Core.Helper;
 
 namespace BaileysCSharp.Core.Types
 {
@@ -22,25 +23,25 @@ namespace BaileysCSharp.Core.Types
 
     public class ProcessedHistoryMessage
     {
-        [JsonProperty("key")]
+        [JsonPropertyName("key")]
         public MessageKey Key { get; set; }
 
-        [JsonProperty("messageTimestamp")]
+        [JsonPropertyName("messageTimestamp")]
         public ulong MessageTimestamp { get; set; }
     }
 
     public class Account
     {
-        [JsonProperty("details")]
+        [JsonPropertyName("details")]
         public byte[] Details { get; set; }
 
-        [JsonProperty("accountSignatureKey")]
+        [JsonPropertyName("accountSignatureKey")]
         public byte[] AccountSignatureKey { get; set; }
 
-        [JsonProperty("accountSignature")]
+        [JsonPropertyName("accountSignature")]
         public byte[] AccountSignature { get; set; }
 
-        [JsonProperty("deviceSignature")]
+        [JsonPropertyName("deviceSignature")]
         public byte[] DeviceSignature { get; set; }
     }
 
@@ -51,104 +52,86 @@ namespace BaileysCSharp.Core.Types
             ProcessedHistoryMessages = new List<ProcessedHistoryMessage>();
         }
 
-        [JsonProperty("me")]
+        [JsonPropertyName("me")]
         public ContactModel Me { get; set; }
 
-        [JsonProperty("noiseKey")]
+        [JsonPropertyName("noiseKey")]
         public KeyPair NoiseKey { get; set; }
 
-        [JsonProperty("pairingEphemeralKeyPair")]
+        [JsonPropertyName("pairingEphemeralKeyPair")]
         public KeyPair PairingEphemeralKeyPair { get; set; }
 
-        [JsonProperty("signedIdentityKey")]
+        [JsonPropertyName("signedIdentityKey")]
         public KeyPair SignedIdentityKey { get; set; }
 
-        [JsonProperty("signedPreKey")]
+        [JsonPropertyName("signedPreKey")]
         public SignedPreKey SignedPreKey { get; set; }
 
-        [JsonProperty("registrationId")]
+        [JsonPropertyName("registrationId")]
         public int RegistrationId { get; set; }
 
-        [JsonProperty("advSecretKey")]
+        [JsonPropertyName("advSecretKey")]
         public string AdvSecretKey { get; set; }
 
-        [JsonProperty("processedHistoryMessages")]
+        [JsonPropertyName("processedHistoryMessages")]
         public List<ProcessedHistoryMessage> ProcessedHistoryMessages { get; set; }
 
-        [JsonProperty("nextPreKeyId")]
+        [JsonPropertyName("nextPreKeyId")]
         public uint NextPreKeyId { get; set; }
 
-        [JsonProperty("firstUnuploadedPreKeyId")]
+        [JsonPropertyName("firstUnuploadedPreKeyId")]
         public uint FirstUnuploadedPreKeyId { get; set; }
 
-        [JsonProperty("accountSyncCounter")]
+        [JsonPropertyName("accountSyncCounter")]
         public int AccountSyncCounter { get; set; }
 
-        [JsonProperty("accountSettings")]
+        [JsonPropertyName("accountSettings")]
         public AccountSettings AccountSettings { get; set; }
 
-        [JsonProperty("deviceId")]
+        [JsonPropertyName("deviceId")]
         public string DeviceId { get; set; }
 
-        [JsonProperty("phoneId")]
+        [JsonPropertyName("phoneId")]
         public string PhoneId { get; set; }
 
-        [JsonProperty("identityId")]
+        [JsonPropertyName("identityId")]
         public byte[] IdentityId { get; set; }
 
-        [JsonProperty("registered")]
+        [JsonPropertyName("registered")]
         public bool Registered { get; set; }
 
-        [JsonProperty("backupToken")]
+        [JsonPropertyName("backupToken")]
         public byte[] BackupToken { get; set; }
 
-        [JsonProperty("registration")]
+        [JsonPropertyName("registration")]
         public Registration Registration { get; set; }
 
-        [JsonProperty("account")]
+        [JsonPropertyName("account")]
         public Account Account { get; set; }
 
-        [JsonProperty("signalIdentities")]
+        [JsonPropertyName("signalIdentities")]
         public SignalIdentity[] SignalIdentities { get; set; }
 
-        [JsonProperty("platform")]
+        [JsonPropertyName("platform")]
         public string Platform { get; set; }
 
 
-        [JsonProperty("myAppStateKeyId")]
+        [JsonPropertyName("myAppStateKeyId")]
         public string MyAppStateKeyId { get; set; }
 
         public static string Serialize(AuthenticationCreds? creds)
         {
-            return JsonConvert.SerializeObject(creds, Formatting.Indented, new BufferConverter());
+            return JsonSerializer.Serialize(creds, JsonHelper.BufferOptions);
         }
 
 
         public static AuthenticationCreds? Deserialize(string json)
         {
-            var data = JsonConvert.DeserializeObject<AuthenticationCreds>(json, new BufferConverter());
-
-            if (data.SignedPreKey.Public == null)
-            {
-                try
-                {
-                    //Compatibality
-                    var jobj = (JObject)JsonConvert.DeserializeObject(json);
-                    data.SignedPreKey.Public = Convert.FromBase64String(jobj["signedPreKey"]["keyPair"]["public"]["data"].ToString());
-                    data.SignedPreKey.Private = Convert.FromBase64String(jobj["signedPreKey"]["keyPair"]["private"]["data"].ToString());
-                }
-                catch (Exception)
-                {
-
-                }
-            }
-
+            var data = JsonSerializer.Deserialize<AuthenticationCreds>(json, JsonHelper.BufferOptions);
             return data;
         }
 
         public ulong? LastAccountTypeSync { get; set; }
-
-
 
     }
 

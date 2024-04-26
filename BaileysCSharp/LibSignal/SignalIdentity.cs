@@ -1,13 +1,13 @@
 ﻿using BaileysCSharp.Core.Signal;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.LibSignal
 {
     public class SignalIdentity
     {
-        [JsonProperty("identifier")]
+        [JsonPropertyName("identifier")]
         public ProtocolAddress Identifier { get; set; }
-        [JsonProperty("identifierKey")]
+        [JsonPropertyName("identifierKey")]
         public byte[] IdentifierKey { get; set; }
     }
 

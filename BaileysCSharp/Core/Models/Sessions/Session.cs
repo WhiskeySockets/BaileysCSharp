@@ -1,6 +1,5 @@
-﻿using Google.Protobuf;
-using Newtonsoft.Json;
-using BaileysCSharp.Core.Helper;
+﻿using BaileysCSharp.Core.Helper;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
@@ -11,19 +10,19 @@ namespace BaileysCSharp.Core.Models.Sessions
         {
             Chains = new Dictionary<string, Chain>();
         }
-        [JsonProperty("registrationId")]
+        [JsonPropertyName("registrationId")]
         public uint RegistrationId { get; set; }
 
-        [JsonProperty("currentRatchet")]
+        [JsonPropertyName("currentRatchet")]
         public CurrentRatchet CurrentRatchet { get; set; }
 
-        [JsonProperty("indexInfo")]
+        [JsonPropertyName("indexInfo")]
         public IndexInfo IndexInfo { get; set; }
 
-        [JsonProperty("_chains")]
+        [JsonPropertyName("_chains")]
         public Dictionary<string, Chain> Chains { get; set; }
 
-        [JsonProperty("pendingPreKey")]
+        [JsonPropertyName("pendingPreKey")]
         public PendingPreKey PendingPreKey { get; set; }
 
         internal void DeleteChain(byte[] remoteKey)

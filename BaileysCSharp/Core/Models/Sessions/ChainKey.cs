@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
@@ -16,10 +16,10 @@ namespace BaileysCSharp.Core.Models.Sessions
 
     public class ChainKey
     {
-        [JsonProperty("counter")]
+        [JsonPropertyName("counter")]
         public int Counter { get; set; }
 
-        [JsonProperty("key")]
+        [JsonPropertyName("key")]
         public byte[] Key { get; set; }
     }
 }

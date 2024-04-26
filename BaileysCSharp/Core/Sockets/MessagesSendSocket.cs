@@ -8,7 +8,6 @@ using static BaileysCSharp.Core.Utils.JidUtils;
 using static BaileysCSharp.Core.WABinary.Constants;
 using static BaileysCSharp.Core.Utils.ValidateConnectionUtil;
 using static BaileysCSharp.Core.Utils.SignalUtils;
-using Newtonsoft.Json;
 using BaileysCSharp.Core.Extensions;
 using System.Collections.Generic;
 using BaileysCSharp.Core.Models.Sessions;

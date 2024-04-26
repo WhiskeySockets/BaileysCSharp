@@ -15,12 +15,12 @@ using static BaileysCSharp.Core.Utils.MediaMessageUtil;
 using BaileysCSharp.Exceptions;
 using BaileysCSharp.LibSignal;
 using BaileysCSharp.Core.Helper;
-using Newtonsoft.Json;
 using Google.Protobuf;
 using BaileysCSharp.Core.Models.Sending;
 using BaileysCSharp.Core.Models.Sending.Media;
 using BaileysCSharp.Core.Models.Sending.Interfaces;
 using BaileysCSharp.Core.Models.Sending.NonMedia;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -488,10 +488,10 @@ namespace BaileysCSharp.Core.Utils
 
     public class MediaUploadResult
     {
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public string Url { get; set; }
 
-        [JsonProperty("direct_path")]
+        [JsonPropertyName("direct_path")]
         public string DirectPath { get; set; }
     }
 

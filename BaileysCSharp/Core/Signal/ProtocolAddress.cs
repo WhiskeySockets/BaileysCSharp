@@ -1,14 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using static BaileysCSharp.Core.Utils.JidUtils;
 
 namespace BaileysCSharp.Core.Signal
 {
     public class ProtocolAddress
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("deviceId")]
+        [JsonPropertyName("deviceId")]
         public long DeviceID { get; set; }
 
         public ProtocolAddress()

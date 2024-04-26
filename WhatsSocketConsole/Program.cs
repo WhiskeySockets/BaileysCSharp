@@ -1,9 +1,4 @@
-﻿using Newtonsoft.Json;
-using Org.BouncyCastle.Crypto.Digests;
-using Org.BouncyCastle.Crypto.Macs;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Crypto;
-using Proto;
+﻿using Proto;
 using QRCoder;
 using System.Buffers;
 using System.Diagnostics;
@@ -19,6 +14,7 @@ using BaileysCSharp.Core.Models.Sending.NonMedia;
 using BaileysCSharp.Core.Models.Sending;
 using BaileysCSharp.Core.Types;
 using BaileysCSharp.Core.Utils;
+using System.Text.Json;
 
 namespace WhatsSocketConsole
 {
@@ -31,9 +27,6 @@ namespace WhatsSocketConsole
 
         static void Main(string[] args)
         {
-            Tests.RunTests();
-
-
             var config = new SocketConfig()
             {
                 SessionName = "27665245067",
@@ -71,7 +64,7 @@ namespace WhatsSocketConsole
 
         private static void Pressence_Update(object? sender, PresenceModel e)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(e, Formatting.Indented));
+            Console.WriteLine(JsonSerializer.Serialize(e));
         }
 
         private static void MessageHistory_Set(object? sender, MessageHistoryModel[] e)
@@ -190,7 +183,7 @@ namespace WhatsSocketConsole
         private static async void Connection_Update(object? sender, ConnectionState e)
         {
             var connection = e;
-            Debug.WriteLine(JsonConvert.SerializeObject(connection, Formatting.Indented));
+            Debug.WriteLine(JsonSerializer.Serialize(connection));
             if (connection.QR != null)
             {
                 QRCodeGenerator QrGenerator = new QRCodeGenerator();
