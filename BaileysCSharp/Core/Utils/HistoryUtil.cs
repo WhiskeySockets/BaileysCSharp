@@ -63,7 +63,8 @@ namespace BaileysCSharp.Core.Utils
                             {
                                 contacts.Add(new ContactModel()
                                 {
-                                    ID = message.Key.Participant ?? message.Key.RemoteJid,
+                                    //Fix, thank you @viniciusverasdossantos for spotting this
+                                    ID = string.IsNullOrWhiteSpace(message.Key.Participant) ? message.Key.RemoteJid : message.Key.Participant,
                                     VerifiedName = message.MessageStubParameters[0]
                                 });
                             }
