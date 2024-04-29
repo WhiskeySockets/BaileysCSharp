@@ -245,6 +245,9 @@ namespace WhatsSocketConsole
             if (connection.Connection == WAConnectionState.Open)
             {
                 Console.WriteLine("Now you can send messages");
+
+                //var ppurl = await socket.ProfilePictureUrl("xxx@s.whatsapp.net", ProfilePictureUrlType.Image);
+
             }
         }
 

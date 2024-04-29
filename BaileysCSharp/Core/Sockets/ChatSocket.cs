@@ -591,7 +591,7 @@ namespace BaileysCSharp.Core
             var node = new BinaryNode()
             {
                 tag = "iq",
-                attrs = 
+                attrs =
                 {
                     {
                         "to", S_WHATSAPP_NET
@@ -639,6 +639,36 @@ namespace BaileysCSharp.Core
         //TODO updateBlockStatus
         //TODO getBusinessProfile
         //TODO getBusinessProfile
+        //profilePictureUrl 
+
+        public async Task<string> ProfilePictureUrl(string jid, ProfilePictureUrlType type = ProfilePictureUrlType.Preview)
+        {
+            jid = JidUtils.JidNormalizedUser(jid);
+            var result = await Query(new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to",jid },
+                    {"type","get" },
+                    {"xmlns","w:profile:picture" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "picture",
+                        attrs =
+                        {
+                            {"type",type.ToString().ToLower() },
+                            {"query","url" }
+                        }
+                    }
+                }
+            });
+            var child = GetBinaryNodeChild(result, "picture");
+            return child.attrs["url"];
+        }
 
         private void SendPresenceUpdate(WAPresence type, string toJid = "")
         {

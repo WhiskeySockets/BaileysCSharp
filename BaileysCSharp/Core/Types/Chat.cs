@@ -13,7 +13,11 @@ using BaileysCSharp.Core.WABinary;
 
 namespace BaileysCSharp.Core.Models
 {
-
+    public enum ProfilePictureUrlType
+    {
+        Preview = 1,
+        Image = 2
+    }
 
     public enum WAPrivacyValue
     {
