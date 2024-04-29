@@ -29,8 +29,11 @@ namespace BaileysCSharp.Core.Helper
 
         public static ByteString ToByteString(this byte[] buffer)
         {
+            if (buffer == null)
+                return null;
             return ByteString.CopyFrom(buffer);
         }
+
         public static string ToBase64(this byte[] buffer)
         {
             return Convert.ToBase64String(buffer);

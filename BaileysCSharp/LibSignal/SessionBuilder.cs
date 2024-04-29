@@ -75,7 +75,7 @@ namespace BaileysCSharp.LibSignal
 
         private Session InitSession(bool isInitiator, KeyPair ourEphemeralKey, KeyPair ourSignedKey, byte[] theirIdentityPubKey, byte[]? theirEphemeralPubKey, byte[] theirSignedPubKey, uint registrationId)
         {
-            return InitSession(isInitiator, ourEphemeralKey, ourSignedKey, theirIdentityPubKey.ToByteString(), theirEphemeralPubKey.ToByteString(), theirSignedPubKey.ToByteString(), registrationId);
+            return InitSession(isInitiator, ourEphemeralKey, ourSignedKey, theirIdentityPubKey.ToByteString(), theirEphemeralPubKey?.ToByteString(), theirSignedPubKey.ToByteString(), registrationId);
         }
 
         public uint InitIncoming(SessionRecord record, PreKeyWhisperMessage message)

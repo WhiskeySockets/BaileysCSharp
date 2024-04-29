@@ -16,8 +16,10 @@ namespace BaileysCSharp.Core.Utils
 {
     public static class SignalUtils
     {
-        private static SignedPreKey ExtractKey(BinaryNode node)
+        private static SignedPreKey? ExtractKey(BinaryNode node)
         {
+            if (node == null)
+                return null;
             var key = new SignedPreKey();
             key.KeyId = GetBinaryNodeChildUInt(node, "id", 3);
             key.Public = GenerateSignalPubKey(GetBinaryNodeChildBuffer(node, "value"));
