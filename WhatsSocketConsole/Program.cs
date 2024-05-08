@@ -99,11 +99,11 @@ namespace WhatsSocketConsole
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
                         // send a simple text!
-                        //var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
-                        //{
-                        //    Text = "Hi there from C#"
-                        //});
-                        //
+                        var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
+                        {
+                            Text = "Hi there from C#",
+                        });
+
                         ////send a reply messagge
                         //var quoted = await socket.SendMessage(msg.Key.RemoteJid,
                         //    new TextMessageContent() { Text = "Hi this is a C# reply" },

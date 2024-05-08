@@ -667,10 +667,12 @@ namespace BaileysCSharp.Core
                 }
             });
             var child = GetBinaryNodeChild(result, "picture");
-            return child.attrs["url"];
+            //If it is null it means there is no url
+            //resulting url is a url pointing to an already decrypted image
+            return child?.getattr("url");
         }
 
-        private void SendPresenceUpdate(WAPresence type, string toJid = "")
+        public void SendPresenceUpdate(WAPresence type, string toJid = "")
         {
             var me = Creds.Me;
             if (type == WAPresence.Available || type == WAPresence.Unavailable)

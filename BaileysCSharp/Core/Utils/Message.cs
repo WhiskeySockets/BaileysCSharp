@@ -243,6 +243,27 @@ namespace BaileysCSharp.Core.Utils
                 }
             }
 
+            if (message is IButtonable buttonable && buttonable.Buttons?.Length > 0)
+            {
+                var buttonsMessage = new ButtonsMessage()
+                {
+                };
+                foreach (var item in buttonable.Buttons)
+                {
+                    buttonsMessage.Buttons.Add(item);
+                }
+
+                if (message is TextMessageContent textmessage)
+                {
+                    buttonsMessage.ContentText = textmessage.Text;
+                    buttonsMessage.HeaderType = ButtonsMessage.Types.HeaderType.Empty;
+                }
+                m = new Message()
+                {
+                    ButtonsMessage = buttonsMessage
+                };
+            }
+
             return m;
         }
 
@@ -447,6 +468,12 @@ namespace BaileysCSharp.Core.Utils
                 hmac.TransformFinalBlock(buffer, 0, buffer.Length);
             }
         }
+
+
+        //public byte[] DownloadMediaMessage(WebMessageInfo message)
+        //{
+        //
+        //}
 
     }
 

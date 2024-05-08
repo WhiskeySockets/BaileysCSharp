@@ -48,7 +48,7 @@ namespace BaileysCSharp.Core.Events
             Events[typeof(PresenceModel).Name] = Pressence = new PressenceEventStore();
             Events[typeof(MessageReceipt).Name] = Receipt = new MessageReceiptEventStore();
             Events[typeof(MessageReactionModel).Name] = Reaction = new ReactionEventStore();
-            Events[typeof(GroupParticipantEventStore).Name] = GroupParticipant = new GroupParticipantEventStore();
+            Events[typeof(GroupParticipantUpdateModel).Name] = GroupParticipant = new GroupParticipantEventStore();
             Events[typeof(GroupMetadataModel).Name] = Group = new GroupMetaDataEventStore();
 
 
@@ -142,6 +142,10 @@ namespace BaileysCSharp.Core.Events
             lock (locker)
             {
                 var eventkey = $"{typeof(T).Name}";
+                if (!Events.ContainsKey(eventkey))
+                {
+                    return false;
+                }
                 var store = (DataEventStore<T>)Events[eventkey];
                 store.Emit(type, args);
             }

@@ -88,7 +88,6 @@ namespace BaileysCSharp.Core.Sockets
                         {
                             {"sid", GenerateMessageTag() },
                             {"mode","query" },
-                            //{"mode","usync" },
                             {"last","true" },
                             {"index","0" },
                             {"context","message" }
