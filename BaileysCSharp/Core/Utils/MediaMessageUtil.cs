@@ -35,6 +35,7 @@ namespace BaileysCSharp.Core.Utils
             return await DownloadEncryptedContent(downloadUrl, keys, options);
         }
 
+
         private static async Task<byte[]> DownloadEncryptedContent(string downloadUrl, MediaDecryptionKeyInfo keys, MediaDownloadOptions options)
         {
             var bytesFetched = 0;

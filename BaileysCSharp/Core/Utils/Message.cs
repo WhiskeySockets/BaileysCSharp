@@ -21,6 +21,7 @@ using BaileysCSharp.Core.Models.Sending.Media;
 using BaileysCSharp.Core.Models.Sending.Interfaces;
 using BaileysCSharp.Core.Models.Sending.NonMedia;
 using System.Text.Json.Serialization;
+using BaileysCSharp.Core.Types;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -146,7 +147,7 @@ namespace BaileysCSharp.Core.Utils
             webmessage.Key = new MessageKey()
             {
                 FromMe = true,
-                Id = GenerateMessageID(),
+                Id = options?.MessageID ?? GenerateMessageID(),
                 RemoteJid = jid,
             };
             webmessage.Message = message;
@@ -470,11 +471,15 @@ namespace BaileysCSharp.Core.Utils
         }
 
 
-        //public byte[] DownloadMediaMessage(WebMessageInfo message)
-        //{
-        //
-        //}
 
+    }
+
+    public class MediaDownload
+    {
+        public byte[] Data { get; set; }
+        public string MimeType { get; set; }
+        public string FileName { get; set; }
+        public string Caption { get; set; }
     }
 
     public class MediaConnInfo

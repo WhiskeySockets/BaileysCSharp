@@ -19,6 +19,7 @@
     <None Remove="Core\HandshakeMessage.proto" />
     <None Remove="Proto\WAProto.3.proto" />
     <None Remove="Proto\WhisperTextProtocol.proto" />
+    <None Remove="Resources\mimeTypes.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,6 +37,10 @@
   <ItemGroup>
     <Protobuf Include="Proto\WAProto.proto" />
     <Protobuf Include="Proto\WhisperTextProtocol.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\mimeTypes.json" />
   </ItemGroup>
 
 </Project>
