@@ -78,7 +78,7 @@ namespace BaileysCSharp.Core
             switch (type)
             {
                 case "account_sync":
-                    var lastAccountTypeSync = Creds.LastAccountTypeSync;
+                    var lastAccountTypeSync = Creds?.LastAccountTypeSync;
                     if (lastAccountTypeSync != null)
                     {
                         await CleanDirtyBits("account_sync", lastAccountTypeSync);
@@ -674,7 +674,7 @@ namespace BaileysCSharp.Core
 
         public void SendPresenceUpdate(WAPresence type, string toJid = "")
         {
-            var me = Creds.Me;
+            var me = Creds?.Me;
             if (type == WAPresence.Available || type == WAPresence.Unavailable)
             {
                 if (me?.Name == null)
@@ -689,7 +689,7 @@ namespace BaileysCSharp.Core
                     tag = "presence",
                     attrs =
                     {
-                        { "name", me.Name },
+                        { "name", me?.Name ?? "" },
                         { "type" , type.ToString().ToLowerInvariant() }
                     }
                 });
@@ -715,7 +715,7 @@ namespace BaileysCSharp.Core
                     tag = "chatstate",
                     attrs =
                     {
-                        {"from", me.ID },
+                        {"from", me?.ID ?? "" },
                         {"to", toJid}
                     },
                     content = new BinaryNode[] { childNode }
@@ -910,20 +910,267 @@ namespace BaileysCSharp.Core
         }
 
 
-        public void ChatModify(ChatModification modification)
+        public void ChatModify(ChatModification modification, string jid)
         {
-            var patch = ChatModificationToAppPatch(modification);
+            var patch = ChatModificationToAppPatch(modification, jid);
             AppPatch(patch);
         }
 
-        private WAPatchCreate ChatModificationToAppPatch(ChatModification modification)
+        private WAPatchCreate ChatModificationToAppPatch(ChatModification modification, string jid)
         {
-            var patch = new WAPatchCreate();
+            WAPatchCreate patch;
             if (modification is MuteChatModification mute)
             {
-
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        MuteAction = new SyncActionValue.Types.MuteAction()
+                        {
+                            Muted = mute.Mute > 0,
+                            MuteEndTimestamp = mute.Mute.GetValueOrDefault(0)
+                        },
+                    },
+                    Index = ["mute", jid],
+                    Type = "regular_high",
+                    ApiVersion = 2,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
             }
+            else if (modification is ArchiveChatModification archive)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        ArchiveChatAction = new SyncActionValue.Types.ArchiveChatAction()
+                        {
+                            Archived = archive.Archive,
+                            MessageRange = GetMessageRange(archive.LastMessages)
+                        }
+                    },
+                    Index = ["archive", jid],
+                    Type = "regular_low",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is MarkReadChatModification markRead)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        MarkChatAsReadAction = new SyncActionValue.Types.MarkChatAsReadAction()
+                        {
+                            Read = markRead.MarkRead,
+                            MessageRange = GetMessageRange(markRead.LastMessages)
+                        }
+                    },
+                    Index = ["markChatAsRead", jid],
+                    Type = "regular_low",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is ClearChatModification clear)
+            {
+                var key = clear.LastMessages[0];
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        DeleteMessageForMeAction = new SyncActionValue.Types.DeleteMessageForMeAction()
+                        {
+                            DeleteMedia = false,
+                            MessageTimestamp = key.MessageTimestamp
+                        }
+                    },
+                    Index = ["deleteMessageForMe", jid, key.Key.Id, key.Key.FromMe ? "1" : "0", "0"],
+                    Type = "regular_high",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is PinChatModification pin)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        PinAction = new SyncActionValue.Types.PinAction()
+                        {
+                            Pinned = pin.Pin
+                        }
+                    },
+                    Index = ["pin_v1", jid],
+                    Type = "regular_low",
+                    ApiVersion = 5,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is StarChatModification star)
+            {
+                var key = star.Messages[0];
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        StarAction = new SyncActionValue.Types.StarAction()
+                        {
+                            Starred = star.Star
+                        }
+                    },
+                    Index = ["pin_v1", jid, key.ID, key.FromMe ? "1" : "0", "0"],
+                    Type = "regular_low",
+                    ApiVersion = 2,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is DeleteChatModification delete)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        DeleteChatAction = new SyncActionValue.Types.DeleteChatAction()
+                        {
+                            MessageRange = GetMessageRange(delete.LastMessages)
+                        }
+                    },
+                    Index = ["deleteChat", jid, "1"],
+                    Type = "regular_high",
+                    ApiVersion = 6,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is PushNameChatModification push)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        PushNameSetting = new SyncActionValue.Types.PushNameSetting()
+                        {
+                            Name = push.PushNameSetting
+                        }
+                    },
+                    Index = ["setting_pushName"],
+                    Type = "critical_block",
+                    ApiVersion = 1,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is AddChatLableChatModification addchat)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        LabelAssociationAction = new SyncActionValue.Types.LabelAssociationAction()
+                        {
+                            Labeled = true
+                        }
+                    },
+                    Index = [LabelAssociationType.Chat, addchat.AddChatLabel.LabelID, jid],
+                    Type = "regular",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is RemoveChatLableChatModification removechat)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        LabelAssociationAction = new SyncActionValue.Types.LabelAssociationAction()
+                        {
+                            Labeled = false
+                        }
+                    },
+                    Index = [LabelAssociationType.Chat, removechat.RemoveChatLabel.LabelID, jid],
+                    Type = "regular",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is AddMessageLabelChatModification addmessage)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        LabelAssociationAction = new SyncActionValue.Types.LabelAssociationAction()
+                        {
+                            Labeled = true
+                        }
+                    },
+                    Index = [LabelAssociationType.Message, addmessage.AddMessageLabel.LabelID, jid, addmessage.AddMessageLabel.MessageID, "0", "0"],
+                    Type = "regular",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else if (modification is RemoveMessageLabelChatModification removemessage)
+            {
+                patch = new WAPatchCreate()
+                {
+                    SyncAction = new SyncActionValue()
+                    {
+                        LabelAssociationAction = new SyncActionValue.Types.LabelAssociationAction()
+                        {
+                            Labeled = false
+                        }
+                    },
+                    Index = [LabelAssociationType.Message, removemessage.RemoveMessageLabel.LabelID, jid, removemessage.RemoveMessageLabel.MessageID, "0", "0"],
+                    Type = "regular",
+                    ApiVersion = 3,
+                    Operation = SyncdMutation.Types.SyncdOperation.Set,
+                };
+            }
+            else
+            {
+                throw new NotSupportedException($"{modification.GetType().FullName} is not supported");
+            }
+
             return patch;
+        }
+
+        private SyncActionValue.Types.SyncActionMessageRange GetMessageRange(List<MinimalMessage> lastMessages)
+        {
+            var messageRange = new SyncActionValue.Types.SyncActionMessageRange();
+
+            var lastMessage = lastMessages.LastOrDefault();
+            messageRange.LastMessageTimestamp = lastMessage.MessageTimestamp;
+            foreach (var m in lastMessages)
+            {
+                if (m.Key?.Id == null || m.Key?.RemoteJid == null)
+                {
+                    throw new Boom("Incomplete key", new BoomData(400));
+                }
+
+                if (JidUtils.IsJidGroup(m.Key.RemoteJid) && !m.Key.FromMe && m.Key.Participant != null)
+                {
+                    throw new Boom("Expected not from me message to have participant", new BoomData(400));
+                }
+                if (lastMessage?.MessageTimestamp == null || lastMessage.MessageTimestamp == 0)
+                {
+                    throw new Boom("Missing timestamp in last message list", new BoomData(400));
+                }
+
+                if (m.Key.Participant != null)
+                {
+                    m.Key.Participant = JidUtils.JidNormalizedUser(m.Key.Participant);
+                }
+                messageRange.Messages.Add(new SyncActionValue.Types.SyncActionMessage()
+                {
+                    Key = m.Key,
+                    Timestamp = m.MessageTimestamp
+                });
+            }
+
+            return messageRange;
         }
 
         //TODO: chatModify

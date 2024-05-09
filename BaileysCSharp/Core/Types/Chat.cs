@@ -258,7 +258,7 @@ namespace BaileysCSharp.Core.Models
     //TODO
     public class ClearChatModification : ChatModification
     {
-
+        public List<MinimalMessage> LastMessages { get; set; }
     }
 
 
@@ -296,6 +296,11 @@ namespace BaileysCSharp.Core.Models
         public string LabelID { get; set; }
     }
 
+    public class LabelAssociationType
+    {
+        public const string Chat = "label_jid";
+        public const string Message = "label_message";
+    }
 
     public class AddChatLableChatModification : ChatModification
     {
@@ -320,5 +325,8 @@ namespace BaileysCSharp.Core.Models
     {
         public SyncActionValue SyncAction { get; set; }
         public string[] Index { get; set; }
+        public string Type { get; set; }
+        public long ApiVersion { get; set; }
+        public SyncdMutation.Types.SyncdOperation Operation { get; set; }
     }
 }
