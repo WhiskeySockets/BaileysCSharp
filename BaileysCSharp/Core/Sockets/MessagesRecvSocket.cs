@@ -924,6 +924,57 @@ namespace BaileysCSharp.Core.Sockets
                     MimeType = attachement.Mimetype,
                 };
             }
+            if (message.Message.PtvMessage != null)
+            {
+                var attachement = message.Message.PtvMessage;
+                var result = await MediaMessageUtil.DownloadContentFromMessage(new ExternalBlobReference()
+                {
+                    DirectPath = attachement.DirectPath,
+                    FileEncSha256 = attachement.FileEncSha256,
+                    FileSha256 = attachement.FileSha256,
+                    FileSizeBytes = attachement.FileLength,
+                    MediaKey = attachement.MediaKey
+                }, "ptv", new MediaDownloadOptions());
+                return new MediaDownload()
+                {
+                    Data = result,
+                    MimeType = attachement.Mimetype,
+                };
+            }
+            if (message.Message.PtvMessage != null)
+            {
+                var attachement = message.Message.PtvMessage;
+                var result = await MediaMessageUtil.DownloadContentFromMessage(new ExternalBlobReference()
+                {
+                    DirectPath = attachement.DirectPath,
+                    FileEncSha256 = attachement.FileEncSha256,
+                    FileSha256 = attachement.FileSha256,
+                    FileSizeBytes = attachement.FileLength,
+                    MediaKey = attachement.MediaKey
+                }, "ptv", new MediaDownloadOptions());
+                return new MediaDownload()
+                {
+                    Data = result,
+                    MimeType = attachement.Mimetype,
+                };
+            }
+            if (message.Message.ProductMessage != null)
+            {
+                var attachement = message.Message.ProductMessage;
+                var result = await MediaMessageUtil.DownloadContentFromMessage(new ExternalBlobReference()
+                {
+                    DirectPath = attachement.Catalog.CatalogImage.DirectPath,
+                    FileEncSha256 = attachement.Catalog.CatalogImage.FileEncSha256,
+                    FileSha256 = attachement.Catalog.CatalogImage.FileSha256,
+                    FileSizeBytes = attachement.Catalog.CatalogImage.FileLength,
+                    MediaKey = attachement.Catalog.CatalogImage.MediaKey
+                }, "image", new MediaDownloadOptions());
+                return new MediaDownload()
+                {
+                    Data = result,
+                    MimeType = attachement.Catalog.CatalogImage.Mimetype,
+                };
+            }
 
             throw new NotSupportedException($"{message.Key.Id} does not have a media attached");
         }
