@@ -808,10 +808,16 @@ namespace BaileysCSharp.Core
         }
 
 
-        //TODO: appPatch
         public void AppPatch(WAPatchCreate patch)
         {
+            var name = patch.Type;
+            var myAppStateKeyId = Creds?.MyAppStateKeyId;
+            if (myAppStateKeyId == null)
+            {
+                throw new Boom("App state key not present!", new BoomData(400));
+            }
 
+            //TODO
         }
 
         private async void FetchAbt()

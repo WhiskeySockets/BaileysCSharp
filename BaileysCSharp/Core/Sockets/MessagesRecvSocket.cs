@@ -92,7 +92,7 @@ namespace BaileysCSharp.Core.Sockets
                     await RelayMessage(key.RemoteJid, message, new MessageRelayOptions()
                     {
                         MessageID = key.Id,
-                        UseUserDevicesCache = false
+                        UseUserDevicesCache = false,
                     });
                 }
                 else

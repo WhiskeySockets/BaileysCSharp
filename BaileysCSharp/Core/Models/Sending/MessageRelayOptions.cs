@@ -4,6 +4,10 @@ namespace BaileysCSharp.Core.Models.Sending
 {
     public class MessageRelayOptions : IMessageRelayOptions
     {
+        public MessageRelayOptions()
+        {
+            AdditionalAttributes = new Dictionary<string, string>();
+        }
         public MessageParticipant Participant { get; set; }
         public Dictionary<string, string> AdditionalAttributes { get; set; }
         public bool? UseUserDevicesCache { get; set; }
