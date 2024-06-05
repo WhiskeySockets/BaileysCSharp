@@ -5,7 +5,7 @@ namespace BaileysCSharp.Core.Sockets.Client
     public class WebSocketClient : AbstractSocketClient
     {
         ClientWebSocket socket;
-        public WebSocketClient(BaseSocket wasocket):base(wasocket)
+        public WebSocketClient(BaseSocket wasocket) : base(wasocket)
         {
         }
 
@@ -46,6 +46,7 @@ namespace BaileysCSharp.Core.Sockets.Client
                 OnDisconnected(Events.DisconnectReason.ConnectionLost);
             }
         }
+
 
 
         //private async void StartReceiving(object? obj)

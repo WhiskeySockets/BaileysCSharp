@@ -142,7 +142,6 @@ namespace BaileysCSharp.Core.Utils
             if (tag >= 1 && tag < SINGLE_BYTE_TOKENS.Length)
             {
                 return SINGLE_BYTE_TOKENS[tag] ?? "";
-
             }
 
             switch (tag)
@@ -326,7 +325,6 @@ namespace BaileysCSharp.Core.Utils
                 var key = ReadString(ReadByte());
                 var value = ReadString(ReadByte());
                 node.attrs[key] = value;
-
             }
 
             if (listSize % 2 == 0)

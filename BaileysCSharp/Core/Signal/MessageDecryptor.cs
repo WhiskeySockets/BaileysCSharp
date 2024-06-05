@@ -3,6 +3,7 @@ using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.WABinary;
+using System.Text;
 
 namespace BaileysCSharp.Core.Signal
 {
@@ -37,14 +38,14 @@ namespace BaileysCSharp.Core.Signal
                             Msg.VerifiedBizName = details.VerifiedName;
                         }
 
-                        if (node.tag != "enc")
+                        if (node.tag != "enc" && node.tag != "plaintext")
                             continue;
 
                         if (node.content is byte[] buffer)
                         {
                             decryptables += 1;
                             byte[] msgBuffer = default;
-                            var e2eType = node.getattr("type") ?? "none";
+                            var e2eType = node.getattr("type") ?? node.tag ?? "none";
                             switch (e2eType)
                             {
                                 case "skmsg":
@@ -56,11 +57,12 @@ namespace BaileysCSharp.Core.Signal
                                     msgBuffer = Repository.DecryptMessage(user, e2eType, buffer);
                                     break;
                                 default:
+                                case "plaintext":
+                                    msgBuffer = buffer;
                                     break;
                             }
 
-
-                            var msg = Message.Parser.ParseFrom(msgBuffer.UnpadRandomMax16());
+                            var msg = Message.Parser.ParseFrom(node.tag == "plaintext" ? msgBuffer : msgBuffer.UnpadRandomMax16());
                             msg = msg.DeviceSentMessage?.Message ?? msg;
                             if (msg.SenderKeyDistributionMessage != null)
                             {

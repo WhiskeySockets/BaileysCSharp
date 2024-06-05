@@ -55,7 +55,7 @@ namespace BaileysCSharp.Core.Sockets
                 var user = JidDecode(jid).User;
                 var normalJid = JidNormalizedUser(jid);
 
-                var devices = userDevicesCache.Get<JidWidhDevice[]>(jid);
+                var devices = userDevicesCache.Get<JidWidhDevice[]>(user);
                 if (devices != null && devices.Length > 0 && useCache)
                 {
                     deviceResults.AddRange(devices);
@@ -120,9 +120,7 @@ namespace BaileysCSharp.Core.Sockets
             };
 
             var result = await Query(iq);
-
             var extracted = ExtractDeviceJids(result, Creds.Me.ID, ignoreZeroDevices);
-
             Dictionary<string, List<JidWidhDevice>> deviceMap = new Dictionary<string, List<JidWidhDevice>>();
 
             foreach (var item in extracted)
@@ -217,7 +215,12 @@ namespace BaileysCSharp.Core.Sockets
         public async Task<WebMessageInfo?> SendMessage(string jid, IAnyMessageContent content, IMiscMessageGenerationOptions? options = null)
         {
             var userJid = Creds.Me.ID;
-            //This needs to be implemented better
+
+            if (IsJidNewsletter(jid))
+            {
+                throw new Exception("Cannot send to newsletter, use SendNewsletterMessage instead");
+            }
+
             if (IsJidGroup(jid) && content.DisappearingMessagesInChat.HasValue)
             {
                 if (content.DisappearingMessagesInChat == true)
@@ -269,7 +272,7 @@ namespace BaileysCSharp.Core.Sockets
                     AdditionalAttributes = additionalAttributes,
                 });
 
-
+                fullMsg.MessageTimestamp = (ulong)DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 await UpsertMessage(fullMsg, MessageEventType.Append);
 
                 return fullMsg;
@@ -287,16 +290,18 @@ namespace BaileysCSharp.Core.Sockets
             var server = jidDecoded.Server;
 
             var statusId = "status@broadcast";
+            var isNewsletter = server == "newsletter";
             var isGroup = server == "g.us";
             var isStatus = jid == statusId;
             var isLid = server == "lid";
 
             options.MessageID = options.MessageID ?? GenerateMessageID();
+
             //options.UseUserDevicesCache = options.UseUserDevicesCache != false;
 
 
             var participants = new List<BinaryNode>();
-            var destinationJid = (!isStatus) ? JidEncode(user, isLid ? "lid" : isGroup ? "g.us" : "s.whatsapp.net") : statusId;
+            var destinationJid = (!isStatus) ? JidEncode(user, isLid ? "lid" : isGroup ? "g.us" : isNewsletter ? "newsletter" : "s.whatsapp.net") : statusId;
             var binaryNodeContent = new List<BinaryNode>();
             var devices = new List<JidWidhDevice>();
 
@@ -418,6 +423,16 @@ namespace BaileysCSharp.Core.Sockets
                 });
 
                 Keys.Set(jid, senderKeyMap);
+            }
+            else if (isNewsletter)
+            {
+                var patched = SocketConfig.PatchMessageBeforeSending(message, []);
+                var bytes = EncodeNewsletterMessage(patched);
+                binaryNodeContent.Add(new BinaryNode()
+                {
+                    tag = "plaintext",
+                    content = bytes
+                });
             }
             else
             {
@@ -548,8 +563,12 @@ namespace BaileysCSharp.Core.Sockets
 
             Logger.Debug(new { msgId = options.MessageID }, $"sending message to ${participants.Count} devices");
 
-
             SendNode(stanza);
+        }
+
+        private byte[] EncodeNewsletterMessage(Message patched)
+        {
+            return patched.ToByteArray();
         }
 
         public ParticipantNode CreateParticipantNodes(string[] jids, Message message, Dictionary<string, string>? attrs)

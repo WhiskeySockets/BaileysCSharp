@@ -80,7 +80,7 @@ namespace BaileysCSharp.Core.WABinary
         public static Dictionary<string, Dictionary<string, int>> TOKEN_MAP = new Dictionary<string, Dictionary<string, int>>();
 
         public const string NoiseMode = "Noise_XX_25519_AESGCM_SHA256\0\0\0\0";
-        public static byte[] NOISE_HEADER = new byte[] { 87, 65, 6, 2 };
+        public static byte[] NOISE_WA_HEADER = new byte[] { 87, 65, 6, 2 };
         public const int WA_CERT_DETAILS_SERIAL = 0;
 
         static Constants()

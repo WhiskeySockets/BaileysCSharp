@@ -146,9 +146,9 @@ namespace BaileysCSharp.Core.Helper
                     return decryptedData;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 

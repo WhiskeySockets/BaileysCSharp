@@ -5,20 +5,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Exceptions;
 using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core
 {
 
     public class MessageDecoder
     {
-        public static MessageDecryptor DecryptMessageNode(BinaryNode stanza, string meId, string meLid, SignalRepository repository, Logger logger)
+        public static MessageDecryptor DecryptMessageNode(BinaryNode stanza, string meId, string meLid, SignalRepository repository, DefaultLogger logger)
         {
 
             string chatId = "";
@@ -100,9 +100,21 @@ namespace BaileysCSharp.Core
                     author = participant;
                 }
             }
+            else if (IsJidNewsletter(from))
+            {
+                chatId = from;
+            }
 
             var notify = stanza.getattr("notify");
-            var fromMe = IsLidUser(from) ? AreJidsSameUser(meLid, !string.IsNullOrWhiteSpace(participant) ? participant : from) : AreJidsSameUser(meId, !string.IsNullOrWhiteSpace(participant) ? participant : from);
+            bool fromMe;
+            if (IsLidUser(from))
+            {
+                fromMe = AreJidsSameUser(meLid, !string.IsNullOrWhiteSpace(participant) ? participant : from);
+            }
+            else
+            {
+                fromMe = AreJidsSameUser(meId, !string.IsNullOrWhiteSpace(participant) ? participant : from);
+            }
 
             var fullMessage = new WebMessageInfo()
             {
@@ -113,7 +125,7 @@ namespace BaileysCSharp.Core
                     FromMe = fromMe,
                     Participant = participant ?? "",
                 },
-                PushName = notify,
+                PushName = notify ?? "",
                 Broadcast = IsBroadcast(from)
 
             };

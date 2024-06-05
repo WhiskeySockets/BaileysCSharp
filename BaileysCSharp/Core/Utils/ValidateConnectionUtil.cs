@@ -18,64 +18,151 @@ using static BaileysCSharp.Core.Helper.CryptoUtils;
 using BaileysCSharp.LibSignal;
 using BaileysCSharp.Core.Signal;
 using BaileysCSharp.Core.Types;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace BaileysCSharp.Core.Utils
 {
 
     public class ValidateConnectionUtil
     {
-
-        public static ClientPayload GenerateRegistrationNode(AuthenticationCreds creds)
+        public static ClientPayload GenerateRegistrationNode(AuthenticationCreds creds, SocketConfig config)
         {
-            var appVersion = Helper.CryptoUtils.Md5("2.2329.9");
+            var appVersion = Helper.CryptoUtils.Md5(string.Join(".", config.Version));
             var companion = new DeviceProps()
             {
-                Os = "Baileys",
+                Os = config.Browser[0],
                 PlatformType = DeviceProps.Types.PlatformType.Chrome,
                 RequireFullSync = false,
             };
-            var payload = new ClientPayload
+
+            var payload = GetClientPayload(config);
+            payload.Passive = false;
+            payload.DevicePairingData = new DevicePairingRegistrationData()
             {
-                Passive = false,
-                ConnectReason = ConnectReason.UserActivated,
-                ConnectType = ConnectType.WifiUnknown,
-                UserAgent = new UserAgent()
-                {
-                    AppVersion = new UserAgent.Types.AppVersion()
-                    {
-                        Primary = 2,
-                        Secondary = 2329,
-                        Tertiary = 9,
-                    },
-                    Platform = UserAgent.Types.Platform.Macos,
-                    ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
-                    Mcc = "000",
-                    Mnc = "000",
-                    OsVersion = "0.1",
-                    Manufacturer = "",
-                    Device = "Dekstop",
-                    OsBuildNumber = "0.1",
-                    LocaleLanguageIso6391 = "en",
-                    LocaleCountryIso31661Alpha2 = "us",
-                    //PhoneId = creds.PhoneId
-                },
-                DevicePairingData = new DevicePairingRegistrationData()
-                {
-                    BuildHash = appVersion.ToByteString(),
-                    DeviceProps = companion.ToByteString(),
-                    ERegid = creds.RegistrationId.EncodeBigEndian().ToByteString(),
-                    EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
-                    EIdent = creds.SignedIdentityKey.Public.ToByteString(),
-                    ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
-                    ESkeyVal = creds.SignedPreKey.Public.ToByteString(),
-                    ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
-                }
+                BuildHash = appVersion.ToByteString(),
+                DeviceProps = companion.ToByteString(),
+                ERegid = creds.RegistrationId.EncodeBigEndian().ToByteString(),
+                EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
+                EIdent = creds.SignedIdentityKey.Public.ToByteString(),
+                ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
+                ESkeyVal = creds.SignedPreKey.Public.ToByteString(),
+                ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
             };
+
+            //var payload = new ClientPayload
+            //{
+            //    Passive = false,
+            //    ConnectReason = ConnectReason.UserActivated,
+            //    ConnectType = ConnectType.WifiUnknown,
+            //    UserAgent = new UserAgent()
+            //    {
+            //        AppVersion = new UserAgent.Types.AppVersion()
+            //        {
+            //            Primary = config.Version[0],
+            //            Secondary = config.Version[1],
+            //            Tertiary = config.Version[2],
+            //        },
+            //        Platform = UserAgent.Types.Platform.Macos,
+            //        ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
+            //        Mcc = "000",
+            //        Mnc = "000",
+            //        OsVersion = "0.1",
+            //        Manufacturer = "",
+            //        Device = "Dekstop",
+            //        OsBuildNumber = "0.1",
+            //        LocaleLanguageIso6391 = "en",
+            //        LocaleCountryIso31661Alpha2 = "us",
+            //        //PhoneId = creds.PhoneId
+            //    },
+            //    DevicePairingData = new DevicePairingRegistrationData()
+            //    {
+            //        BuildHash = appVersion.ToByteString(),
+            //        DeviceProps = companion.ToByteString(),
+            //        ERegid = creds.RegistrationId.EncodeBigEndian().ToByteString(),
+            //        EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
+            //        EIdent = creds.SignedIdentityKey.Public.ToByteString(),
+            //        ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
+            //        ESkeyVal = creds.SignedPreKey.Public.ToByteString(),
+            //        ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
+            //    }
+            //};
 
             return payload;
         }
 
+        //public static ClientPayload GenerateRegistrationNode(AuthenticationCreds creds, SocketConfig config)
+        //{
+        //    var appVersion = Md5(string.Join(".", config.Version));
+        //    var companion = new DeviceProps()
+        //    {
+        //        Os = config.Browser[0],
+        //        PlatformType = DeviceProps.Types.PlatformType.Chrome,
+        //        RequireFullSync = false,
+        //    };
+        //    var payload = GetClientPayload(config);
+        //    payload.Passive = false;
+        //    payload.DevicePairingData = new DevicePairingRegistrationData()
+        //    {
+        //        BuildHash = appVersion.ToByteString(),
+        //        DeviceProps = companion.ToByteString(),
+        //        ERegid = creds.RegistrationId.EncodeBigEndian().ToByteString(),
+        //        EKeytype = Constants.KEY_BUNDLE_TYPE.ToByteString(),
+        //        EIdent = creds.SignedIdentityKey.Public.ToByteString(),
+        //        ESkeyId = creds.SignedPreKey.KeyId.EncodeBigEndian(3).ToByteString(),
+        //        ESkeyVal = creds.SignedPreKey.Public.ToByteString(),
+        //        ESkeySig = creds.SignedPreKey.Signature.ToByteString(),
+        //    };
+        //    return payload;
+        //}
 
+
+        public static ClientPayload GenerateLoginNode(string user, SocketConfig config)
+        {
+            var decoded = JidUtils.JidDecode(user);
+            var payload = GetClientPayload(config);
+            payload.Passive = true;
+            payload.Username = Convert.ToUInt64(decoded.User);
+            payload.Device = decoded.Device.Value;
+            return payload;
+        }
+
+        public static ClientPayload GetClientPayload(SocketConfig config)
+        {
+            var payload = new ClientPayload
+            {
+                ConnectType = ConnectType.WifiUnknown,
+                ConnectReason = ConnectReason.UserActivated,
+                UserAgent = GetUserAgent(config),
+            };
+            payload.WebInfo = new WebInfo()
+            {
+                WebSubPlatform = WebInfo.Types.WebSubPlatform.WebBrowser
+            };
+            return payload;
+        }
+
+        private static UserAgent GetUserAgent(SocketConfig config)
+        {
+            return new UserAgent()
+            {
+                AppVersion = new UserAgent.Types.AppVersion()
+                {
+                    Primary = config.Version[0],
+                    Secondary = config.Version[1],
+                    Tertiary = config.Version[2],
+                },
+                Platform = UserAgent.Types.Platform.Web,
+                ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
+                Mcc = "000",
+                Mnc = "000",
+                OsVersion = "0.1",
+                Manufacturer = "",
+                Device = "Dekstop",
+                OsBuildNumber = "0.1",
+                LocaleLanguageIso6391 = "en",
+                LocaleCountryIso31661Alpha2 = "US",
+            };
+        }
 
         public static BinaryNode ConfigureSuccessfulPairing(AuthenticationCreds creds, BinaryNode node)
         {
@@ -325,7 +412,6 @@ namespace BaileysCSharp.Core.Utils
                 PreKeyRange = new uint[] { creds.FirstUnuploadedPreKeyId, range }
             };
         }
-
 
     }
 }

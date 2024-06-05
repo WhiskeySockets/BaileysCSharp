@@ -48,9 +48,12 @@ namespace BaileysCSharp.Core.Sockets
             {
                 await GroupFetchAllParticipating();
                 await CleanDirtyBits("groups");
+                return true;
             }
-
-            return true;
+            else
+            {
+                return await base.HandleDirtyUpdate(node);
+            }
         }
 
         private async Task GroupFetchAllParticipating()
@@ -390,6 +393,15 @@ namespace BaileysCSharp.Core.Sockets
 
 
             return metadata;
+        }
+
+
+
+
+
+        public List<ContactModel> GetAllGroups()
+        {
+            return Store.GetAllGroups();
         }
     }
 }

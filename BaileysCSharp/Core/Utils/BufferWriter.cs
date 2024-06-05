@@ -66,6 +66,11 @@ namespace BaileysCSharp.Core.Utils
             var @byte = Convert.ToByte(value & 0xff);
             Buffer.WriteByte(@byte);
         }
+        private void PushByte(uint value)
+        {
+            var @byte = Convert.ToByte(value & 0xff);
+            Buffer.WriteByte(@byte);
+        }
 
         private void PushInt(int value, int n, bool littleEndian = false)
         {

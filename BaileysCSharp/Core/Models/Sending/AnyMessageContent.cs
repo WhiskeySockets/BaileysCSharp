@@ -11,4 +11,16 @@
     {
         public bool? DisappearingMessagesInChat { get; set; }
     }
+
+
+
+    public interface INewsletterMessageContent
+    {
+    }
+
+    public class NewsletterTextMessage : INewsletterMessageContent 
+    {    
+        public string Text { get; set; }
+    }
+
 }

@@ -23,6 +23,7 @@ using BaileysCSharp.Core.Events;
 using System.Runtime.CompilerServices;
 using BaileysCSharp.Core.Types;
 using System.Text.Json;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -88,7 +89,7 @@ namespace BaileysCSharp.Core.Utils
 
 
 
-        internal static async Task<(AppStateSyncVersion state, ChatMutationMap mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static async Task<(AppStateSyncVersion state, ChatMutationMap mutationMap)> DecodePatches(string name, List<SyncdPatch> syncds, AppStateSyncVersion appStateSyncVersion, BaseKeyStore keys, ulong minimumVersionNumber, DefaultLogger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = appStateSyncVersion.Version;
@@ -206,7 +207,7 @@ namespace BaileysCSharp.Core.Utils
             return SyncdMutations.Parser.ParseFrom(buffer);
         }
 
-        internal static (AppStateSyncVersion state, ChatMutationMap mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, BaseKeyStore keys, ulong minimumVersionNumber, Logger logger, bool validateMacs)
+        internal static (AppStateSyncVersion state, ChatMutationMap mutationMap) DecodeSyncdSnapshot(string name, SyncdSnapshot snapshot, BaseKeyStore keys, ulong minimumVersionNumber, DefaultLogger logger, bool validateMacs)
         {
             var newState = new AppStateSyncVersion();
             newState.Version = snapshot.Version.Version;
@@ -356,7 +357,7 @@ namespace BaileysCSharp.Core.Utils
             return stream;
         }
 
-        internal static void ProcessSyncAction(ChatMutation syncAction, EventEmitter eV, AuthenticationCreds creds, AccountSettings? accountSettings, MemoryStore store, Logger logger)
+        internal static void ProcessSyncAction(ChatMutation syncAction, EventEmitter eV, AuthenticationCreds creds, AccountSettings? accountSettings, MemoryStore store, DefaultLogger logger)
         {
             var isInitialSync = accountSettings == null;
 

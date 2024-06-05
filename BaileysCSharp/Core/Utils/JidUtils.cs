@@ -34,7 +34,7 @@ namespace BaileysCSharp.Core.Utils
 
             if (userAgentDevice.Length > 1)
             {
-                result.Device = Convert.ToInt32(userAgentDevice[1]);
+                result.Device = Convert.ToUInt32(userAgentDevice[1]);
             }
 
             result.DomainType = result.Server == "lid" ? 1 : 0;
@@ -51,7 +51,7 @@ namespace BaileysCSharp.Core.Utils
             return JidEncode(result.User, result.Server);
         }
 
-        public static string JidEncode(string user, string server, int? device = null, int? agent = null)
+        public static string JidEncode(string user, string server, uint? device = null, int? agent = null)
         {
             if (device == 0)
                 device = null;
@@ -89,6 +89,11 @@ namespace BaileysCSharp.Core.Utils
         public static bool IsJidStatusBroadcast(string id)
         {
             return id == "status@broadcast";
+        }
+        
+        public static bool IsJidNewsletter(string id)
+        {
+            return id.EndsWith("@newsletter");
         }
 
         public static bool IsJidGroup(string id)

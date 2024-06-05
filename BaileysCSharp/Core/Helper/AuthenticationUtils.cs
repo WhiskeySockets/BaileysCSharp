@@ -18,30 +18,6 @@ namespace BaileysCSharp.Core.Helper
 
         public static AuthenticationCreds InitAuthCreds()
         {
-            /*
-        noiseKey: Curve.generateKeyPair(),
-		pairingEphemeralKeyPair: Curve.generateKeyPair(),
-		signedIdentityKey: identityKey,
-		signedPreKey: signedKeyPair(identityKey, 1),
-		registrationId: generateRegistrationId(),
-		advSecretKey: randomBytes(32).toString('base64'),
-		processedHistoryMessages: [],
-		nextPreKeyId: 1,
-		firstUnuploadedPreKeyId: 1,
-		accountSyncCounter: 0,
-		accountSettings: {
-			unarchiveChats: false
-		},
-		// mobile creds
-		deviceId: Buffer.from(uuidv4().replace(/-/g, ''), 'hex').toString('base64url'),
-		phoneId: uuidv4(),
-		identityId: randomBytes(20),
-		registered: false,
-		backupToken: randomBytes(20),
-		registration: {} as never,
-		pairingCode: undefined,
-            */
-
             var creds = new AuthenticationCreds();
             creds.NoiseKey = Curve.GenerateKeyPair();
             creds.PairingEphemeralKeyPair = Curve.GenerateKeyPair();
@@ -49,6 +25,8 @@ namespace BaileysCSharp.Core.Helper
             creds.SignedPreKey = SignedKeyPair(creds.SignedIdentityKey, 1);
             creds.RegistrationId = GenerateRegistrationId();
             creds.AdvSecretKey = RandomBytes(32).ToBase64();
+            creds.ProcessedHistoryMessages = new List<ProcessedHistoryMessage>();
+            //creds.
             creds.NextPreKeyId = 1;
             creds.FirstUnuploadedPreKeyId = 1;
             creds.AccountSyncCounter = 0;
@@ -63,8 +41,7 @@ namespace BaileysCSharp.Core.Helper
             creds.Registered = false;
             creds.BackupToken = RandomBytes(20);
             creds.Registration = new Registration() { };
-
-
+            creds.LastPropHash = default;
 
             return creds;
         }

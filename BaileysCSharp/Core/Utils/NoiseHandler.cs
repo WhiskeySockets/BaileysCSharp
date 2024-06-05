@@ -9,6 +9,8 @@ using BaileysCSharp.Core.Helper;
 using Google.Protobuf;
 using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.LibSignal;
+using System.Security.Cryptography;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -17,7 +19,7 @@ namespace BaileysCSharp.Core.Utils
 
         public event EventHandler<BinaryNode> OnFrame;
 
-        public NoiseHandler(KeyPair ephemeralKeyPair, Logger logger)
+        public NoiseHandler(KeyPair ephemeralKeyPair, DefaultLogger logger)
         {
             EphemeralKeyPair = ephemeralKeyPair;
             Logger = logger;
@@ -36,7 +38,7 @@ namespace BaileysCSharp.Core.Utils
         public bool SetIntro { get; set; }
         bool IsMobile { get; set; }
         public KeyPair EphemeralKeyPair { get; }
-        public Logger Logger { get; }
+        public DefaultLogger Logger { get; }
 
         private void Initialize()
         {
@@ -50,7 +52,7 @@ namespace BaileysCSharp.Core.Utils
             writeCounter = 0;
             IsFinished = false;
 
-            Authenticate(Constants.NOISE_HEADER);
+            Authenticate(Constants.NOISE_WA_HEADER);
             Authenticate(EphemeralKeyPair.Public);
         }
 
@@ -129,11 +131,11 @@ namespace BaileysCSharp.Core.Utils
                 data = Encrypt(data);
             }
 
-            var introSize = SetIntro ? 0 : Constants.NOISE_HEADER.Length;
+            var introSize = SetIntro ? 0 : Constants.NOISE_WA_HEADER.Length;
             byte[] buffer = new byte[introSize + 3 + data.Length];
             if (!SetIntro)
             {
-                Constants.NOISE_HEADER.CopyTo(buffer, 0);
+                Constants.NOISE_WA_HEADER.CopyTo(buffer, 0);
                 SetIntro = true;
             }
 
@@ -223,8 +225,15 @@ namespace BaileysCSharp.Core.Utils
 
                 if (IsFinished)
                 {
-                    var decrypted = Decrypt(message.ToByteArray());
-                    message = BufferReader.DecodeDecompressedBinaryNode(decrypted);
+                    try
+                    {
+                        var decrypted = Decrypt(message.ToByteArray());
+                        message = BufferReader.DecodeDecompressedBinaryNode(decrypted);
+                    }
+                    catch (AuthenticationTagMismatchException ex)
+                    {
+                        InBytes = [];
+                    }
                 }
 
                 if (message.attrs.ContainsKey("id"))

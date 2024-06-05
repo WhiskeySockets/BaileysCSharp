@@ -38,14 +38,14 @@ namespace BaileysCSharp.Core
             EV.Connection.Update += Connection_Update;
         }
 
-        private void Connection_Update(object? sender, ConnectionState e)
+        private async void Connection_Update(object? sender, ConnectionState e)
         {
             var arg = e;
             if (arg.Connection == WAConnectionState.Open)
             {
                 if (SocketConfig.FireInitQueries)
                 {
-                    ExecuteInitQueries();
+                    await ExecuteInitQueries();
                 }
 
                 SendPresenceUpdate(SocketConfig.MarkOnlineOnConnect ? WAPresence.Available : WAPresence.Unavailable);
@@ -73,8 +73,8 @@ namespace BaileysCSharp.Core
         protected virtual async Task<bool> HandleDirtyUpdate(BinaryNode node)
         {
             await Task.Yield();
-            var dirtyNode = GetBinaryNodeChild(node, "dirty");
-            var type = dirtyNode?.getattr("type");
+            var attrs = GetBinaryNodeChild(node, "dirty");
+            var type = attrs?.getattr("type");
             switch (type)
             {
                 case "account_sync":
@@ -83,6 +83,15 @@ namespace BaileysCSharp.Core
                     {
                         await CleanDirtyBits("account_sync", lastAccountTypeSync);
                     }
+
+                    lastAccountTypeSync = Convert.ToUInt64(attrs.attrs["timestamp"]);
+                    if (Creds != null)
+                    {
+                        Creds.LastAccountTypeSync = lastAccountTypeSync;
+                        EV.Emit(EmitType.Update, Creds);
+                    }
+
+
                     break;
                 case "groups":
                     //Will be handled inside groups
@@ -365,8 +374,8 @@ namespace BaileysCSharp.Core
                 tag = "iq",
                 attrs =
                 {
-                    {"to",S_WHATSAPP_NET },
-                    {"type" ,"set" },
+                    {"to", S_WHATSAPP_NET },
+                    {"type" , "set" },
                     {"xmlns", "urn:xmpp:whatsapp:dirty"  },
                     {"id", GenerateMessageTag() },
                 },
@@ -616,7 +625,7 @@ namespace BaileysCSharp.Core
         }
 
         //TODO updateProfileName
-        private async void FetchBlocklist()
+        private async Task FetchBlocklist()
         {
             var fetchBlocklist = new BinaryNode()
             {
@@ -820,41 +829,41 @@ namespace BaileysCSharp.Core
             //TODO
         }
 
-        private async void FetchAbt()
-        {
-            var abtNode = new BinaryNode()
-            {
-                tag = "iq",
-                attrs =
-                {
-                    {"to", S_WHATSAPP_NET },
-                    {"xmlns", "abt" },
-                    {"type", "get" }
-                },
-                content = new BinaryNode[]
-                {
-                    new BinaryNode()
-                    {
-                        tag = "props",
-                        attrs =
-                        {
-                            {"protocol","1" }
-                        }
-                    }
-                }
+        //private async Task FetchAbt()
+        //{
+        //    var abtNode = new BinaryNode()
+        //    {
+        //        tag = "iq",
+        //        attrs =
+        //        {
+        //            {"to", S_WHATSAPP_NET },
+        //            {"xmlns", "abt" },
+        //            {"type", "get" }
+        //        },
+        //        content = new BinaryNode[]
+        //        {
+        //            new BinaryNode()
+        //            {
+        //                tag = "props",
+        //                attrs =
+        //                {
+        //                    {"protocol","1" }
+        //                }
+        //            }
+        //        }
 
-            };
-            abtNode = await Query(abtNode);
-            var propsNode = GetBinaryNodeChild(abtNode, "props");
+        //    };
+        //    abtNode = await Query(abtNode);
+        //    var propsNode = GetBinaryNodeChild(abtNode, "props");
 
-            if (propsNode != null)
-            {
-                var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
-            }
-        }
+        //    if (propsNode != null)
+        //    {
+        //        var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
+        //    }
+        //}
 
         Dictionary<string, string> privacySettings;
-        private async void FetchPrivacySettings()
+        private async Task FetchPrivacySettings()
         {
             if (privacySettings == null)
             {
@@ -884,7 +893,7 @@ namespace BaileysCSharp.Core
             }
         }
 
-        private async void FetchProps()
+        private async Task<Dictionary<string, string>> FetchProps()
         {
             var fetchProps = new BinaryNode()
             {
@@ -900,7 +909,11 @@ namespace BaileysCSharp.Core
                     new BinaryNode()
                     {
                         tag = "props",
-                        attrs ={ }
+                        attrs =
+                        {
+                            { "protocol","2"},
+                            { "hash", Creds?.LastPropHash ?? ""}
+                        }
 
                     }
                 }
@@ -909,10 +922,20 @@ namespace BaileysCSharp.Core
             var resultNode = await Query(fetchProps);
             var propsNode = GetBinaryNodeChild(resultNode, "props");
 
+            Dictionary<string, string> props = new Dictionary<string, string>();
+
             if (propsNode != null)
             {
-                var props = ReduceBinaryNodeToDictionary(propsNode, "prop");
+                props = ReduceBinaryNodeToDictionary(propsNode, "prop");
+                if (Creds != null && props != null)
+                {
+                    Creds.LastPropHash = propsNode.attrs["hash"];
+                    EV.Emit(EmitType.Update, Creds);
+                }
             }
+
+            Logger.Debug("Fetched Props");
+            return props;
         }
 
 
@@ -1186,15 +1209,102 @@ namespace BaileysCSharp.Core
         //TODO: addMessageLabel
         //TODO: removeMessageLabel
 
-        private void ExecuteInitQueries()
+        private async Task ExecuteInitQueries()
         {
-            FetchAbt();
-            FetchProps();
-            FetchBlocklist();
-            FetchPrivacySettings();
+            //await FetchAbt();
+            await FetchProps();
+            //await GetUserTos();
+            //await GetUserDisclosures();
+            await FetchBlocklist();
+            await FetchPrivacySettings();
         }
 
+        private async Task GetUserDisclosures()
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", S_WHATSAPP_NET },
+                    {"type", "get" },
+                    {"xmlns","tos" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "get_user_disclosures",
+                        attrs =
+                        {
+                            {"t",DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString() }
+                        }
+                    }
+                }
+            };
+            var result = await Query(node);
+            var notice = GetBinaryNodeChildren(result, "notice");
+        }
 
+        private async Task GetUserTos()
+        {
+            var node = new BinaryNode()
+            {
+                tag = "iq",
+                attrs =
+                {
+                    {"to", S_WHATSAPP_NET },
+                    {"type", "get" },
+                    {"xmlns","tos" }
+                },
+                content = new BinaryNode[]
+                {
+                    new BinaryNode()
+                    {
+                        tag = "request",
+                        content = new BinaryNode[]
+                        {
+                            new BinaryNode()
+                            {
+                                tag = "notice",
+                                attrs =
+                                {
+                                    {"id","20230901" },
+                                }
+                            },
+                            new BinaryNode()
+                            {
+                                tag = "notice",
+                                attrs =
+                                {
+                                    {"id","20230902" },
+                                }
+                            },
+                            new BinaryNode()
+                            {
+                                tag = "notice",
+                                attrs =
+                                {
+                                    {"id","20240216" },
+                                }
+                            },
+                            new BinaryNode()
+                            {
+                                tag = "notice",
+                                attrs =
+                                {
+                                    {"id","20231027" },
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            var result = await Query(node);
+            var tos = GetBinaryNodeChild(result, "tos");
+            var notices = GetBinaryNodeChildren(tos, "notice");
+
+        }
 
 
 

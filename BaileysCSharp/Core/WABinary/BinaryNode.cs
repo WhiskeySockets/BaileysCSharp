@@ -2,6 +2,7 @@
 using System.Dynamic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.WABinary
 {
@@ -58,6 +59,15 @@ namespace BaileysCSharp.Core.WABinary
                 return attrs[attribute];
             }
             return default;
+        }
+
+        [JsonIgnore]
+        public string Json
+        {
+            get
+            {
+                return ToString();
+            }
         }
 
     }

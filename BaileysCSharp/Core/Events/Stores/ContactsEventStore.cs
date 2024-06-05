@@ -9,7 +9,6 @@ namespace BaileysCSharp.Core.Events.Stores
 {
     public class ContactsEventStore : DataEventStore<ContactModel>
     {
-
         public ContactsEventStore() : base(true)
         {
         }

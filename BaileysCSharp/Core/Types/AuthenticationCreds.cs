@@ -132,7 +132,8 @@ namespace BaileysCSharp.Core.Types
         }
 
         public ulong? LastAccountTypeSync { get; set; }
-
+        public byte[] RoutingInfo { get; set; }
+        public string? LastPropHash { get; internal set; }
     }
 
 

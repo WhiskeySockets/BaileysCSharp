@@ -76,7 +76,7 @@ namespace BaileysCSharp.Core.Utils
                                 foreach (var deviceNode in deviceListNode)
                                 {
                                     var tag = deviceNode.tag;
-                                    var device = Convert.ToInt32(deviceNode.attrs["id"]);
+                                    var device = Convert.ToUInt32(deviceNode.attrs["id"]);
 
 
                                     if (tag == "device" && // ensure the "device" tag

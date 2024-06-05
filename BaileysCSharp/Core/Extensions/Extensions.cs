@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.NoSQL;
+using System.Text.Json.Nodes;
 
 namespace BaileysCSharp.Core.Extensions
 {

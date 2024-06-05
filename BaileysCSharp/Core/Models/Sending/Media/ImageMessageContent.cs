@@ -39,21 +39,25 @@ namespace BaileysCSharp.Core.Models.Sending.Media
         }
         public override async Task Process()
         {
-            byte[] copy = new byte[Image.Length];
-            await image.ReadAsync(copy, 0, copy.Length);
-            image.Position = 0;
-            using (var bitmap = SKBitmap.Decode(copy))
+            using (var instream = new MemoryStream())
             {
-                Height = (uint)bitmap.Height;
-                Width = (uint)bitmap.Width;
-                using (var resized = bitmap.Resize(new SKSizeI(32, 32), SKFilterQuality.None))
+                image.Position = 0;
+                await image.CopyToAsync(instream);
+                instream.Position = 0;
+                using (var bitmap = SKBitmap.Decode(instream))
                 {
-                    using (var stream = new MemoryStream())
+                    Height = (uint)bitmap.Height;
+                    Width = (uint)bitmap.Width;
+                    using (var resized = bitmap.Resize(new SKSizeI(32, 32), SKFilterQuality.None))
                     {
-                        resized.Encode(stream, SKEncodedImageFormat.Jpeg, 50);
-                        JpegThumbnail = stream.ToArray();
+                        using (var stream = new MemoryStream())
+                        {
+                            resized.Encode(stream, SKEncodedImageFormat.Jpeg, 50);
+                            JpegThumbnail = stream.ToArray();
+                        }
                     }
                 }
+                image.Position = 0;
             }
         }
 

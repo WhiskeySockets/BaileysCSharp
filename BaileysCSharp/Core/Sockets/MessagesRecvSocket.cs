@@ -16,13 +16,18 @@ using System.Globalization;
 using BaileysCSharp.Core.Types;
 using BaileysCSharp.Core.WABinary;
 using System.Net.Mail;
+using BaileysCSharp.LibSignal;
+using BaileysCSharp.Core.Models.SenderKeys;
+using static Proto.PaymentInfo.Types;
+using Org.BouncyCastle.Asn1.X509;
 
 namespace BaileysCSharp.Core.Sockets
 {
 
     public abstract class MessagesRecvSocket : MessagesSendSocket
     {
-        public bool SendActiveReceipts;
+        //public bool SendActiveReceipts;
+        public long MaxMsgRetryCount { get; set; } = 5;
 
         protected MessagesRecvSocket([NotNull] SocketConfig config) : base(config)
         {
@@ -121,7 +126,7 @@ namespace BaileysCSharp.Core.Sockets
 
             await processingMutex.Mutex(async () =>
             {
-                var msg = await ProcessNotifciation(node);
+                var msg = await ProcessNotification(node);
                 if (msg != null)
                 {
                     var participant = node.getattr("participant");
@@ -142,11 +147,10 @@ namespace BaileysCSharp.Core.Sockets
         }
 
 
-        public async Task<WebMessageInfo?> ProcessNotifciation(BinaryNode node)
+        public async Task<WebMessageInfo?> ProcessNotification(BinaryNode node)
         {
-            WebMessageInfo? result = default(WebMessageInfo);
+            WebMessageInfo? result = default;
             var child = GetAllBinaryNodeChildren(node).FirstOrDefault();
-
             var nodeType = node.attrs["type"];
             var from = JidUtils.JidNormalizedUser(node.getattr("from"));
 
@@ -200,7 +204,7 @@ namespace BaileysCSharp.Core.Sockets
                     var contact = Store.GetContact(from);
                     if (contact != null)
                     {
-                        contact.ImgUrl = (setPicture != null ? "changed" : null);
+                        contact.ImgUrl = (setPicture != null ? "changed" : "removed");
                         EV.Emit(EmitType.Update, contact);
                     }
 
@@ -280,6 +284,7 @@ namespace BaileysCSharp.Core.Sockets
                 var countChild = GetBinaryNodeChild(node, "count");
                 var count = countChild?.getattr("value").ToUInt32();
                 var shouldUploadMorePreKeys = count < MIN_PREKEY_COUNT;
+                Logger.Debug(new { jid = from }, "recv pre-key count");
                 if (shouldUploadMorePreKeys)
                 {
                     await UploadPreKeys();
@@ -430,7 +435,7 @@ namespace BaileysCSharp.Core.Sockets
             return await ProcessNodeWithBuffer(node, "handling receipt", HandleReceipt);
         }
 
-        private Task HandleReceipt(BinaryNode node)
+        private async Task HandleReceipt(BinaryNode node)
         {
 
             var isLid = node.getattr("from")?.Contains("lid") ?? false;
@@ -438,7 +443,7 @@ namespace BaileysCSharp.Core.Sockets
             var from = node.getattr("from");
             var recipient = node.getattr("recipient");
             var isNodeFromMe = JidUtils.AreJidsSameUser(participant ?? from, isLid ? Creds.Me.LID : Creds.Me.ID);
-            var remoteJid = (!isNodeFromMe || JidUtils.IsJidGroup(from)) ? from : recipient;
+            var remoteJid =  (!isNodeFromMe || JidUtils.IsJidGroup(from) || JidUtils.IsJidNewsletter(from)) ? from : recipient;
 
             var key = new MessageKey()
             {
@@ -446,6 +451,7 @@ namespace BaileysCSharp.Core.Sockets
                 FromMe = true,
                 Id = node.attrs["id"]
             };
+
 
             List<string> ids = new List<string>() { node.attrs["id"] };
             if (node.content is BinaryNode[] content)
@@ -457,112 +463,193 @@ namespace BaileysCSharp.Core.Sockets
                 }
             }
 
-
-            if (node.getattr("type") == "retry")
+            await processingMutex.Mutex(() =>
             {
-                key.Participant = participant ?? from;
-                var retryNode = GetBinaryNodeChild(node, "retry");
-                if (key.FromMe)
-                {
-                    Logger.Debug(new { node.attrs, key }, "recv retry request");
-                    try
-                    {
-                        SendMessageAgain(key, ids, retryNode);
-                    }
-                    catch (Exception)
-                    {
+                //Send Ack
+                SendMessageAck(node);
 
+                var status = GetStatusFromReceiptType(node.getattr("type"));
+
+                // basically, we only want to know when a message from us has been delivered to/read by the other person
+                // or another device of ours has read some messages
+                if (status > WebMessageInfo.Types.Status.DeliveryAck || !isNodeFromMe)
+                {
+                    if (JidUtils.IsJidGroup(remoteJid))
+                    {
+                        //Message Receipt Update
+                        List<MessageReceipt> messages = new List<MessageReceipt>();
+                        var t = Convert.ToInt64(node.attrs["t"]);
+                        foreach (var item in ids)
+                        {
+                            var receipt = new MessageReceipt()
+                            {
+                                MessageID = item,
+                                RemoteJid = remoteJid,
+                                Status = status,
+                                Time = t
+                            };
+                            messages.Add(receipt);
+                        }
+                        EV.Emit(EmitType.Update, messages.ToArray());
+                    }
+                    else
+                    {
+                        List<WebMessageInfo> messages = new List<WebMessageInfo>();
+                        foreach (var id in ids)
+                        {
+                            var message = Store.GetMessage(id);
+                            if (message != null)
+                            {
+                                var model = message.ToMessageInfo();
+                                if (model.Status != status)
+                                {
+                                    model.Status = status;
+                                    messages.Add(model);
+                                }
+                            }
+                        }
+                        if (messages.Count > 0)
+                            EV.Emit(EmitType.Update, new MessageEventModel(MessageEventType.Update, messages.ToArray()));
+                        //Message Update
                     }
                 }
-            }
-            else
-            {
-                if (JidUtils.IsJidGroup(remoteJid))
+
+
+                if (node.getattr("type") == "retry")
                 {
-
-                }
-                else
-                {
-                    var statuses = Enum.GetValues(typeof(WebMessageInfo.Types.Status))
-                        .Cast<WebMessageInfo.Types.Status>()
-                        .ToDictionary(t => t.ToString().ToLower(), t => t);
-
-                    var statusCode = node.getattr("type") ?? "";
-
-
-                    List<MessageReceipt> messages = new List<MessageReceipt>();
-                    var t = Convert.ToInt64(node.attrs["t"]);
-                    foreach (var item in ids)
+                    key.Participant = participant ?? from;
+                    var retryNode = GetBinaryNodeChild(node, "retry");
+                    if (WillSendMessageAgain(ids[0], key.Participant))
                     {
-
-                        var receipt = new MessageReceipt()
+                        if (key.FromMe)
                         {
-                            MessageID = item,
-                            RemoteJid = remoteJid,
-                            Status = WebMessageInfo.Types.Status.Pending,
-                            Time = t
-                        };
-
-                        if (statuses.ContainsKey(statusCode))
-                        {
-                            receipt.Status = statuses[statusCode];
+                            try
+                            {
+                                Logger.Debug(new { node.attrs, key }, "recv retry request");
+                                SendMessageAgain(key, ids, retryNode);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(new { node.attrs, key, ex.Message, stack = ex.StackTrace }, "error in sending message again");
+                            }
                         }
                         else
                         {
-                            receipt.Status = WebMessageInfo.Types.Status.DeliveryAck;
+                            Logger.Info(new { node.attrs, key }, "recv retry for not fromMe message");
                         }
-                        messages.Add(receipt);
                     }
-                    EV.Emit(EmitType.Upsert, messages.ToArray());
+                    else
+                    {
+                        Logger.Info(new { node.attrs, key }, "will not send message again, as sent too many times");
+                    }
                 }
-            }
+            });
 
-            SendMessageAck(node);
-            return Task.CompletedTask;
+
+        }
+
+
+        private WebMessageInfo.Types.Status GetStatusFromReceiptType(string? type)
+        {
+            if (type == null)
+            {
+                return WebMessageInfo.Types.Status.DeliveryAck;
+            }
+            type = type.ToLower();
+            Dictionary<string, WebMessageInfo.Types.Status> enumDictionary = new Dictionary<string, WebMessageInfo.Types.Status>();
+            foreach (var name in Enum.GetNames(typeof(WebMessageInfo.Types.Status)))
+            {
+                enumDictionary.Add(name.ToLower(), (WebMessageInfo.Types.Status)Enum.Parse(typeof(WebMessageInfo.Types.Status), name));
+            }
+            if (enumDictionary.ContainsKey(type))
+            {
+                return enumDictionary[type];
+            }
+            return WebMessageInfo.Types.Status.DeliveryAck;
         }
 
         private async void SendMessageAgain(MessageKey key, List<string> ids, BinaryNode? retryNode)
         {
-            var msg = Store.GetMessage(key);
+            var msgs = ids.Select(x => Store.GetMessage(x)).ToArray();
 
-            if (msg != null)
+            //var msg = Store.GetMessage(key);
+
+
+            var remoteJid = key.RemoteJid;
+            var participant = !string.IsNullOrWhiteSpace(key.Participant) ? key.Participant : remoteJid;
+            // if it's the primary jid sending the request
+            // just re-send the message to everyone
+            // prevents the first message decryption failure
+            var sendToAll = JidUtils.JidDecode(participant)?.Device > 0;
+            await AssertSessions([participant], true);
+
+            if (JidUtils.IsJidGroup(remoteJid))
             {
-                var remoteJid = key.RemoteJid;
-                var participant = !string.IsNullOrWhiteSpace(key.Participant) ? key.Participant : remoteJid;
+                Keys.Set<SenderKeyMemory>(remoteJid, null);
+            }
+            Logger.Debug(new { participant, sendToAll }, "forced new session for retry recp");
 
-                var sendToAll = JidUtils.JidDecode(participant)?.Device > 0;
 
-                await AssertSessions([participant], true);
-
-                if (JidUtils.IsJidGroup(remoteJid))
+            for (int i = 0; i < msgs.Length; i++)
+            {
+                if (msgs[i] != null)
                 {
-                    //sender here
-                }
-                Logger.Debug(new { participant, sendToAll }, "forced new session for retry recp");
 
-                //Is there many ?
-                //for(let i = 0; i < msgs.length;i++) {
-                var msgRelayOpts = new MessageRelayOptions()
-                {
-                    MessageID = ids[0]
-                };
+                    var msg = msgs[i].ToMessageInfo().Message;
+                    UpdateSendMessageAgainCount(ids[i], participant);
+                    var msgRelayOpts = new MessageRelayOptions()
+                    {
+                        MessageID = ids[i]
+                    };
 
-                if (sendToAll)
-                {
-                    msgRelayOpts.UseUserDevicesCache = false;
+                    if (sendToAll)
+                    {
+                        msgRelayOpts.UseUserDevicesCache = false;
+                    }
+                    else
+                    {
+                        msgRelayOpts.Participant = new MessageParticipant()
+                        {
+                            Jid = participant,
+                            Count = Convert.ToUInt64(retryNode.attrs["count"]),
+                        };
+                    }
+
+                    await RelayMessage(remoteJid, msg, msgRelayOpts);
+
                 }
                 else
                 {
-                    msgRelayOpts.Participant = new MessageParticipant()
-                    {
-                        Jid = participant,
-                        Count = Convert.ToUInt64(retryNode.attrs["count"]),
-                    };
+                    Logger.Debug(new { jid = key.RemoteJid, id = ids[i] }, "recv retry request, but message not available");
                 }
-
-                await RelayMessage(remoteJid, msg, msgRelayOpts);
             }
 
+
+        }
+        private bool WillSendMessageAgain(string id, string? participant)
+        {
+            var key = $"{id}:{participant}";
+            if (MessageRetries.ContainsKey(id))
+            {
+                return MessageRetries[key] < MaxMsgRetryCount;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        private void UpdateSendMessageAgainCount(string id, string participant)
+        {
+            var key = $"{id}:{participant}";
+            if (MessageRetries.ContainsKey(id))
+            {
+                MessageRetries[key] = MessageRetries[key] + 1;
+            }
+            else
+            {
+                MessageRetries[key] = 1;
+            }
         }
 
         private async Task<bool> OnCall(BinaryNode node)
@@ -583,20 +670,30 @@ namespace BaileysCSharp.Core.Sockets
 
         private async Task HandleMessage(BinaryNode node)
         {
-            if (GetBinaryNodeChild(node, "unavailable") != null && GetBinaryNodeChild(node, "enc") == null)
+            if (ShouldIgnoreJid(node.getattr("from")) && node.getattr("from") != "@s.whatsapp.net")
             {
-                Logger.Debug(node, "missing body; sending ack then ignoring.");
+                Logger.Debug(new { key = node.getattr("key") }, "ignored message");
                 SendMessageAck(node);
                 return;
             }
 
+            var msg = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
+
+            if (msg.Msg.Message?.ProtocolMessage?.Type == Message.Types.ProtocolMessage.Types.Type.SharePhoneNumber)
+            {
+                if (node.getattr("sender_pn") != null)
+                {
+                    //Share Phone Number Handle Here
+                }
+            }
+
             await processingMutex.Mutex(async () =>
             {
+                msg.Decrypt();
 
-                var result = MessageDecoder.DecryptMessageNode(node, Creds.Me.ID, Creds.Me.LID, Repository, Logger);
-                result.Decrypt();
 
-                if (result.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
+                // message failed to decrypt
+                if (msg.Msg.MessageStubType == WebMessageInfo.Types.StubType.Ciphertext)
                 {
                     var encNode = GetBinaryNodeChild(node, "enc");
                     SendRetryRequest(node, encNode != null);
@@ -605,46 +702,47 @@ namespace BaileysCSharp.Core.Sockets
                 {
                     // no type in the receipt => message delivered
                     var type = MessageReceiptType.Undefined;
-                    var participant = result.Msg.Key.Participant;
-                    if (result.Category == "peer") // special peer message
+                    var participant = msg.Msg.Key.Participant;
+                    if (msg.Category == "peer") // special peer message
                     {
                         type = MessageReceiptType.PeerMsg;
                     }
-                    else if (result.Msg.Key.FromMe) // message was sent by us from a different device
+                    else if (msg.Msg.Key.FromMe) // message was sent by us from a different device
                     {
                         type = MessageReceiptType.Sender;
-                        if (JidUtils.IsJidUser(result.Author))
-                        {
-                            participant = result.Author;
-                        }
                         // need to specially handle this case
+                        if (JidUtils.IsJidUser(msg.Author))
+                        {
+                            participant = msg.Author;
+                        }
                     }
                     else if (!SendActiveReceipts)
                     {
                         type = MessageReceiptType.Inactive;
                     }
 
-                    //When upsert works this is to be implemented
-                    SendReceipt(result.Msg.Key.RemoteJid, participant, type, result.Msg.Key.Id);
+                    SendReceipt(msg.Msg.Key.RemoteJid, participant, type, msg.Msg.Key.Id);
 
-                    var isAnyHistoryMsg = HistoryUtil.GetHistoryMsg(result.Msg.Message);
+                    var isAnyHistoryMsg = HistoryUtil.GetHistoryMsg(msg.Msg.Message);
                     if (isAnyHistoryMsg != null)
                     {
-                        var jid = JidUtils.JidNormalizedUser(result.Msg.Key.RemoteJid);
-                        SendReceipt(jid, null, MessageReceiptType.HistSync, result.Msg.Key.Id);
+                        var jid = JidUtils.JidNormalizedUser(msg.Msg.Key.RemoteJid);
+                        SendReceipt(jid, default, MessageReceiptType.HistSync, msg.Msg.Key.Id);
                     }
                 }
 
-                CleanMessage(result.Msg, Creds.Me.ID);
+                CleanMessage(msg.Msg, Creds.Me.ID);
 
 
-                await UpsertMessage(result.Msg, node.getattr("offline") != null ? MessageEventType.Append : MessageEventType.Notify);
-
-                //When upsert works this is to be implemented
+                await UpsertMessage(msg.Msg, node.getattr("offline") != null ? MessageEventType.Append : MessageEventType.Notify);
             });
             SendMessageAck(node);
         }
 
+        private bool ShouldIgnoreJid(string value)
+        {
+            return false;
+        }
 
         private void SendMessageAck(BinaryNode node)
         {
@@ -680,7 +778,7 @@ namespace BaileysCSharp.Core.Sockets
             SendNode(stanza);
         }
 
-        private void SendReceipt(string jid, string participant, string type, params string[] messageIds)
+        private void SendReceipt(string jid, string? participant, string type, params string[] messageIds)
         {
 
             var node = new BinaryNode("receipt")
@@ -743,8 +841,9 @@ namespace BaileysCSharp.Core.Sockets
                 MessageRetries.Add(msgId, 0);
             }
             var retryCount = MessageRetries[msgId];
-            if (retryCount > 5)
+            if (retryCount > MaxMsgRetryCount)
             {
+                Logger.Debug(new { retryCount, msgId }, "reached retry limit, clearing");
                 MessageRetries.Remove(msgId);
                 return;
             }

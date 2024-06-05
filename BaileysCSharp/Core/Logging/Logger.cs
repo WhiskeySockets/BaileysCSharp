@@ -1,33 +1,32 @@
-﻿using Proto;
+﻿using BaileysCSharp.Core.Helper;
+using Google.Protobuf;
+using Proto;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using System.Text.Unicode;
 
-namespace BaileysCSharp.Core.Helper
+namespace BaileysCSharp.Core.Logging
 {
-    public enum LogLevel
+    public class DefaultLogger : ILogger
     {
-        Fatal = 1,
-        Error = 2,
-        Warn = 4,
-        Info = 8,
-        Debug = 16,
-        Trace = 32,
-        All = 63,
-        Raw = 64,
-    }
+        public DefaultLogger()
+        {
 
-    public class Logger
-    {
+        }
+
         private static object locker = new object();
         public LogLevel Level { get; set; }
 
 
-        internal void Error(string message)
+        public void Error(string message)
         {
-            if (Level >= LogLevel.Error)
+            if (Level <= LogLevel.Error)
             {
                 var logEntry = new
                 {
@@ -38,16 +37,15 @@ namespace BaileysCSharp.Core.Helper
                 };
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.Red;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
+                    Console.ResetColor();
                 }
             }
         }
         public void Error(object? obj, string message)
         {
-            if (Level >= LogLevel.Error)
+            if (Level <= LogLevel.Error)
             {
                 var logEntry = new
                 {
@@ -60,17 +58,16 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.Red;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
+                    Console.ResetColor();
                 }
             }
         }
 
         public void Error(Exception ex, string message)
         {
-            if (Level >= LogLevel.Error)
+            if (Level <= LogLevel.Error)
             {
                 var logEntry = new
                 {
@@ -83,17 +80,16 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.Red;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
+                    Console.ResetColor();
                 }
             }
         }
 
-        internal void Warn(object? obj, string message)
+        public void Warn(object? obj, string message)
         {
-            if (Level >= LogLevel.Warn)
+            if (Level <= LogLevel.Warn)
             {
                 var logEntry = new
                 {
@@ -105,36 +101,37 @@ namespace BaileysCSharp.Core.Helper
                 };
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
+                    Console.ResetColor();
                 }
             }
         }
 
-        internal void Warn(string message)
+        public void Warn(string message)
         {
-            var logEntry = new
+            if (Level <= LogLevel.Warn)
             {
-                level = LogLevel.Warn,
-                time = DateTime.Now,
-                hostname = Dns.GetHostName(),
-                message
-            };
+                var logEntry = new
+                {
+                    level = LogLevel.Warn,
+                    time = DateTime.Now,
+                    hostname = Dns.GetHostName(),
+                    message
+                };
 
-            lock (locker)
-            {
-                var backup = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Write(logEntry);
-                Console.ForegroundColor = backup;
+                lock (locker)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Write(logEntry);
+                    Console.ResetColor();
+                }
             }
         }
 
-        internal void Info(string message)
+        public void Info(string message)
         {
-            if (Level >= LogLevel.Info)
+            if (Level <= LogLevel.Info)
             {
                 var logEntry = new
                 {
@@ -146,17 +143,14 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Blue;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
 
-        internal void Info(object? obj, string message)
+        public void Info(object? obj, string message)
         {
-            if (Level >= LogLevel.Info)
+            if (Level <= LogLevel.Info)
             {
                 var logEntry = new
                 {
@@ -169,16 +163,13 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Blue;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
-        internal void Debug(string message)
+        public void Debug(string message)
         {
-            if (Level >= LogLevel.Debug)
+            if (Level <= LogLevel.Debug)
             {
                 var logEntry = new
                 {
@@ -190,17 +181,14 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Gray;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
 
-        internal void Debug(object? obj, string message)
+        public void Debug(object? obj, string message)
         {
-            if (Level >= LogLevel.Debug)
+            if (Level <= LogLevel.Debug)
             {
                 var logEntry = new
                 {
@@ -213,17 +201,14 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Gray;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
 
-        internal void Trace(string message)
+        public void Trace(string message)
         {
-            if (Level >= LogLevel.Trace)
+            if (Level <= LogLevel.Trace)
             {
                 var logEntry = new
                 {
@@ -235,17 +220,14 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.White;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
 
         public void Trace(object? obj, string message)
         {
-            if (Level >= LogLevel.Trace)
+            if (Level <= LogLevel.Trace)
             {
                 var logEntry = new
                 {
@@ -258,32 +240,27 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.White;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
-
 
 
         private void Write(object logEntry)
         {
             var settings = new JsonSerializerOptions()
             {
-                Converters = { new Base64Converter(), new ByteStringConverter() },
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                Converters = { new Base64Converter(), new ByteStringConverter(), new ProtoConverterFactory() },
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             };
-            //settings.Converters = new List<JsonConverter>() { new Base64Converter(), new ByteStringConverter(), new Newtonsoft.Json.Converters.StringEnumConverter() };
-            //settings.ContractResolver = new ConditionalResolver();
-            //settings.NullValueHandling = NullValueHandling.Ignore;
+
             var json = JsonSerializer.Serialize(logEntry, settings);
             System.Diagnostics.Debug.WriteLine(json);
-            Console.WriteLine(json);
+            Console.Write($"{json}\n");
         }
 
-        internal void Raw(object obj, string message)
+        public void Raw(object obj, string message)
         {
             if (Level >= LogLevel.Raw)
             {
@@ -298,27 +275,9 @@ namespace BaileysCSharp.Core.Helper
 
                 lock (locker)
                 {
-                    var backup = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Blue;
                     Write(logEntry);
-                    Console.ForegroundColor = backup;
                 }
             }
         }
     }
-    //public class ConditionalResolver : DefaultContractResolver
-    //{
-
-    //    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-    //    {
-    //        JsonProperty prop = base.CreateProperty(member, memberSerialization);
-
-    //        if (prop.PropertyName.StartsWith("Has") && prop.PropertyType == typeof(bool))
-    //        {
-    //            return null;
-    //        }
-
-    //        return prop;
-    //    }
-    //}
 }

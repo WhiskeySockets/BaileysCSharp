@@ -190,8 +190,9 @@ namespace BaileysCSharp.Core.Types
     public class MessageUpdateModel
     {
         public Message? Message { get; set; }
-        public WebMessageInfo.Types.StubType MessageStubType { get; set; }
+        public WebMessageInfo.Types.StubType? MessageStubType { get; set; }
+        public WebMessageInfo.Types.Status? Status { get; set; }
         public MessageKey Key { get; set; }
-        public bool Starred { get; set; }
+        public bool? Starred { get; set; }
     }
 }

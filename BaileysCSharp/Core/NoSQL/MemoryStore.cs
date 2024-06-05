@@ -11,11 +11,11 @@ using System.Text;
 using System.Threading.Tasks;
 using BaileysCSharp.Core.Events;
 using BaileysCSharp.Core.Extensions;
-using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models;
 using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.Types;
 using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core.NoSQL
 {
@@ -33,7 +33,7 @@ namespace BaileysCSharp.Core.NoSQL
         Dictionary<string, List<WebMessageInfo>> messageList;
         public ConnectionState State { get; set; }
 
-        public MemoryStore(string root, EventEmitter ev, Logger logger)
+        public MemoryStore(string root, EventEmitter ev, DefaultLogger logger)
         {
             State = new ConnectionState();
             EV = ev;
@@ -73,8 +73,7 @@ namespace BaileysCSharp.Core.NoSQL
             //EV.OnBlockListUpdate += EV_OnBlockListUpdate;
 
 
-
-            messageList = messages.GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
+            messageList = messages.Where(x => x.RemoteJid != null).GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
 
             Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
         }
@@ -202,7 +201,19 @@ namespace BaileysCSharp.Core.NoSQL
 
         private void Message_Update(object? sender, WebMessageInfo[] e)
         {
-            //TODO
+            lock (locker)
+            {
+                foreach (var item in e)
+                {
+                    var msg = GetMessage(item.Key.Id);
+                    if (msg != null)
+                    {
+                        msg.Message = item.ToByteArray();
+                        messages.Update(msg);
+                    }
+                }
+                //TODO
+            }
         }
 
         private void Message_Upsert(object? sender, MessageEventModel e)
@@ -285,7 +296,7 @@ namespace BaileysCSharp.Core.NoSQL
                         messages.DeleteAll();
                     }
                     var chatsAdded = chats.InsertIfAbsent(item.Chats);
-                    Logger.Debug(new { chatsAdded }, "synced chats");
+                    Logger.Debug(new { chatsAdded = chatsAdded.Select(x => x.ID) }, "synced chats");
 
                     var oldContacts = ContactsUpsert(item.Contacts);
                     if (item.IsLatest)
@@ -296,7 +307,7 @@ namespace BaileysCSharp.Core.NoSQL
                         }
                     }
 
-                    Logger.Debug(new { deletedContacts = item.IsLatest ? oldContacts.Length : 0, item.Contacts }, "synced contacts");
+                    Logger.Debug(new { deletedContacts = item.IsLatest ? oldContacts.Length : 0, Contacts = item.Contacts.Select(x => new { x.ID, x.Name }) }, "synced contacts");
 
                     var newMessages = new List<MessageModel>();
                     foreach (var msg in item.Messages)
@@ -483,6 +494,6 @@ namespace BaileysCSharp.Core.NoSQL
         }
 
         public EventEmitter EV { get; }
-        public Logger Logger { get; }
+        public DefaultLogger Logger { get; }
     }
 }

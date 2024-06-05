@@ -1,10 +1,10 @@
 ﻿using Proto;
 using System.IO;
 using BaileysCSharp.Core.Extensions;
-using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Utils;
 
 using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core.Models.Sending
 {
@@ -20,7 +20,7 @@ namespace BaileysCSharp.Core.Models.Sending
         public WebMessageInfo Quoted { get; set; }
         public ulong? EphemeralExpiration { get; set; }
         public string MessageID { get; set; }
-        public Logger Logger { get; set; }
+        public DefaultLogger Logger { get; set; }
         public string? MediaTypeOveride { get; set; }
         public Func<MemoryStream, MediaUploadOptions, Task<MediaUploadResult>> Upload { get; set; }
         public ulong? MediaUploadTimeoutMs { get; set; }

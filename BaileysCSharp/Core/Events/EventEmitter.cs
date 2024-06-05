@@ -12,6 +12,10 @@ using BaileysCSharp.Core.Stores;
 using BaileysCSharp.Core.WABinary;
 using ConnectionState = BaileysCSharp.Core.Types.ConnectionState;
 using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.Logging;
+using System.Collections.Concurrent;
+using BaileysCSharp.Core.Models.Newsletters;
+using static BaileysCSharp.Core.Models.Newsletters.NewsletterSettings;
 
 namespace BaileysCSharp.Core.Events
 {
@@ -20,7 +24,7 @@ namespace BaileysCSharp.Core.Events
     public class EventEmitter
     {
         private object locker = new object();
-        Dictionary<string, IEventStore> Events = new Dictionary<string, IEventStore>();
+        ConcurrentDictionary<string, IEventStore> Events = new ConcurrentDictionary<string, IEventStore>();
         public BaseSocket Sender { get; }
 
 
@@ -36,8 +40,10 @@ namespace BaileysCSharp.Core.Events
         public ReactionEventStore Reaction { get; set; }
         public GroupParticipantEventStore GroupParticipant { get; set; }
         public GroupMetaDataEventStore Group { get; set; }
+        public NewsletterMetaDataEventStore Newsletter { get; set; }
+        public ILogger Logger { get; }
 
-        public EventEmitter()
+        public EventEmitter(ILogger logger)
         {
             Events[typeof(ContactModel).Name] = Contacts = new ContactsEventStore();
             Events[typeof(MessageHistoryModel).Name] = MessageHistory = new MessageHistoryEventStore();
@@ -50,9 +56,10 @@ namespace BaileysCSharp.Core.Events
             Events[typeof(MessageReactionModel).Name] = Reaction = new ReactionEventStore();
             Events[typeof(GroupParticipantUpdateModel).Name] = GroupParticipant = new GroupParticipantEventStore();
             Events[typeof(GroupMetadataModel).Name] = Group = new GroupMetaDataEventStore();
+            Events[typeof(NewsletterMetaData).Name] = Newsletter = new NewsletterMetaDataEventStore();
 
-
-
+            
+            Logger = logger;
         }
 
 
@@ -91,52 +98,6 @@ namespace BaileysCSharp.Core.Events
             }
         }
 
-
-        public string[] BufferableEvent = [
-
-
-            $"{typeof(MessagingHistory)}.{EmitType.Set}",
-
-            $"{typeof(ChatModel)}.{EmitType.Upsert}",
-            $"{typeof(ChatModel)}.{EmitType.Upsert}",
-            $"{typeof(ChatModel)}.{EmitType.Delete}",
-
-            $"{typeof(ContactModel)}.{EmitType.Upsert}",
-            $"{typeof(ContactModel)}.{EmitType.Update}",
-
-            $"{typeof(MessageEventModel)}.{EmitType.Upsert}",
-            $"{typeof(MessageModel)}.{EmitType.Upsert}",
-            $"{typeof(MessageModel)}.{EmitType.Update}",
-            $"{typeof(MessageModel)}.{EmitType.Delete}",
-            $"{typeof(MessageModel)}.{EmitType.Reaction}",
-
-            //MessageUpsertModel
-
-            //$"MessageReceipt.{EmitType.Update}",
-            //$"Group.{EmitType.Reaction}",
-
-            ];
-
-        //public bool Emit<T>(EmitType type, params T[] args)
-        //{
-        //    lock (locker)
-        //    {
-        //        var eventkey = $"{typeof(T)}.{type}";
-        //        if (!GroupedEvents.ContainsKey(eventkey))
-        //        {
-        //            GroupedEvents[eventkey] = new Dictionary<EmitType, IEventStore>();
-        //        }
-        //        var events = GroupedEvents[eventkey];
-        //        if (!events.ContainsKey(type))
-        //        {
-        //            events[type] = new EventStore<T>(Sender, BufferableEvent.Contains($"{typeof(T)}.{type}"));
-        //        }
-        //        var store = (EventStore<T>)events[type];
-        //        store.Append(args);
-        //    }
-        //    return true;
-        //}
-
         private bool InternalEmit<T>(EmitType type, params T[] args)
         {
             lock (locker)
@@ -144,6 +105,7 @@ namespace BaileysCSharp.Core.Events
                 var eventkey = $"{typeof(T).Name}";
                 if (!Events.ContainsKey(eventkey))
                 {
+                    Logger.Warn($"{eventkey}.{type} has not been implemented yet");
                     return false;
                 }
                 var store = (DataEventStore<T>)Events[eventkey];
@@ -153,6 +115,11 @@ namespace BaileysCSharp.Core.Events
         }
 
         internal void Emit(EmitType action, params ContactModel[] value)
+        {
+            InternalEmit(action, value);
+        }
+
+        internal void Emit(EmitType action, params NewsletterMetaData[] value)
         {
             InternalEmit(action, value);
         }
@@ -193,11 +160,11 @@ namespace BaileysCSharp.Core.Events
         {
             InternalEmit(action, messageReceipts);
         }
-
-        internal void Emit(EmitType action, params MessageUpdate[] value)
+        internal void Emit(EmitType action, params MessageUpdate[] messageUpdates)
         {
-            //TODO: figure out the last one
+            InternalEmit(action, messageUpdates);
         }
+
 
 
         internal void Emit(EmitType action, MessageReactionModel messageReactionModel)

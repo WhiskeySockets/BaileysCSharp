@@ -25,6 +25,8 @@ using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Extensions;
 using BaileysCSharp.LibSignal;
 using BaileysCSharp.Core.Types;
+using System.Collections.Concurrent;
+using BaileysCSharp.Core.Logging;
 
 namespace BaileysCSharp.Core
 {
@@ -32,7 +34,7 @@ namespace BaileysCSharp.Core
 
     public abstract class BaseSocket
     {
-        private string[] Browser = { "Baileys 2.0", "Chrome", "4.0.0" };
+        private string[] Browser = ["Ubuntu", "Chrome", "20.0.04",];
         protected AbstractSocketClient WS;
         private NoiseHandler noise;
         private CancellationTokenSource qrTimerToken;
@@ -43,7 +45,9 @@ namespace BaileysCSharp.Core
 
         protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
         protected Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
-        protected Dictionary<string, TaskCompletionSource<BinaryNode>> waits = new Dictionary<string, TaskCompletionSource<BinaryNode>>();
+
+
+        protected ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>> waits = new ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>>();
         protected SignalRepository Repository { get; set; }
         protected MemoryStore Store { get; set; }
 
@@ -52,7 +56,7 @@ namespace BaileysCSharp.Core
         public long Epoch { get; set; }
         public bool SendActiveReceipts { get; set; }
 
-        public Logger Logger { get; }
+        public DefaultLogger Logger { get; }
         public EventEmitter EV { get; set; }
         public AuthenticationCreds? Creds { get; set; }
         public SocketConfig SocketConfig { get; }
@@ -79,8 +83,7 @@ namespace BaileysCSharp.Core
                 throw new ArgumentNullException(nameof(config));
 
             SocketConfig = config;
-            EV = new EventEmitter();
-            //EV.OnPendingNotifications += EV_OnPendingNotifications;
+            EV = new EventEmitter(config.Logger);
             Creds = config.Auth.Creds;
             Keys = config.Auth.Keys;
             Logger = config.Logger;
@@ -88,16 +91,28 @@ namespace BaileysCSharp.Core
             WS = new WebSocketClient(this);
             InitStores();
             events["frame"] = OnFrame;
-            events["CB:stream:error"] = OnStreamError;
-            events["CB:iq,type:set,pair-device"] = OnPairDevice;
             events["CB:xmlstreamend"] = StreamEnd;
+            events["CB:iq,type:set,pair-device"] = OnPairDevice;
             events["CB:iq,,pair-success"] = OnPairSuccess;
             events["CB:success"] = OnSuccess;
+            events["CB:stream:error"] = OnStreamError;
             events["CB:failure"] = OnFailure;
             events["CB:ib,,downgrade_webclient"] = DowngradeWebClient;
+            events["CB:ib,,edge_routing"] = EdgeRouting;
             events["CB:ib,,offline"] = HandleOfflineSynceDone;
 
 
+        }
+
+        private Task<bool> EdgeRouting(BinaryNode node)
+        {
+            var edgeRoutingNode = GetBinaryNodeChild(node, "edge_routing");
+            var routingInfo = GetBinaryNodeChild(edgeRoutingNode, "routing_info");
+            if (routingInfo?.content != null)
+            {
+                Creds.RoutingInfo = routingInfo.ToByteArray();
+            }
+            return Task.FromResult(true);
         }
 
         private bool DidStartBuffer { get; set; }
@@ -138,70 +153,88 @@ namespace BaileysCSharp.Core
             while (!keepAliveToken.IsCancellationRequested)
             {
                 var diff = DateTime.Now - lastReceived;
+                /*
+                    check if it's been a suspicious amount of time since the server responded with our last seen
+                    it could be that the network is down
+                */
                 if (diff.TotalMilliseconds > keepAliveIntervalMs + 5000)
                 {
                     End("Connection was lost", DisconnectReason.ConnectionLost);
                     continue;
                 }
 
-                var iq = new BinaryNode("iq")
+                try
                 {
-                    attrs = new Dictionary<string, string>()
+                    // if its all good, send a keep alive request
+                    var result = await Query(new BinaryNode("iq")
+                    {
+                        attrs = new Dictionary<string, string>()
                     {
                         {"id", GenerateMessageTag() },
                         {"to",S_WHATSAPP_NET },
                         {"type","get" },
                         {"xmlns" ,"w:p" }
                     },
-                    content = new BinaryNode[]
-                    {
+                        content = new BinaryNode[]
+                        {
                         new BinaryNode()
                         {
                             tag = "ping"
                         }
-                    }
-                };
-
-
-
-                var result = await Query(iq);
-                lastReceived = DateTime.Now;
-                Thread.Sleep(keepAliveIntervalMs);
+                        }
+                    });
+                    lastReceived = DateTime.Now;
+                    Thread.Sleep(keepAliveIntervalMs);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(new { trace = ex.StackTrace }, "error in sending keep alive");
+                }
             }
         }
 
-        private async void OnFrameDeecoded(BinaryNode message)
-        {   
-            bool fired = await Emit("frame", message);
+        private async void OnFrameDeecoded(BinaryNode frame)
+        {
+            bool anyTriggered = await Emit("frame", frame);
 
-            if (message.tag != "handshake")
+
+            if (frame.tag != "handshake")
             {
-                if (message.attrs.ContainsKey("id"))
+                var msgId = frame.getattr("id");
+
+
+                if (Logger.Level == LogLevel.Trace)
                 {
-                    var msgId = message.attrs["id"];
-                    /* Check if this is a response to a message we sent */
-                    fired = fired || await Emit($"{DEF_TAG_PREFIX}{msgId}", message);
+                    Logger.Trace(new { xml = frame }, "recv send");
                 }
 
+                /* Check if this is a response to a message we sent */
+                anyTriggered = anyTriggered || await Emit($"{DEF_TAG_PREFIX}{msgId}", frame);
+
+
                 /* Check if this is a response to a message we are expecting */
-                var l0 = message.tag;
-                var l1 = message.attrs;
+                var l0 = frame.tag;
+                var l1 = frame.attrs;
 
                 var l2 = "";
-                if (message.content is BinaryNode[] children)
+                if (frame.content is BinaryNode[] children)
                 {
                     l2 = children[0].tag;
                 }
 
                 foreach (var item in l1)
                 {
-                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", message);
-                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", message);
-                    fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}", message);
+                    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]},{l2}", frame);
+                    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}:{l1[item.Key]}", frame);
+                    anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},{item.Key}", frame);
                 }
-                fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0},,{l2}", message) || fired;
-                fired = fired || await Emit($"{DEF_CALLBACK_PREFIX}{l0}", message) || fired;
+                anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0},,{l2}", frame) || anyTriggered;
+                anyTriggered = anyTriggered || await Emit($"{DEF_CALLBACK_PREFIX}{l0}", frame) || anyTriggered;
 
+                if (!anyTriggered && Logger.Level == LogLevel.Debug)
+                {
+                    Logger.Debug(new { unhandled = true, msgId, fromMe = false, frame }, "communication recv");
+                }
             }
 
 
@@ -220,8 +253,10 @@ namespace BaileysCSharp.Core
             {
                 if (waits.ContainsKey(message.attrs["id"]))
                 {
-                    waits[message.attrs["id"]].SetResult(message);
-                    waits.Remove(message.attrs["id"]);
+                    if (waits.TryRemove(message.attrs["id"], out var value))
+                    {
+                        value.SetResult(message);
+                    }
                     return true;
                 }
             }
@@ -231,8 +266,10 @@ namespace BaileysCSharp.Core
             {
                 if (waits.ContainsKey(message.tag))
                 {
-                    waits[message.tag].SetResult(message);
-                    waits.Remove(message.tag);
+                    if (waits.TryRemove(message.tag, out var value))
+                    {
+                        value.SetResult(message);
+                    }
                     return true;
                 }
             }
@@ -254,11 +291,6 @@ namespace BaileysCSharp.Core
             return true;
         }
 
-        private Task<bool> DowngradeWebClient(BinaryNode node)
-        {
-            return Task.FromResult(true);
-        }
-
         private Task<bool> OnFailure(BinaryNode node)
         {
             var reason = node.getattr("reason") ?? "500";
@@ -272,6 +304,11 @@ namespace BaileysCSharp.Core
 
             End(new Boom("Connection Failure", new BoomData(Convert.ToInt32(reason), node.attrs)));
 
+            return Task.FromResult(true);
+        }
+        private Task<bool> DowngradeWebClient(BinaryNode node)
+        {
+            End(new Boom("Multi-device beta not joined", new BoomData(411, node.attrs)));
             return Task.FromResult(true);
         }
 
@@ -334,6 +371,7 @@ namespace BaileysCSharp.Core
 
         private Task<bool> OnPairSuccess(BinaryNode node)
         {
+            Logger.Debug("pair success recv");
             try
             {
 
@@ -348,9 +386,10 @@ namespace BaileysCSharp.Core
 
                 SendNode(reply);
             }
-            catch (Boom ex)
+            catch (Boom error)
             {
-                End(ex.Message, ex.Reason);
+                Logger.Info(new { trace = error.StackTrace }, "error in pairing");
+                End(error);
             }
             return Task.FromResult(true);
 
@@ -378,11 +417,17 @@ namespace BaileysCSharp.Core
         #region Sending
 
         /** send a binary node */
-        protected void SendNode(BinaryNode iq)
+        protected void SendNode(BinaryNode frame)
         {
-            var buffer = BufferWriter.EncodeBinaryNode(iq).ToByteArray();
+            if (Logger.Level == LogLevel.Trace)
+            {
+                Logger.Trace(new { xml = frame }, "xml send");
+            }
+
+            var buffer = BufferWriter.EncodeBinaryNode(frame).ToByteArray();
             SendRawMessage(buffer);
         }
+
 
         protected void SendRawMessage(byte[] bytes)
         {
@@ -546,73 +591,31 @@ namespace BaileysCSharp.Core
             var KeyEnc = noise.ProcessHandShake(handshake, Creds.NoiseKey);
 
 
+            ClientPayload node;
             var clientFinish = new HandshakeMessage();
-            if (SocketConfig.Mobile)
+            if (Creds.Me == null)
             {
-                //TODO : generateMobileNode
-            }
-            else if (Creds.Me == null)
-            {
-                var node = ValidateConnectionUtil.GenerateRegistrationNode(Creds);
-                var buffer = node.ToByteArray();
-                var payloadEnc = noise.Encrypt(buffer);
-                clientFinish.ClientFinish = new HandshakeMessage.Types.ClientFinish()
-                {
-                    Static = KeyEnc.ToByteString(),
-                    Payload = payloadEnc.ToByteString()
-                };
+                node = ValidateConnectionUtil.GenerateRegistrationNode(Creds, SocketConfig);
                 Logger.Info(new { node }, "not logged in, attempting registration...");
             }
             else
             {
-                var jid = Creds.Me.ID.Split("@")[0];
-                var userDevice = jid.Split(":");
-
-                var user = Convert.ToUInt64(userDevice[0]);
-                var device = Convert.ToUInt32(userDevice[1]);
-                var node = new ClientPayload()
-                {
-                    ConnectReason = ConnectReason.UserActivated,
-                    ConnectType = ConnectType.WifiUnknown,
-                    UserAgent = new UserAgent()
-                    {
-                        AppVersion = new UserAgent.Types.AppVersion()
-                        {
-                            Primary = 2,
-                            Secondary = 2329,
-                            Tertiary = 9,
-                        },
-                        Platform = UserAgent.Types.Platform.Macos,
-                        ReleaseChannel = UserAgent.Types.ReleaseChannel.Release,
-                        Mcc = "000",
-                        Mnc = "000",
-                        OsVersion = "0.1",
-                        Manufacturer = "",
-                        Device = "Dekstop",
-                        OsBuildNumber = "0.1",
-                        LocaleLanguageIso6391 = "en",
-                        LocaleCountryIso31661Alpha2 = "us",
-                    },
-                    Passive = true,
-                    Username = user,
-                    Device = device,
-
-                };
-                var buffer = node.ToByteArray();
-                var payloadEnc = noise.Encrypt(buffer);
-                clientFinish.ClientFinish = new HandshakeMessage.Types.ClientFinish()
-                {
-                    Static = KeyEnc.ToByteString(),
-                    Payload = payloadEnc.ToByteString()
-                };
-                //TODO : generateLoginNode
+                node = ValidateConnectionUtil.GenerateLoginNode(Creds.Me.ID, SocketConfig);
                 Logger.Info(new { }, "logging in");
             }
+
+
+            var payloadEnc = noise.Encrypt(node.ToByteArray());
+
+            clientFinish.ClientFinish = new HandshakeMessage.Types.ClientFinish()
+            {
+                Static = KeyEnc.ToByteString(),
+                Payload = payloadEnc.ToByteString()
+            };
 
             SendRawMessage(clientFinish.ToByteArray());
             noise.FinishInit();
 
-            //TODO: Uncomment below
             StartKeepAliveRequest();
         }
 
@@ -678,7 +681,7 @@ namespace BaileysCSharp.Core
                 return;
             }
 
-            Logger.Trace(new { trace = error.StackTrace }, "connection closed");
+            Logger.Trace(new { trace = error?.StackTrace }, error != null ? "connection errored" : "connection closed");
             keepAliveToken?.Cancel();
             qrTimerToken?.Cancel();
 
