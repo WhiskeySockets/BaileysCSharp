@@ -34,6 +34,10 @@ namespace BaileysCSharp.Core.Helper
             return ByteString.CopyFrom(buffer);
         }
 
+        public static string ToBase64(this Span<byte> buffer)
+        {
+            return Convert.ToBase64String(buffer);
+        }
         public static string ToBase64(this byte[] buffer)
         {
             return Convert.ToBase64String(buffer);

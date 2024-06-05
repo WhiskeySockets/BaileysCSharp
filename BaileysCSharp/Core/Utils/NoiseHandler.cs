@@ -189,6 +189,42 @@ namespace BaileysCSharp.Core.Utils
             return iv;
         }
 
+        public void DecodeFrameNew(byte[] newData, Action<BinaryNode> action)
+        {
+
+            var frame = newData.ToArray();
+
+            var message = new BinaryNode()
+            {
+                tag = "handshake",
+                attrs = new Dictionary<string, string>(),
+                content = frame,
+            };
+
+            if (IsFinished)
+            {
+                try
+                {
+                    var decrypted = Decrypt(message.ToByteArray());
+                    message = BufferReader.DecodeDecompressedBinaryNode(decrypted);
+                }
+                catch (AuthenticationTagMismatchException ex)
+                {
+                    return;
+                }
+            }
+
+            if (message.attrs.ContainsKey("id"))
+            {
+                Logger.Trace(new { msg = message.attrs["id"] }, "recv frame");
+            }
+            else
+            {
+                Logger.Trace("recv frame");
+            }
+
+            action(message);
+        }
 
         public void DecodeFrame(byte[] newData, Action<BinaryNode> action)
         {

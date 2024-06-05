@@ -34,6 +34,8 @@ namespace BaileysCSharp.Core
 
     public abstract class BaseSocket
     {
+        protected ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>> waits = new ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>>();
+
         private string[] Browser = ["Ubuntu", "Chrome", "20.0.04",];
         protected AbstractSocketClient WS;
         private NoiseHandler noise;
@@ -47,14 +49,13 @@ namespace BaileysCSharp.Core
         protected Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
 
 
-        protected ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>> waits = new ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>>();
         protected SignalRepository Repository { get; set; }
         protected MemoryStore Store { get; set; }
 
         public string UniqueTagId { get; set; }
-
         public long Epoch { get; set; }
         public bool SendActiveReceipts { get; set; }
+        private bool DidStartBuffer { get; set; }
 
         public DefaultLogger Logger { get; }
         public EventEmitter EV { get; set; }
@@ -75,7 +76,6 @@ namespace BaileysCSharp.Core
             var bytes = KeyHelper.RandomBytes(4);
             return $"{BitConverter.ToUInt16(bytes)}.{BitConverter.ToUInt16(bytes, 2)}-";
         }
-
 
         public BaseSocket([NotNull] SocketConfig config)
         {
@@ -115,7 +115,6 @@ namespace BaileysCSharp.Core
             return Task.FromResult(true);
         }
 
-        private bool DidStartBuffer { get; set; }
         private Task<bool> HandleOfflineSynceDone(BinaryNode node)
         {
             var child = GetBinaryNodeChild(node, "offline");
@@ -467,7 +466,7 @@ namespace BaileysCSharp.Core
 
         private void Client_MessageRecieved(AbstractSocketClient sender, DataFrame frame)
         {
-            noise.DecodeFrame(frame.Buffer, OnFrameDeecoded);
+            noise.DecodeFrameNew(frame.Buffer, OnFrameDeecoded);
         }
 
         private void Client_Opened(AbstractSocketClient sender)

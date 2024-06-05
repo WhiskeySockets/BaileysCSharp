@@ -28,6 +28,7 @@ namespace BaileysCSharp.Core.Sockets
     {
         //public bool SendActiveReceipts;
         public long MaxMsgRetryCount { get; set; } = 5;
+        private static Mutex mut = new Mutex();
 
         protected MessagesRecvSocket([NotNull] SocketConfig config) : base(config)
         {
@@ -54,7 +55,6 @@ namespace BaileysCSharp.Core.Sockets
         #region messages-recv
 
 
-        private static Mutex mut = new Mutex();
         public async Task<bool> ProcessNodeWithBuffer(BinaryNode node, string identifier, Func<BinaryNode, Task> action)
         {
             EV.Buffer();
@@ -145,7 +145,6 @@ namespace BaileysCSharp.Core.Sockets
             SendMessageAck(node);
 
         }
-
 
         public async Task<WebMessageInfo?> ProcessNotification(BinaryNode node)
         {
@@ -336,6 +335,7 @@ namespace BaileysCSharp.Core.Sockets
 
             return @event;
         }
+
         private void HandleGroupNotification(string participant, BinaryNode child, WebMessageInfo msg)
         {
             switch (child.tag)
@@ -428,7 +428,6 @@ namespace BaileysCSharp.Core.Sockets
                     break;
             }
         }
-
 
         private async Task<bool> OnReceipt(BinaryNode node)
         {
@@ -548,7 +547,6 @@ namespace BaileysCSharp.Core.Sockets
 
         }
 
-
         private WebMessageInfo.Types.Status GetStatusFromReceiptType(string? type)
         {
             if (type == null)
@@ -626,6 +624,7 @@ namespace BaileysCSharp.Core.Sockets
 
 
         }
+
         private bool WillSendMessageAgain(string id, string? participant)
         {
             var key = $"{id}:{participant}";
@@ -666,7 +665,6 @@ namespace BaileysCSharp.Core.Sockets
         {
             return await ProcessNodeWithBuffer(node, "processing message", HandleMessage);
         }
-
 
         private async Task HandleMessage(BinaryNode node)
         {
@@ -777,7 +775,6 @@ namespace BaileysCSharp.Core.Sockets
             Logger.Debug(new { recv = new { node.tag, node.attrs }, sent = stanza.attrs }, "sent ack");
             SendNode(stanza);
         }
-
         private void SendReceipt(string jid, string? participant, string type, params string[] messageIds)
         {
 
@@ -830,7 +827,6 @@ namespace BaileysCSharp.Core.Sockets
             Logger.Info(new { node.attrs, messageIds }, "sending receipt for messages");
             SendNode(node);
         }
-
         private void SendRetryRequest(BinaryNode node, bool forceIncludeKeys = false)
         {
             var msgId = node.attrs["id"];
@@ -924,7 +920,6 @@ namespace BaileysCSharp.Core.Sockets
             SendNode(receipt);
             Logger.Info(new { msgAttrs = node.attrs, retryCount }, "sent retry receipt");
         }
-
 
         #endregion
 
