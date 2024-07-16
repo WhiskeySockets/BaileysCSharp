@@ -215,32 +215,32 @@ namespace WhatsSocketConsole
                         //});
                         //
                         //// Sending image
-                        //var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
-                        //{
-                        //    Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
-                        //    Caption = "Cat.jpeg"
-                        //});
-                        //
-                        //// send an audio file
-                        //var audioMessage = await socket.SendMessage(msg.Key.RemoteJid, new AudioMessageContent()
-                        //{
-                        //    Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
-                        //});
-                        //
-                        //// send an audio file
-                        //var videoMessage = await socket.SendMessage(msg.Key.RemoteJid, new VideoMessageContent()
-                        //{
-                        //    Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
-                        //    GifPlayback = true
-                        //});
-                        // 
-                        //// send a document file
-                        //var documentMessage = await socket.SendMessage(msg.Key.RemoteJid, new DocumentMessageContent()
-                        //{
-                        //    Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
-                        //    Mimetype = "application/pdf",
-                        //    FileName = "proposal.pdf",
-                        //});
+                        var imageMessage = await socket.SendMessage(msg.Key.RemoteJid, new ImageMessageContent()
+                        {
+                            Image = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\cat.jpeg", FileMode.Open),
+                            Caption = "Cat.jpeg"
+                        });
+                        
+                        // send an audio file
+                        var audioMessage = await socket.SendMessage(msg.Key.RemoteJid, new AudioMessageContent()
+                        {
+                            Audio = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\sonata.mp3", FileMode.Open),
+                        });
+                        
+                        // send an audio file
+                        var videoMessage = await socket.SendMessage(msg.Key.RemoteJid, new VideoMessageContent()
+                        {
+                            Video = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\ma_gif.mp4", FileMode.Open),
+                            GifPlayback = true
+                        });
+                         
+                        // send a document file
+                        var documentMessage = await socket.SendMessage(msg.Key.RemoteJid, new DocumentMessageContent()
+                        {
+                            Document = File.Open($"{Directory.GetCurrentDirectory()}\\Media\\file.pdf", FileMode.Open),
+                            Mimetype = "application/pdf",
+                            FileName = "proposal.pdf",
+                        });
 
 
 
@@ -312,7 +312,11 @@ namespace WhatsSocketConsole
 
             if (connection.Connection == WAConnectionState.Open)
             {
-                //var result = await socket.QueryRecommendedNewsletters();
+                var result = await socket.QueryRecommendedNewsletters();
+
+                var onWhatsApp = await socket.OnWhatsApp("+27797798179");
+                
+                var count = onWhatsApp.Length;
                 //var letter = result.Result[0];
                 //await socket.NewsletterFollow(letter.Id);
                 //await socket.NewsletterMute(letter.Id);
@@ -324,7 +328,7 @@ namespace WhatsSocketConsole
 
                 //await socket.AcceptTOSNotice();
                 //var nl = await socket.NewsletterCreate("Test Newsletter");
-                //await socket.NewsletterUpdateName(nl.Id, "Hello Ignus");
+                //await socket.NewsletterUpdateName(nl.Id, "Newsletter Name");
                 //await socket.NewsletterUpdateDescription(nl.Id, "Newsletter Description");
                 //var admin = await socket.NewsletterAdminCount(nl.Id);
 

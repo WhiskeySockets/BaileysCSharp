@@ -24,12 +24,12 @@
 
   <ItemGroup>
     <PackageReference Include="FFMpegCore" Version="5.1.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.26.1" />
-    <PackageReference Include="Grpc.Tools" Version="2.62.0">
+    <PackageReference Include="Google.Protobuf" Version="3.27.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.64.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="LiteDB" Version="5.0.19" />
+    <PackageReference Include="LiteDB" Version="5.0.20" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.8" />
   </ItemGroup>

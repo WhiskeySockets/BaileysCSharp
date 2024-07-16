@@ -512,7 +512,7 @@ namespace BaileysCSharp.Core
 
             var usyncNode = GetBinaryNodeChild(result, "usync");
             var listNode = GetBinaryNodeChild(usyncNode, "list");
-            var users = GetBinaryNodeChildren(listNode, "users");
+            var users = GetBinaryNodeChildren(listNode, "user");
             return users;
         }
 
