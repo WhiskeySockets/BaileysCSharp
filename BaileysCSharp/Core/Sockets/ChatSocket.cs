@@ -164,7 +164,7 @@ namespace BaileysCSharp.Core
             t1.Start();
             t2.Start();
             Task.WaitAll(t1, t2);
-
+           
             if (msg?.Message?.ProtocolMessage?.AppStateSyncKeyShare != null && PendingAppStateSync)
             {
                 await DoAppStateSync();
@@ -512,7 +512,7 @@ namespace BaileysCSharp.Core
 
             var usyncNode = GetBinaryNodeChild(result, "usync");
             var listNode = GetBinaryNodeChild(usyncNode, "list");
-            var users = GetBinaryNodeChildren(listNode, "users");
+            var users = GetBinaryNodeChildren(listNode, "user");
             return users;
         }
 

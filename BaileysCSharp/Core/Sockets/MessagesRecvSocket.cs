@@ -69,6 +69,7 @@ namespace BaileysCSharp.Core.Sockets
             }
             EV.Flush();
             mut.ReleaseMutex();
+
             return true;
         }
 
@@ -111,6 +112,7 @@ namespace BaileysCSharp.Core.Sockets
 
         private async Task<bool> OnNotification(BinaryNode node)
         {
+
             return await ProcessNodeWithBuffer(node, "handling notification", HandleNotification);
         }
 
@@ -131,10 +133,12 @@ namespace BaileysCSharp.Core.Sockets
                 {
                     var participant = node.getattr("participant");
                     var fromMe = JidUtils.AreJidsSameUser(!string.IsNullOrWhiteSpace(participant) ? participant : remoteJid, Creds.Me.ID);
+                    var child = GetAllBinaryNodeChildren(node).FirstOrDefault();
+                    participant = node.attrs.ContainsKey("participant") ? node.attrs["participant"] : GetBinaryNodeChild(child, "participant")?.attrs["jid"];
                     msg.Key = msg.Key ?? new MessageKey();
                     msg.Key.RemoteJid = remoteJid;
                     msg.Key.FromMe = fromMe;
-                    msg.Key.Participant = node.getattr("participant");
+                    msg.Key.Participant = participant; //node.getattr("participant");
                     msg.Key.Id = node.getattr("id");
                     msg.Participant = msg.Key.Participant;
                     msg.MessageTimestamp = node.getattr("t").ToUInt64();
@@ -171,7 +175,7 @@ namespace BaileysCSharp.Core.Sockets
                     break;
                 case "w:gp2":
                     result = new WebMessageInfo();
-                    HandleGroupNotification(node.attrs["participant"], child, result);
+                    HandleGroupNotification(node.attrs.ContainsKey("participant") ? node.attrs["participant"] : "", child, result);
                     break;
                 case "mediaretry":
                     var @event = DecodeMediaRetryNode(node);
@@ -338,6 +342,7 @@ namespace BaileysCSharp.Core.Sockets
 
         private void HandleGroupNotification(string participant, BinaryNode child, WebMessageInfo msg)
         {
+            participant = GetBinaryNodeChild(child, "participant")?.attrs["jid"] ?? participant;
             switch (child.tag)
             {
                 case "create":

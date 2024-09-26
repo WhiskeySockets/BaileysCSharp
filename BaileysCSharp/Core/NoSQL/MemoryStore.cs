@@ -74,8 +74,8 @@ namespace BaileysCSharp.Core.NoSQL
 
 
             messageList = messages.Where(x => x.RemoteJid != null).GroupBy(x => x.RemoteJid).ToDictionary(x => x.Key, x => x.Select(y => y.ToMessageInfo()).ToList());
-
-            Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+            StartTimer();
+            //Timer checkPoint = new Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
         }
 
         private void GroupParticipant_Update(object? sender, GroupParticipantUpdateModel e)
@@ -493,7 +493,21 @@ namespace BaileysCSharp.Core.NoSQL
             return chats.FirstOrDefault(x => x.ID == jid);
         }
 
+        public void StartTimer()
+        {
+            checkPoint?.Dispose();
+            checkPoint = new System.Threading.Timer(OnCheckpoint, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+        private static System.Threading.Timer checkPoint;
         public EventEmitter EV { get; }
         public DefaultLogger Logger { get; }
+        public void DisposeDb()
+        {
+            changes = true;
+            OnCheckpoint(null);
+            database?.Dispose();
+            checkPoint?.Dispose();
+        }
+      
     }
 }

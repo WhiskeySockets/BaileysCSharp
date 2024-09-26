@@ -63,7 +63,7 @@ namespace BaileysCSharp.Core.Models
         public OnWhatsAppResult(BinaryNode node)
         {
             var contact = GetBinaryNodeChild(node, "contact");
-            Exists = contact?.getattr("type") == "ind";
+            Exists = contact?.getattr("type") == "in";
             Jid = node.getattr("jid") ?? "";
         }
     }
