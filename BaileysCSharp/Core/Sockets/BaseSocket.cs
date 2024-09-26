@@ -110,7 +110,6 @@ namespace BaileysCSharp.Core
 
         private Task<bool> EdgeRouting(BinaryNode node)
         {
-            Logger.Error("-- EdgeRouting 0--");
 
             var edgeRoutingNode = GetBinaryNodeChild(node, "edge_routing");
             var routingInfo = GetBinaryNodeChild(edgeRoutingNode, "routing_info");
@@ -118,14 +117,12 @@ namespace BaileysCSharp.Core
             {
                 Creds.RoutingInfo = routingInfo.ToByteArray();
             }
-            Logger.Error("-- EdgeRouting 1--");
 
             return Task.FromResult(true);
         }
 
         private Task<bool> HandleOfflineSynceDone(BinaryNode node)
         {
-            Logger.Error("-- HandleOfflineSynceDone 0--");
 
             var child = GetBinaryNodeChild(node, "offline");
             var offlineNotifs = child?.getattr("count").ToUInt32();
@@ -136,10 +133,8 @@ namespace BaileysCSharp.Core
                 EV.Flush();
                 Logger.Trace("flushed events for initial buffer");
             }
-            Logger.Error("-- HandleOfflineSynceDone 1--");
 
             EV.Emit(EmitType.Update, new ConnectionState() { ReceivedPendingNotifications = true });
-            Logger.Error("-- HandleOfflineSynceDone 2--");
 
             return Task.FromResult(true);
         }
@@ -259,7 +254,6 @@ namespace BaileysCSharp.Core
         private async Task<bool> OnFrame(BinaryNode message)
         {
             await Task.Yield();
-            Logger.Error("-- OnFrame ProcessNodeWithBuffer--0");
             //For a Query
             if (message.attrs.ContainsKey("id"))
             {
@@ -269,7 +263,6 @@ namespace BaileysCSharp.Core
                     {
                         value.SetResult(message);
                     }
-                    Logger.Error("-- OnFrame ProcessNodeWithBuffer--1");
                     return true;
                 }
             }
@@ -283,7 +276,6 @@ namespace BaileysCSharp.Core
                     {
                         value.SetResult(message);
                     }
-                    Logger.Error("-- OnFrame ProcessNodeWithBuffer--2");
                     return true;
                 }
             }
@@ -293,15 +285,12 @@ namespace BaileysCSharp.Core
 
         private async Task<bool> OnStreamError(BinaryNode node)
         {
-            Logger.Error("-- OnStreamError 0--");
             await Task.Yield();
 
             if (node.content is BinaryNode[] nodes)
             {
                 node = nodes[0];
             }
-            Logger.Error("-- OnStreamError 1--");
-
             Logger.Error("stream errored out - " + node.tag);
 
             return true;
@@ -309,7 +298,6 @@ namespace BaileysCSharp.Core
 
         private Task<bool> OnFailure(BinaryNode node)
         {
-            Logger.Error("-- OnFailure 0--");
             var reason = node.getattr("reason") ?? "500";
             if (node.attrs["reason"] == "401")
             {
@@ -318,23 +306,19 @@ namespace BaileysCSharp.Core
                 WS.MessageRecieved -= Client_MessageRecieved;
 
             }
-            Logger.Error("-- OnFailure 1--");
 
             End(new Boom("Connection Failure", new BoomData(Convert.ToInt32(reason), node.attrs)));
-            Logger.Error("-- OnFailure 2--");
 
             return Task.FromResult(true);
         }
         private Task<bool> DowngradeWebClient(BinaryNode node)
         {
-            Logger.Error("-- DowngradeWebClient 1--");
             End(new Boom("Multi-device beta not joined", new BoomData(411, node.attrs)));
             return Task.FromResult(true);
         }
 
         private async Task<bool> OnPairDevice(BinaryNode message)
         {
-            Logger.Error("-- OnPairDevice --0");
             var iq = new BinaryNode("iq")
             {
                 attrs = new Dictionary<string, string>()
@@ -412,25 +396,21 @@ namespace BaileysCSharp.Core
                 Logger.Info(new { trace = error.StackTrace }, "error in pairing");
                 End(error);
             }
-            Logger.Error("-- OnPairSuccess --");
             return Task.FromResult(true);
 
         }
 
         private async Task<bool> OnSuccess(BinaryNode node)
         {
-            Logger.Error("-- OnSuccess --");
             await UploadPreKeysToServerIfRequired();
             await SendPassiveIq("active");
 
             Logger.Info("opened connection to WA");
             EV.Emit(EmitType.Update, new ConnectionState() { Connection = WAConnectionState.Open });
-            Logger.Error("-- OnSuccess 1--");
             return true;
         }
         private async Task<bool> StreamEnd(BinaryNode node)
         {
-            Logger.Error("-- StreamEnd --0");
             await Task.Yield();
             End(new Boom("Connection Terminated by Server", new BoomData(DisconnectReason.ConnectionLost)));
             return true;
