@@ -184,6 +184,10 @@ namespace BaileysCSharp.Core.Events
         {
             InternalEmit(action, metadata);
         }
+        internal void Emit(EmitType action, SyncState syncState)
+        {
+            InternalEmit(action, syncState);
+        }
 
         /** Receive an update on a call, including when the call was received, rejected, accepted */
         //'call': WACallEvent[]

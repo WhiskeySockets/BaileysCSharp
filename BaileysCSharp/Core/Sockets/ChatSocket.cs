@@ -164,7 +164,9 @@ namespace BaileysCSharp.Core
             t1.Start();
             t2.Start();
             Task.WaitAll(t1, t2);
-           
+            if (historyMsg?.HasProgress ?? false)
+                EV.Emit(EmitType.Update, new SyncState() { Msg = "Sync Data ", Prograss = historyMsg.Progress });
+
             if (msg?.Message?.ProtocolMessage?.AppStateSyncKeyShare != null && PendingAppStateSync)
             {
                 await DoAppStateSync();
