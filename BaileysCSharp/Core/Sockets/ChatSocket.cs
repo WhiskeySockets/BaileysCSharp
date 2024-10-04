@@ -929,7 +929,8 @@ namespace BaileysCSharp.Core
                 props = ReduceBinaryNodeToDictionary(propsNode, "prop");
                 if (Creds != null && props != null)
                 {
-                    Creds.LastPropHash = propsNode.attrs["hash"];
+                    //Creds.LastPropHash = propsNode.attrs["hash"];
+                    Creds.LastPropHash = propsNode.attrs.ContainsKey("hash") ? propsNode.attrs["hash"] : Creds.LastPropHash;
                     EV.Emit(EmitType.Update, Creds);
                 }
             }

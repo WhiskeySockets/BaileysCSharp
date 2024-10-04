@@ -508,6 +508,10 @@ namespace BaileysCSharp.Core.NoSQL
             database?.Dispose();
             checkPoint?.Dispose();
         }
-      
+        public List<ContactModel> GetAllContact()
+        {
+            return contacts.Where(x => x.IsUser).ToList();
+        }
+
     }
 }
