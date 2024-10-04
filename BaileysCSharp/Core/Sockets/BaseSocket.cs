@@ -101,22 +101,29 @@ namespace BaileysCSharp.Core
             events["CB:ib,,edge_routing"] = EdgeRouting;
             events["CB:ib,,offline"] = HandleOfflineSynceDone;
 
+            events["CB:edge_routing,id:abcd"] = EdgeRouting;
+            events["CB:edge_routing,id:abcd,routing_info"] = EdgeRouting;
+
+
 
         }
 
         private Task<bool> EdgeRouting(BinaryNode node)
         {
+
             var edgeRoutingNode = GetBinaryNodeChild(node, "edge_routing");
             var routingInfo = GetBinaryNodeChild(edgeRoutingNode, "routing_info");
             if (routingInfo?.content != null)
             {
                 Creds.RoutingInfo = routingInfo.ToByteArray();
             }
+
             return Task.FromResult(true);
         }
 
         private Task<bool> HandleOfflineSynceDone(BinaryNode node)
         {
+
             var child = GetBinaryNodeChild(node, "offline");
             var offlineNotifs = child?.getattr("count").ToUInt32();
             Logger.Info($"handled {offlineNotifs} offline messages/notifications");
@@ -128,6 +135,7 @@ namespace BaileysCSharp.Core
             }
 
             EV.Emit(EmitType.Update, new ConnectionState() { ReceivedPendingNotifications = true });
+
             return Task.FromResult(true);
         }
 
@@ -246,7 +254,6 @@ namespace BaileysCSharp.Core
         private async Task<bool> OnFrame(BinaryNode message)
         {
             await Task.Yield();
-
             //For a Query
             if (message.attrs.ContainsKey("id"))
             {
@@ -284,7 +291,6 @@ namespace BaileysCSharp.Core
             {
                 node = nodes[0];
             }
-
             Logger.Error("stream errored out - " + node.tag);
 
             return true;
@@ -401,7 +407,6 @@ namespace BaileysCSharp.Core
 
             Logger.Info("opened connection to WA");
             EV.Emit(EmitType.Update, new ConnectionState() { Connection = WAConnectionState.Open });
-
             return true;
         }
         private async Task<bool> StreamEnd(BinaryNode node)
@@ -704,10 +709,32 @@ namespace BaileysCSharp.Core
                 }
             });
         }
+        // الداله الاصلية
+        //private void End(string reason, DisconnectReason connectionLost)
+        //{
 
-        private void End(string reason, DisconnectReason connectionLost)
+        //    Logger.Trace(new { reason = connectionLost }, reason);
+
+        //    keepAliveToken?.Cancel();
+        //    qrTimerToken?.Cancel();
+
+
+        //    Console.WriteLine($"{reason} - {connectionLost}");
+        //}
+
+
+        // الدالة المعدل
+        public void End(string reason, DisconnectReason connectionLost)
         {
+            try
+            {
+                WS.Disconnect();
+            }
+            catch (Exception e) 
+            {
+                Logger.Trace(new { error = e }, reason);
 
+            }
             Logger.Trace(new { reason = connectionLost }, reason);
 
             keepAliveToken?.Cancel();

@@ -16,6 +16,14 @@ namespace BaileysCSharp.Core.Models
         public string VerifiedName { get; set; }
         public string? ImgUrl { get; set; }
         public string Status { get; set; }
+        public bool Saved { get; set; }
+        public bool? SaveContact
+        {
+            get
+            {
+                return !(string.IsNullOrEmpty(Name) || string.IsNullOrWhiteSpace(Name));
+            }
+        }
 
         public string GetID()
         {
@@ -33,6 +41,21 @@ namespace BaileysCSharp.Core.Models
             get
             {
                 return JidUtils.IsJidGroup(ID);
+            }
+        }
+        public bool IsUser
+        {
+            get
+            {
+                return JidUtils.IsJidUser(ID);
+            }
+        }
+
+        public string PhoneNumber
+        {
+            get
+            {
+                return JidUtils.IsJidUser(ID) ? JidUtils.JidDecode(ID)?.User : string.Empty;
             }
         }
     }

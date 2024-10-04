@@ -58,6 +58,7 @@ namespace BaileysCSharp.Core.Utils
             using (var httpClient = new HttpClient())
             {
                 httpClient.MaxResponseContentBufferSize = 2147483647;
+                httpClient.Timeout = TimeSpan.FromSeconds(60);
                 httpClient.DefaultRequestHeaders.Add("Origin", Constants.DEFAULT_ORIGIN);
 
                 var range = "";
