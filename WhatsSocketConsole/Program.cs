@@ -133,29 +133,29 @@ namespace WhatsSocketConsole
 
                     if (msg.Message.ImageMessage != null)
                     {
-                        //var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg);
                     }
 
                     if (msg.Message.DocumentMessage != null)
                     {
-                        //var result = await socket.DownloadMediaMessage(msg);
-                        //File.WriteAllBytes(result.FileName, result.Data);
+                        var result = await socket.DownloadMediaMessage(msg);
+                        File.WriteAllBytes(result.FileName, result.Data);
                     }
 
                     if (msg.Message.AudioMessage != null)
                     {
-                        //var result = await socket.DownloadMediaMessage(msg);
-                        //File.WriteAllBytes($"audio.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
+                        var result = await socket.DownloadMediaMessage(msg);
+                        File.WriteAllBytes($"audio.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
                     if (msg.Message.VideoMessage != null)
                     {
-                        //var result = await socket.DownloadMediaMessage(msg);
-                        //File.WriteAllBytes($"video.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
+                        var result = await socket.DownloadMediaMessage(msg);
+                        File.WriteAllBytes($"video.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
                     if (msg.Message.StickerMessage != null)
                     {
-                        //var result = await socket.DownloadMediaMessage(msg);
-                        //File.WriteAllBytes($"sticker.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
+                        var result = await socket.DownloadMediaMessage(msg);
+                        File.WriteAllBytes($"sticker.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
 
                     if (msg.Message.ExtendedTextMessage == null)
