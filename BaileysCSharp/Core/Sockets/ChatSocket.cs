@@ -660,9 +660,10 @@ namespace BaileysCSharp.Core
                 tag = "iq",
                 attrs =
                 {
-                    {"to",jid },
-                    {"type","get" },
-                    {"xmlns","w:profile:picture" }
+                    	{"target", jid },
+			{"to", S_WHATSAPP_NET },
+			{"type", "get" },
+			{"xmlns", "w:profile:picture" }
                 },
                 content = new BinaryNode[]
                 {
@@ -671,8 +672,8 @@ namespace BaileysCSharp.Core
                         tag = "picture",
                         attrs =
                         {
-                            {"type",type.ToString().ToLower() },
-                            {"query","url" }
+                            {"type", type.ToString().ToLower() },
+                            {"query", "url" }
                         }
                     }
                 }
