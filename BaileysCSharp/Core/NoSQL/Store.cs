@@ -56,7 +56,6 @@ namespace BaileysCSharp.Core.NoSQL
         public T[] InsertIfAbsent(IEnumerable<T> @new)
         {
             List<T> result = new List<T>();
-            List<T> toAdd = new List<T>();
             foreach (var item in @new)
             {
                 if (list.Any(x => x.GetID() == item.GetID()))
@@ -64,10 +63,9 @@ namespace BaileysCSharp.Core.NoSQL
                     continue;
                 }
                 list.Add(item);
-                toAdd.Add(item);
                 result.Add(item);
             }
-            collection.InsertBulk(toAdd);
+            collection.InsertBulk(result);
             return result.ToArray();
         }
 
