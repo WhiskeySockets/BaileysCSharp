@@ -105,13 +105,12 @@ namespace BaileysCSharp.Core.Events
             lock (locker)
             {
                 var eventkey = $"{typeof(T).Name}";
-                if (!Events.ContainsKey(eventkey))
+                if (!Events.TryGetValue(eventkey, out var store))
                 {
                     Logger.Warn($"{eventkey}.{type} has not been implemented yet");
                     return false;
                 }
-                var store = (DataEventStore<T>)Events[eventkey];
-                store.Emit(type, args);
+                ((DataEventStore<T>)store).Emit(type, args);
             }
             return true;
         }
