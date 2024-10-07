@@ -164,7 +164,9 @@ namespace BaileysCSharp.Core
             t1.Start();
             t2.Start();
             Task.WaitAll(t1, t2);
-           
+            if (historyMsg?.HasProgress ?? false)
+                EV.Emit(EmitType.Update, new SyncState() { Msg = "Sync Data ", Prograss = historyMsg.Progress });
+
             if (msg?.Message?.ProtocolMessage?.AppStateSyncKeyShare != null && PendingAppStateSync)
             {
                 await DoAppStateSync();
@@ -929,7 +931,8 @@ namespace BaileysCSharp.Core
                 props = ReduceBinaryNodeToDictionary(propsNode, "prop");
                 if (Creds != null && props != null)
                 {
-                    Creds.LastPropHash = propsNode.attrs["hash"];
+                    //Creds.LastPropHash = propsNode.attrs["hash"];
+                    Creds.LastPropHash = propsNode.attrs.ContainsKey("hash") ? propsNode.attrs["hash"] : Creds.LastPropHash;
                     EV.Emit(EmitType.Update, Creds);
                 }
             }

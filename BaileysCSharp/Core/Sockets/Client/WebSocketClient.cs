@@ -135,7 +135,7 @@ namespace BaileysCSharp.Core.Sockets.Client
             }
         }
 
-        public override async void Send(byte[] data)
+        public override async Task Send(byte[] data)
         {
             if (WebSocket.State != WebSocketState.Open)
             {

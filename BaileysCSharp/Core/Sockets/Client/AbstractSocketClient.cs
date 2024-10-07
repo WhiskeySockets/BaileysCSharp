@@ -28,7 +28,7 @@ namespace BaileysCSharp.Core.Sockets.Client
 
         public abstract void Connect();
         public abstract void Disconnect();
-        public abstract void Send(byte[] data);
+        public abstract Task Send(byte[] data);
 
         protected void EmitReceivedData(byte[] data)
         {

@@ -710,31 +710,9 @@ namespace BaileysCSharp.Core
             });
         }
         // الداله الاصلية
-        //private void End(string reason, DisconnectReason connectionLost)
-        //{
-
-        //    Logger.Trace(new { reason = connectionLost }, reason);
-
-        //    keepAliveToken?.Cancel();
-        //    qrTimerToken?.Cancel();
-
-
-        //    Console.WriteLine($"{reason} - {connectionLost}");
-        //}
-
-
-        // الدالة المعدل
-        public void End(string reason, DisconnectReason connectionLost)
+        private void End(string reason, DisconnectReason connectionLost)
         {
-            try
-            {
-                WS.Disconnect();
-            }
-            catch (Exception e) 
-            {
-                Logger.Trace(new { error = e }, reason);
 
-            }
             Logger.Trace(new { reason = connectionLost }, reason);
 
             keepAliveToken?.Cancel();
@@ -743,6 +721,28 @@ namespace BaileysCSharp.Core
 
             Console.WriteLine($"{reason} - {connectionLost}");
         }
+
+
+        // الدالة المعدل
+        //public void End(string reason, DisconnectReason connectionLost)
+        //{
+        //    try
+        //    {
+        //        WS.Disconnect();
+        //    }
+        //    catch (Exception e) 
+        //    {
+        //        Logger.Trace(new { error = e }, reason);
+
+        //    }
+        //    Logger.Trace(new { reason = connectionLost }, reason);
+
+        //    keepAliveToken?.Cancel();
+        //    qrTimerToken?.Cancel();
+
+
+        //    Console.WriteLine($"{reason} - {connectionLost}");
+        //}
 
         public void NewAuth()
         {
@@ -755,6 +755,10 @@ namespace BaileysCSharp.Core
             Repository = SocketConfig.MakeSignalRepository(EV);
             Store = SocketConfig.MakeStore(EV, Logger);
 
+        }
+        public List<ContactModel> GetAllContact()
+        {
+            return Store.GetAllContact();
         }
     }
 }
