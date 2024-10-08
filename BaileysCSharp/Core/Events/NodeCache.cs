@@ -1,4 +1,4 @@
-﻿using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.NoSQL;
 
 namespace BaileysCSharp.Core.Events
 {
@@ -12,9 +12,8 @@ namespace BaileysCSharp.Core.Events
 
         public override T Get<T>(string id)
         {
-            if (Cache.ContainsKey(id))
+            if (Cache.TryGetValue(id, out var value))
             {
-                var value = Cache[id];
                 if (value is T)
                 {
                     return (T)value;

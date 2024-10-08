@@ -1,27 +1,18 @@
-﻿using Org.BouncyCastle.Tls;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models.Sending;
+using BaileysCSharp.Core.Models.Sending.Interfaces;
+using BaileysCSharp.Core.Models.Sending.Media;
+using BaileysCSharp.Core.Models.Sending.NonMedia;
+using BaileysCSharp.Exceptions;
 using Proto;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using BaileysCSharp.Core.Extensions;
-using static Proto.Message.Types;
-using static BaileysCSharp.Core.Utils.JidUtils;
-using static BaileysCSharp.Core.Utils.GenericUtils;
-using static BaileysCSharp.Core.Utils.MediaMessageUtil;
-using BaileysCSharp.Exceptions;
-using BaileysCSharp.LibSignal;
-using BaileysCSharp.Core.Helper;
-using Google.Protobuf;
-using BaileysCSharp.Core.Models.Sending;
-using BaileysCSharp.Core.Models.Sending.Media;
-using BaileysCSharp.Core.Models.Sending.Interfaces;
-using BaileysCSharp.Core.Models.Sending.NonMedia;
 using System.Text.Json.Serialization;
-using BaileysCSharp.Core.Types;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using static BaileysCSharp.Core.Utils.MediaMessageUtil;
+using static Proto.Message.Types;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -138,10 +129,6 @@ namespace BaileysCSharp.Core.Utils
                     contextInfo.RemoteJid = quoted.Key.RemoteJid;
                 }
                 message.SetContextInfo(contextInfo);
-
-
-
-
             }
 
             webmessage.Key = new MessageKey()
@@ -154,10 +141,8 @@ namespace BaileysCSharp.Core.Utils
             webmessage.MessageTimestamp = (ulong)(DateTimeOffset.Now.ToUnixTimeSeconds());
             webmessage.Status = WebMessageInfo.Types.Status.Pending;
 
-
             return webmessage;
         }
-
 
         public static async Task<WebMessageInfo> GenerateWAMessage(string jid, IAnyMessageContent content, IMessageGenerationOptions? options = null)
         {
@@ -165,7 +150,6 @@ namespace BaileysCSharp.Core.Utils
                 await GenerateWAMessageContent(content, options),
                 options);
         }
-
 
         public static async Task<Message> GenerateWAMessageContent<T>(T message, IMessageContentGenerationOptions? options = null) where T : IAnyMessageContent
         {
@@ -280,13 +264,10 @@ namespace BaileysCSharp.Core.Utils
         private static async Task<Message> PrepareWAMessageMedia<T>(T message, IMediaGenerationOptions? options) where T : AnyMediaMessageContent
         {
             var key = message.GetType().Name;
-            string mediaType = null;
-            if (MEDIA_KEYS.ContainsKey(key))
+            if (!MEDIA_KEYS.TryGetValue(key, out string? mediaType))
             {
-                mediaType = MEDIA_KEYS[key];
+                mediaType = null;
             }
-
-
 
             // /mms/video
             // /mms/document
@@ -295,10 +276,7 @@ namespace BaileysCSharp.Core.Utils
             // /product/image
             // /mms/md-app-state
 
-
-            if (mediaType == "")
-                throw new Boom("Invalid media type", new BoomData(400));
-            if (mediaType == null)
+            if (string.IsNullOrEmpty(mediaType))
                 throw new Boom("Invalid media type", new BoomData(400));
 
             var uploadData = new MediaUploadData();
@@ -329,13 +307,9 @@ namespace BaileysCSharp.Core.Utils
             var requiresAudioBackground = options?.BackgroundColor != null && mediaType == "Audio" && uploadData.Ptt;
             var requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation;
 
-
-
             var result = EncryptedStream(uploadData.Media, mediaType);
 
-
             // url safe Base64 encode the SHA256 hash of the body
-
 
             var uploaded = await options.Upload(result.EncWriteStream, new MediaUploadOptions()
             {
@@ -343,9 +317,6 @@ namespace BaileysCSharp.Core.Utils
                 MediaType = mediaType,
                 TimeOutMs = options.MediaUploadTimeoutMs
             });
-
-
-
 
             if (requiresDurationComputation)
             {
@@ -470,8 +441,6 @@ namespace BaileysCSharp.Core.Utils
             }
         }
 
-
-
     }
 
     public class MediaDownload
@@ -489,14 +458,13 @@ namespace BaileysCSharp.Core.Utils
 
         public MediaHost[] Hosts { get; set; }
         public DateTime FetchDate { get; set; }
-
     }
+
     public class MediaHost
     {
         public string HostName { get; set; }
         public long MaxContentLengthBytes { get; set; }
     }
-
 
     public class MediaEncryptResult
     {
@@ -506,7 +474,6 @@ namespace BaileysCSharp.Core.Utils
         public byte[] FileEncSha256 { get; set; }
         public byte[] FileSha256 { get; set; }
         public ulong FileLength { get; set; }
-
     }
 
     public class MediaUploadOptions
@@ -524,5 +491,4 @@ namespace BaileysCSharp.Core.Utils
         [JsonPropertyName("direct_path")]
         public string DirectPath { get; set; }
     }
-
 }

@@ -1,20 +1,14 @@
-﻿using Google.Protobuf;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using Textsecure;
 using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models.Sessions;
-using BaileysCSharp.Core.NoSQL;
 using BaileysCSharp.Core.Signal;
-using BaileysCSharp.Exceptions;
-using BaileysCSharp.LibSignal;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using BaileysCSharp.Core.Types;
+using BaileysCSharp.Exceptions;
+using Google.Protobuf;
+using System.Text;
+using Textsecure;
 
 namespace BaileysCSharp.LibSignal
 {
-
     public class SessionCipher
     {
         public SessionCipher(SignalStorage storage, ProtocolAddress address)
@@ -25,7 +19,6 @@ namespace BaileysCSharp.LibSignal
 
         public SignalStorage Storage { get; }
         public ProtocolAddress Address { get; }
-
 
         public SessionRecord? GetRecord()
         {
@@ -65,7 +58,6 @@ namespace BaileysCSharp.LibSignal
             }
             return plaintext;
         }
-
 
         internal byte[] DecryptWhisperMessage(byte[] data)
         {
@@ -141,18 +133,16 @@ namespace BaileysCSharp.LibSignal
                 throw new SessionException("Tried to decrypt on a sending chain");
             }
             FillMessageKeys(chain, (int)message.Counter);
-            if (!chain.MessageKeys.ContainsKey((int)message.Counter))
+            if (!chain.MessageKeys.TryGetValue((int)message.Counter, out var messageKey))
             {
                 // Most likely the message was already decrypted and we are trying to process
                 // twice.  This can happen if the user restarts before the server gets an ACK.
                 throw new MessageCounterError("Key used already or never filled");
             }
 
-            var messageKey = chain.MessageKeys[(int)message.Counter];
             chain.MessageKeys.Remove((int)message.Counter);
             var keys = CryptoUtils.DeriveSecrets(messageKey, new byte[32],
                                                 Encoding.UTF8.GetBytes("WhisperMessageKeys"));
-
 
             var ourIdentityKey = Storage.GetOurIdentity();
             var macInput = new byte[messageProto.Length + 33 * 2 + 1];
@@ -246,7 +236,6 @@ namespace BaileysCSharp.LibSignal
             chain.ChainKey.Counter = chain.ChainKey.Counter + 1;
             FillMessageKeys(chain, counter);
         }
-
 
         private int[] decodeTupleByte(byte buff)
         {

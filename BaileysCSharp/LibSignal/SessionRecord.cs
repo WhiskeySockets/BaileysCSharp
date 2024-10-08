@@ -1,4 +1,4 @@
-﻿using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Models.Sessions;
 using BaileysCSharp.Core.NoSQL;
 using System.Text.Json.Serialization;
@@ -24,8 +24,8 @@ namespace BaileysCSharp.LibSignal
 
         public Session? GetSession(string key)
         {
-            if (Sessions.ContainsKey(key))
-                return Sessions[key];
+            if (Sessions.TryGetValue(key , out var value))
+                return value;
             return null;
         }
 
