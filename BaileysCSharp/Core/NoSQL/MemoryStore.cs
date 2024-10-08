@@ -221,8 +221,7 @@ namespace BaileysCSharp.Core.NoSQL
                             var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
                             if (!messageList.TryGetValue(jid, out var list))
                             {
-                                list = [];
-                                messageList[jid] = list;
+                                messageList[jid] = list = [];
                             }
                             list.Add(msg);
                             messages.Add(new MessageModel(msg));
@@ -306,8 +305,7 @@ namespace BaileysCSharp.Core.NoSQL
                         var jid = msg.Key.RemoteJid;
                         if (!messageList.TryGetValue(jid, out var list))
                         {
-                            list = new();
-                            messageList[jid] = list;
+                            messageList[jid] = list = [];
                         }
                         list.Insert(0, msg);
                         newMessages.Add(storeMessage);
