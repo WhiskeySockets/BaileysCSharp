@@ -32,7 +32,7 @@ namespace BaileysCSharp.Core.Utils
             {
                 Os = config.Browser[0],
                 PlatformType = DeviceProps.Types.PlatformType.Chrome,
-                RequireFullSync = false,
+                RequireFullSync = config.SyncFullHistory
             };
 
             var payload = GetClientPayload(config);
