@@ -1,25 +1,16 @@
-﻿using Google.Protobuf;
-using LiteDB;
-using Proto;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Runtime.Remoting;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using BaileysCSharp.Core.Events;
 using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Logging;
 using BaileysCSharp.Core.Models;
-using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.Types;
 using BaileysCSharp.Core.Utils;
-using BaileysCSharp.Core.Logging;
+using Google.Protobuf;
+using LiteDB;
+using Proto;
+using static BaileysCSharp.Core.Utils.JidUtils;
 
 namespace BaileysCSharp.Core.NoSQL
 {
-
     public class MemoryStore
     {
         private static object locker = new object();
@@ -228,11 +219,11 @@ namespace BaileysCSharp.Core.NoSQL
                         foreach (var msg in item.Messages)
                         {
                             var jid = JidUtils.JidNormalizedUser(msg.Key.RemoteJid);
-                            if (messageList.ContainsKey(jid) == false)
+                            if (!messageList.TryGetValue(jid, out var list))
                             {
-                                messageList[jid] = new List<WebMessageInfo>();
+                                messageList[jid] = list = [];
                             }
-                            messageList[jid].Add(msg);
+                            list.Add(msg);
                             messages.Add(new MessageModel(msg));
 
                             var chat = GetChat(jid);
@@ -261,7 +252,6 @@ namespace BaileysCSharp.Core.NoSQL
             }
         }
 
-
         private void Contacts_Upsert(object? sender, ContactModel[] e)
         {
             ContactsUpsert(e.ToList());
@@ -286,7 +276,6 @@ namespace BaileysCSharp.Core.NoSQL
         {
             foreach (var item in e)
             {
-
                 lock (locker)
                 {
                     changes = true;
@@ -314,11 +303,11 @@ namespace BaileysCSharp.Core.NoSQL
                     {
                         var storeMessage = new MessageModel(msg);
                         var jid = msg.Key.RemoteJid;
-                        if (messageList.ContainsKey(jid) == false)
+                        if (!messageList.TryGetValue(jid, out var list))
                         {
-                            messageList[jid] = new List<WebMessageInfo>();
+                            messageList[jid] = list = [];
                         }
-                        messageList[jid].Insert(0, msg);
+                        list.Insert(0, msg);
                         newMessages.Add(storeMessage);
 
                     }
@@ -396,7 +385,6 @@ namespace BaileysCSharp.Core.NoSQL
                 EV.Emit(EmitType.Update, updates.ToArray());
         }
 
-
         private void GroupUpsertEvent_Emit(GroupMetadataModel[] args)
         {
             lock (locker)
@@ -404,10 +392,6 @@ namespace BaileysCSharp.Core.NoSQL
                 groupMetaData.InsertBulk(args);
             }
         }
-
-
-
-
 
         private ContactModel[] ContactsUpsert(List<ContactModel> newContacts)
         {
@@ -430,8 +414,6 @@ namespace BaileysCSharp.Core.NoSQL
             ///TODO
         }
 
-
-
         bool changes = true;
         private void OnCheckpoint(object? state)
         {
@@ -452,7 +434,7 @@ namespace BaileysCSharp.Core.NoSQL
             }
         }
 
-        public Message GetMessage(MessageKey key)
+        public Message? GetMessage(MessageKey key)
         {
             var raw = messages.FindByID(key.Id);
             if (raw == null)
@@ -462,7 +444,7 @@ namespace BaileysCSharp.Core.NoSQL
             var web = WebMessageInfo.Parser.ParseFrom(raw.Message);
             return web.Message;
         }
-        public MessageModel GetMessage(string key)
+        public MessageModel? GetMessage(string key)
         {
             var raw = messages.FindByID(key);
             return raw;
@@ -512,6 +494,5 @@ namespace BaileysCSharp.Core.NoSQL
         {
             return contacts.Where(x => x.IsUser).ToList();
         }
-
     }
 }

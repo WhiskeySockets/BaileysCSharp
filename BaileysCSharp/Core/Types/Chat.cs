@@ -1,15 +1,10 @@
-﻿using LiteDB;
-using Proto;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BaileysCSharp.Core.NoSQL;
-using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Utils;
 using BaileysCSharp.Core.WABinary;
+using LiteDB;
+using Proto;
+using System.Collections;
+using static BaileysCSharp.Core.Utils.GenericUtils;
 
 namespace BaileysCSharp.Core.Models
 {
@@ -198,9 +193,9 @@ namespace BaileysCSharp.Core.Models
         {
             get
             {
-                if (GetCount.ContainsKey(key))
+                if (GetCount.TryGetValue(key, out var count))
                 {
-                    GetCount[key] = GetCount[key] + 1;
+                    GetCount[key] = count + 1;
                 }
                 else
                 {
@@ -211,9 +206,9 @@ namespace BaileysCSharp.Core.Models
             }
             set
             {
-                if (AddCount.ContainsKey(key))
+                if (AddCount.TryGetValue(key, out var count))
                 {
-                    AddCount[key] = AddCount[key] + 1;
+                    AddCount[key] = count + 1;
                 }
                 else
                 {
@@ -260,7 +255,6 @@ namespace BaileysCSharp.Core.Models
     {
         public List<MinimalMessage> LastMessages { get; set; }
     }
-
 
     public class StarMessage
     {

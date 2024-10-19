@@ -1,9 +1,8 @@
-﻿using System.Text;
-using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Signal;
-using static BaileysCSharp.Core.WABinary.Constants;
-using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.WABinary;
+using System.Text;
+using static BaileysCSharp.Core.Utils.JidUtils;
+using static BaileysCSharp.Core.WABinary.Constants;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -97,7 +96,6 @@ namespace BaileysCSharp.Core.Utils
             }
         }
 
-
         private void PushInt16(int value)
         {
             PushBytes(value >> 8 & 0xff, value & 0xff);
@@ -106,7 +104,6 @@ namespace BaileysCSharp.Core.Utils
         {
             PushBytes(value >> 16 & 0x0f, value >> 8 & 0xff, value & 0xff);
         }
-
 
         private void WriteListStart(int listSize)
         {
@@ -178,8 +175,6 @@ namespace BaileysCSharp.Core.Utils
                 WriteString(decodedJid.Server);
             }
         }
-
-
 
         public int PackNibble(char @char)
         {
@@ -313,12 +308,11 @@ namespace BaileysCSharp.Core.Utils
                 return;
             }
 
-            if (TOKEN_MAP.ContainsKey(str))
+            if (TOKEN_MAP.TryGetValue(str, out var tokenIndex))
             {
-                var tokenIndex = TOKEN_MAP[str];
-                if (tokenIndex.ContainsKey("dict"))
+                if (tokenIndex.TryGetValue("dict", out var tokenValue))
                 {
-                    PushByte(TAGS.DICTIONARY_0 + tokenIndex["dict"]);
+                    PushByte(TAGS.DICTIONARY_0 + tokenValue);
                 }
                 PushByte(tokenIndex["index"]);
             }
@@ -360,8 +354,6 @@ namespace BaileysCSharp.Core.Utils
         //        PushInt16(listSize);
         //    }
         //}
-
-
 
         public byte[] ToByteArray()
         {

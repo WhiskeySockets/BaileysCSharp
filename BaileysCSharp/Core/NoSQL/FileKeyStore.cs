@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Converters;
-using System.Text.Json;
 using BaileysCSharp.Core.Helper;
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 
 namespace BaileysCSharp.Core.NoSQL
 {
-
     public class FileKeyStore : BaseKeyStore, IDisposable
     {
         public string Path { get; set; }
@@ -22,9 +15,7 @@ namespace BaileysCSharp.Core.NoSQL
             Directory.CreateDirectory(Path);
         }
 
-
         private static object locker = new object();
-
 
         public override T Get<T>(string id)
         {
@@ -36,16 +27,14 @@ namespace BaileysCSharp.Core.NoSQL
                     Debug.WriteLine($"{typeof(T).Name} does not have FolderPrefix attribute");
                     throw new NotSupportedException($"{typeof(T).Name} does not have FolderPrefix attribute");
                 }
-                if (memory.ContainsKey($"{attributes.Prefix}-{id}"))
+                if (memory.TryGetValue($"{attributes.Prefix}-{id}", out var value))
                 {
-                    return (T)memory[$"{attributes.Prefix}-{id}"];
+                    return (T)value;
                 }
-
 
                 var path = System.IO.Path.Combine(Path, attributes.Prefix);
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-
 
                 var file = $"{path}\\{attributes.Prefix}-{id.Replace("/", "__").Replace("::", "__")}.json";
 
@@ -109,7 +98,6 @@ namespace BaileysCSharp.Core.NoSQL
             return result.ToArray();
         }
 
-
         Dictionary<string, object> memory = new Dictionary<string, object>();
 
         public override void Set<T>(string id, T? value) where T : default
@@ -134,5 +122,4 @@ namespace BaileysCSharp.Core.NoSQL
             }
         }
     }
-
 }

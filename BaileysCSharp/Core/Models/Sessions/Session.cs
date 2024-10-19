@@ -1,11 +1,10 @@
-﻿using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Helper;
 using System.Text.Json.Serialization;
 
 namespace BaileysCSharp.Core.Models.Sessions
 {
     public class Session
     {
-
         public Session()
         {
             Chains = new Dictionary<string, Chain>();
@@ -27,22 +26,18 @@ namespace BaileysCSharp.Core.Models.Sessions
 
         internal void DeleteChain(byte[] remoteKey)
         {
-            if (Chains.ContainsKey(remoteKey.ToBase64()))
-            {
-                Chains.Remove(remoteKey.ToBase64());
-            }
+            Chains.Remove(remoteKey.ToBase64());
         }
 
         public Chain? GetChain(byte[] remoteKey)
         {
-            if (Chains.ContainsKey(remoteKey.ToBase64()))
+            if (Chains.TryGetValue(remoteKey.ToBase64(), out var value))
             {
-                return Chains[remoteKey.ToBase64()];
+                return value;
             }
             return null;
         }
     }
-
 
     public class E2ESession
     {
@@ -51,5 +46,4 @@ namespace BaileysCSharp.Core.Models.Sessions
         public SignedPreKey SignedPreKey { get; set; }
         public PreKeyPair PreKey { get; set; }
     }
-
 }

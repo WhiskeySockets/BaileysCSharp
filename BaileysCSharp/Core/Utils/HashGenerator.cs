@@ -1,14 +1,9 @@
-﻿using Google.Protobuf;
-using Proto;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BaileysCSharp.Core.Stores;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using BaileysCSharp.Exceptions;
 using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Exceptions;
+using Google.Protobuf;
+using Proto;
+using System.Text;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -44,11 +39,11 @@ namespace BaileysCSharp.Core.Utils
         {
             var indexMacBase64 = indexMac.ToBase64();
 
-            byte[] prevOp = null;
+            byte[]? prevOp;
 
-            if (InitialState.IndexValueMap.ContainsKey(indexMacBase64))
+            if (!InitialState.IndexValueMap.TryGetValue(indexMacBase64, out prevOp))
             {
-                prevOp = InitialState.IndexValueMap[indexMacBase64];
+                prevOp = null;
             }
 
             if (operation == SyncdMutation.Types.SyncdOperation.Remove)
@@ -65,14 +60,13 @@ namespace BaileysCSharp.Core.Utils
             {
                 addBuffs.Add(valueMac);
 
-                if (InitialState.IndexValueMap.ContainsKey(indexMacBase64))
+                /*if (InitialState.IndexValueMap.ContainsKey(indexMacBase64))
                 {
 
-                }
+                }*/
 
                 InitialState.IndexValueMap[indexMacBase64] = valueMac;
             }
-
 
             if (prevOp != null)
             {
