@@ -1,37 +1,26 @@
-﻿using Proto;
-using Google.Protobuf;
-using static Proto.ClientPayload.Types;
-using BaileysCSharp.Core.Helper;
-using BaileysCSharp.Core.Sockets;
 using BaileysCSharp.Core.Events;
-using System.Text;
-using BaileysCSharp.Core.Models;
-using BaileysCSharp.Exceptions;
-using System.Threading;
-using System.Diagnostics;
-using BaileysCSharp.Core.Stores;
-using BaileysCSharp.Core.Models.SenderKeys;
-using BaileysCSharp.Core.Models.Sessions;
-using BaileysCSharp.Core.Utils;
-using System.Linq;
-using BaileysCSharp.Core.WABinary;
-using BaileysCSharp.Core.Sockets.Client;
-using BaileysCSharp.Core.Signal;
-using System.Diagnostics.CodeAnalysis;
-using BaileysCSharp.Core.NoSQL;
-using static BaileysCSharp.Core.Utils.ProcessMessageUtil;
-using static BaileysCSharp.Core.WABinary.Constants;
-using static BaileysCSharp.Core.Utils.GenericUtils;
 using BaileysCSharp.Core.Extensions;
-using BaileysCSharp.LibSignal;
-using BaileysCSharp.Core.Types;
-using System.Collections.Concurrent;
+using BaileysCSharp.Core.Helper;
 using BaileysCSharp.Core.Logging;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Sockets.Client;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.Utils;
+using BaileysCSharp.Core.WABinary;
+using BaileysCSharp.Exceptions;
+using BaileysCSharp.LibSignal;
+using Google.Protobuf;
+using Proto;
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using static BaileysCSharp.Core.Utils.GenericUtils;
+using static BaileysCSharp.Core.WABinary.Constants;
 
 namespace BaileysCSharp.Core
 {
-
-
     public abstract class BaseSocket
     {
         protected ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>> waits = new ConcurrentDictionary<string, TaskCompletionSource<BinaryNode>>();
@@ -48,9 +37,8 @@ namespace BaileysCSharp.Core
         protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
         protected Dictionary<string, Func<BinaryNode, Task<bool>>> events = new Dictionary<string, Func<BinaryNode, Task<bool>>>();
 
-
         protected SignalRepository Repository { get; set; }
-        protected MemoryStore Store { get; set; }
+        public MemoryStore Store { get; set; }
 
         public string UniqueTagId { get; set; }
         public long Epoch { get; set; }
@@ -62,9 +50,6 @@ namespace BaileysCSharp.Core
         public AuthenticationCreds? Creds { get; set; }
         public SocketConfig SocketConfig { get; }
         public BaseKeyStore Keys { get; }
-
-
-
 
         public string GenerateMessageTag()
         {
@@ -101,7 +86,8 @@ namespace BaileysCSharp.Core
             events["CB:ib,,edge_routing"] = EdgeRouting;
             events["CB:ib,,offline"] = HandleOfflineSynceDone;
 
-
+            events["CB:edge_routing,id:abcd"] = EdgeRouting;
+            events["CB:edge_routing,id:abcd,routing_info"] = EdgeRouting;
         }
 
         private Task<bool> EdgeRouting(BinaryNode node)
@@ -112,6 +98,7 @@ namespace BaileysCSharp.Core
             {
                 Creds.RoutingInfo = routingInfo.ToByteArray();
             }
+
             return Task.FromResult(true);
         }
 
@@ -128,21 +115,17 @@ namespace BaileysCSharp.Core
             }
 
             EV.Emit(EmitType.Update, new ConnectionState() { ReceivedPendingNotifications = true });
+
             return Task.FromResult(true);
         }
 
-
-
         #region Receiving
-
-
         private void StartKeepAliveRequest()
         {
             keepAliveToken = new CancellationTokenSource();
             keepAliveThread = new Thread(() => KeepAliveHandler());
             keepAliveThread.Start();
         }
-
 
         private async void KeepAliveHandler()
         {
@@ -235,8 +218,6 @@ namespace BaileysCSharp.Core
                     Logger.Debug(new { unhandled = true, msgId, fromMe = false, frame }, "communication recv");
                 }
             }
-
-
         }
 
         #endregion
@@ -246,16 +227,12 @@ namespace BaileysCSharp.Core
         private async Task<bool> OnFrame(BinaryNode message)
         {
             await Task.Yield();
-
             //For a Query
-            if (message.attrs.ContainsKey("id"))
+            if (message.attrs.TryGetValue("id", out var id))
             {
-                if (waits.ContainsKey(message.attrs["id"]))
+                if (waits.TryRemove(id, out var value))
                 {
-                    if (waits.TryRemove(message.attrs["id"], out var value))
-                    {
-                        value.SetResult(message);
-                    }
+                    value.SetResult(message);
                     return true;
                 }
             }
@@ -263,12 +240,9 @@ namespace BaileysCSharp.Core
             //For the Handshake
             if (message.tag == "handshake")
             {
-                if (waits.ContainsKey(message.tag))
+                if (waits.TryRemove(message.tag, out var value))
                 {
-                    if (waits.TryRemove(message.tag, out var value))
-                    {
-                        value.SetResult(message);
-                    }
+                    value.SetResult(message);
                     return true;
                 }
             }
@@ -284,7 +258,6 @@ namespace BaileysCSharp.Core
             {
                 node = nodes[0];
             }
-
             Logger.Error("stream errored out - " + node.tag);
 
             return true;
@@ -343,9 +316,7 @@ namespace BaileysCSharp.Core
                     var @ref = Encoding.UTF8.GetString(refNode.ToByteArray());
                     var qr = string.Join(",", @ref, noiseKeyB64, identityKeyB64, advB64);
 
-
                     EV.Emit(EmitType.Update, new ConnectionState() { QR = qr });
-
 
                     //await Console.Out.WriteLineAsync(qr);
                     //await Console.Out.WriteLineAsync(data);
@@ -373,9 +344,7 @@ namespace BaileysCSharp.Core
             Logger.Debug("pair success recv");
             try
             {
-
                 var reply = ValidateConnectionUtil.ConfigureSuccessfulPairing(Creds, node);
-
 
                 Logger.Info(Creds, "pairing configured successfully, expect to restart the connection...");
 
@@ -401,7 +370,6 @@ namespace BaileysCSharp.Core
 
             Logger.Info("opened connection to WA");
             EV.Emit(EmitType.Update, new ConnectionState() { Connection = WAConnectionState.Open });
-
             return true;
         }
         private async Task<bool> StreamEnd(BinaryNode node)
@@ -416,7 +384,7 @@ namespace BaileysCSharp.Core
         #region Sending
 
         /** send a binary node */
-        protected void SendNode(BinaryNode frame)
+        public void SendNode(BinaryNode frame)
         {
             if (Logger.Level == LogLevel.Trace)
             {
@@ -427,7 +395,6 @@ namespace BaileysCSharp.Core
             SendRawMessage(buffer);
         }
 
-
         protected void SendRawMessage(byte[] bytes)
         {
             var toSend = noise.EncodeFrame(bytes);
@@ -435,17 +402,16 @@ namespace BaileysCSharp.Core
             WS.Send(toSend);
         }
 
-        protected Task<BinaryNode> Query(BinaryNode iq)
+        public Task<BinaryNode> Query(BinaryNode iq)
         {
-            if (!iq.attrs.ContainsKey("id"))
+            if (!iq.attrs.TryGetValue("id", out var id))
             {
-                iq.attrs["id"] = GenerateMessageTag();
+                iq.attrs["id"] = id = GenerateMessageTag();
             }
-            waits[iq.attrs["id"]] = new TaskCompletionSource<BinaryNode>();
+            waits[id] = new TaskCompletionSource<BinaryNode>();
             SendNode(iq);
             return waits[iq.attrs["id"]].Task;
         }
-
 
         public async Task<byte[]> NextMessage(byte[] bytes)
         {
@@ -458,7 +424,6 @@ namespace BaileysCSharp.Core
             var message = await waits["handshake"].Task;
             return message.ToByteArray();
         }
-
 
         #endregion
 
@@ -480,18 +445,19 @@ namespace BaileysCSharp.Core
                 Logger.Error(ex, "error in validating connection");
             }
         }
+
         private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
         {
             WS.Opened -= Client_Opened;
             WS.Disconnected -= Client_Disconnected;
             WS.MessageRecieved -= Client_MessageRecieved;
-
         }
+
         private async Task<bool> Emit(string key, BinaryNode e)
         {
-            if (events.ContainsKey(key))
+            if (events.TryGetValue(key, out var ev))
             {
-                return await events[key](e);
+                return await ev(e);
             }
             return false;
         }
@@ -589,7 +555,6 @@ namespace BaileysCSharp.Core
 
             var KeyEnc = noise.ProcessHandShake(handshake, Creds.NoiseKey);
 
-
             ClientPayload node;
             var clientFinish = new HandshakeMessage();
             if (Creds.Me == null)
@@ -602,7 +567,6 @@ namespace BaileysCSharp.Core
                 node = ValidateConnectionUtil.GenerateLoginNode(Creds.Me.ID, SocketConfig);
                 Logger.Info(new { }, "logging in");
             }
-
 
             var payloadEnc = noise.Encrypt(node.ToByteArray());
 
@@ -666,7 +630,6 @@ namespace BaileysCSharp.Core
             return new NoiseHandler(EphemeralKeyPair, Logger);
         }
 
-
         public void OnUnexpectedError(Exception error, string message)
         {
             Logger.Error(error, $"unexpected error in '{message}'");
@@ -704,7 +667,7 @@ namespace BaileysCSharp.Core
                 }
             });
         }
-
+        // الداله الاصلية
         private void End(string reason, DisconnectReason connectionLost)
         {
 
@@ -717,6 +680,27 @@ namespace BaileysCSharp.Core
             Console.WriteLine($"{reason} - {connectionLost}");
         }
 
+        // الدالة المعدل
+        //public void End(string reason, DisconnectReason connectionLost)
+        //{
+        //    try
+        //    {
+        //        WS.Disconnect();
+        //    }
+        //    catch (Exception e) 
+        //    {
+        //        Logger.Trace(new { error = e }, reason);
+
+        //    }
+        //    Logger.Trace(new { reason = connectionLost }, reason);
+
+        //    keepAliveToken?.Cancel();
+        //    qrTimerToken?.Cancel();
+
+
+        //    Console.WriteLine($"{reason} - {connectionLost}");
+        //}
+
         public void NewAuth()
         {
             Creds = AuthenticationUtils.InitAuthCreds();
@@ -728,6 +712,10 @@ namespace BaileysCSharp.Core
             Repository = SocketConfig.MakeSignalRepository(EV);
             Store = SocketConfig.MakeStore(EV, Logger);
 
+        }
+        public List<ContactModel> GetAllContact()
+        {
+            return Store.GetAllContact();
         }
     }
 }

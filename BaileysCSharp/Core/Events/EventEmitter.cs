@@ -41,6 +41,8 @@ namespace BaileysCSharp.Core.Events
         public GroupParticipantEventStore GroupParticipant { get; set; }
         public GroupMetaDataEventStore Group { get; set; }
         public NewsletterMetaDataEventStore Newsletter { get; set; }
+        public SyncDataEventStore SyncData { get; set; }
+
         public ILogger Logger { get; }
 
         public EventEmitter(ILogger logger)
@@ -57,8 +59,8 @@ namespace BaileysCSharp.Core.Events
             Events[typeof(GroupParticipantUpdateModel).Name] = GroupParticipant = new GroupParticipantEventStore();
             Events[typeof(GroupMetadataModel).Name] = Group = new GroupMetaDataEventStore();
             Events[typeof(NewsletterMetaData).Name] = Newsletter = new NewsletterMetaDataEventStore();
+            Events[typeof(SyncState).Name] = SyncData = new SyncDataEventStore();
 
-            
             Logger = logger;
         }
 
@@ -103,13 +105,12 @@ namespace BaileysCSharp.Core.Events
             lock (locker)
             {
                 var eventkey = $"{typeof(T).Name}";
-                if (!Events.ContainsKey(eventkey))
+                if (!Events.TryGetValue(eventkey, out var store))
                 {
                     Logger.Warn($"{eventkey}.{type} has not been implemented yet");
                     return false;
                 }
-                var store = (DataEventStore<T>)Events[eventkey];
-                store.Emit(type, args);
+                ((DataEventStore<T>)store).Emit(type, args);
             }
             return true;
         }
@@ -181,6 +182,10 @@ namespace BaileysCSharp.Core.Events
         internal void Emit(EmitType action, GroupMetadataModel metadata)
         {
             InternalEmit(action, metadata);
+        }
+        internal void Emit(EmitType action, SyncState syncState)
+        {
+            InternalEmit(action, syncState);
         }
 
         /** Receive an update on a call, including when the call was received, rejected, accepted */

@@ -54,9 +54,9 @@ namespace BaileysCSharp.Core.WABinary
 
         internal string? getattr(string attribute)
         {
-            if (attrs.ContainsKey(attribute))
+            if (attrs.TryGetValue(attribute, out var result))
             {
-                return attrs[attribute];
+                return result;
             }
             return default;
         }
@@ -69,6 +69,5 @@ namespace BaileysCSharp.Core.WABinary
                 return ToString();
             }
         }
-
     }
 }

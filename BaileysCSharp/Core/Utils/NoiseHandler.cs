@@ -1,22 +1,17 @@
-﻿using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Agreement.Kdf;
-using Proto;
-using System;
-using System.Buffers;
-using System.Text;
-using BaileysCSharp.Core.Models;
 using BaileysCSharp.Core.Helper;
-using Google.Protobuf;
+using BaileysCSharp.Core.Logging;
 using BaileysCSharp.Core.WABinary;
 using BaileysCSharp.LibSignal;
+using Google.Protobuf;
+using Proto;
+using System.Buffers;
 using System.Security.Cryptography;
-using BaileysCSharp.Core.Logging;
+using System.Text;
 
 namespace BaileysCSharp.Core.Utils
 {
     public class NoiseHandler
     {
-
         public event EventHandler<BinaryNode> OnFrame;
 
         public NoiseHandler(KeyPair ephemeralKeyPair, DefaultLogger logger)
@@ -147,8 +142,8 @@ namespace BaileysCSharp.Core.Utils
             data.CopyTo(buffer, introSize + 3);
 
             return buffer;
-
         }
+
         public byte[] ProcessHandShake(HandshakeMessage result, KeyPair noiseKey)
         {
             Authenticate(result.ServerHello.Ephemeral);
@@ -178,7 +173,6 @@ namespace BaileysCSharp.Core.Utils
 
             return keyEnc;
         }
-
 
         private byte[] GenerateIV(uint writeCounter)
         {
@@ -214,9 +208,9 @@ namespace BaileysCSharp.Core.Utils
                 }
             }
 
-            if (message.attrs.ContainsKey("id"))
+            if (message.attrs.TryGetValue("id", out var id))
             {
-                Logger.Trace(new { msg = message.attrs["id"] }, "recv frame");
+                Logger.Trace(new { msg = id }, "recv frame");
             }
             else
             {
@@ -272,9 +266,9 @@ namespace BaileysCSharp.Core.Utils
                     }
                 }
 
-                if (message.attrs.ContainsKey("id"))
+                if (message.attrs.TryGetValue("id", out var id))
                 {
-                    Logger.Trace(new { msg = message.attrs["id"] }, "recv frame");
+                    Logger.Trace(new { msg = id }, "recv frame");
                 }
                 else
                 {
@@ -289,14 +283,10 @@ namespace BaileysCSharp.Core.Utils
             }
         }
 
-
-
         public (byte[] write, byte[] read) LocalHKDF(byte[] bytes)
         {
             var hkdf = Helper.CryptoUtils.HKDF(bytes, 64, Salt, Encoding.UTF8.GetBytes(""));
             return (hkdf.Take(32).ToArray(), hkdf.Skip(32).ToArray());
         }
-
-
     }
 }

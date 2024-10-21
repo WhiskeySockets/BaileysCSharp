@@ -32,7 +32,7 @@ namespace WhatsSocketConsole
         {
             var config = new SocketConfig()
             {
-                SessionName = "27665245067",
+                SessionName = "27665458845745067",
             };
 
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
@@ -45,7 +45,7 @@ namespace WhatsSocketConsole
 
             BaseKeyStore keys = new FileKeyStore(config.CacheRoot);
 
-            config.Logger.Level = LogLevel.Trace;
+            config.Logger.Level = LogLevel.Raw;
             config.Auth = new AuthenticationState()
             {
                 Creds = authentication,
