@@ -12,7 +12,6 @@ using Proto;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using WhatsAppDaemon.Extensions;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using static BaileysCSharp.Core.Utils.ProcessMessageUtil;
 using static BaileysCSharp.Core.WABinary.Constants;

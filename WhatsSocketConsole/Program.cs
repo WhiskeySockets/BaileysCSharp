@@ -98,28 +98,28 @@ namespace WhatsSocketConsole
 
                     if (msg.Message.ImageMessage != null)
                     {
-                        var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg.Message);
                     }
 
                     if (msg.Message.DocumentMessage != null)
                     {
-                        var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg.Message);
                         File.WriteAllBytes(result.FileName, result.Data);
                     }
 
                     if (msg.Message.AudioMessage != null)
                     {
-                        var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg.Message);
                         File.WriteAllBytes($"audio.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
                     if (msg.Message.VideoMessage != null)
                     {
-                        var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg.Message);
                         File.WriteAllBytes($"video.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
                     if (msg.Message.StickerMessage != null)
                     {
-                        var result = await socket.DownloadMediaMessage(msg);
+                        var result = await socket.DownloadMediaMessage(msg.Message);
                         File.WriteAllBytes($"sticker.{MimeTypeUtils.GetExtension(result.MimeType)}", result.Data);
                     }
 
@@ -132,21 +132,6 @@ namespace WhatsSocketConsole
                         )
                     {
                         var jid = JidUtils.JidDecode(msg.Key.Id);
-                        // send a simple text!
-                        var button = await socket.SendMessage(msg.Key.RemoteJid, new TextWithButtonMessage()
-                        {
-                            Text = "Hi there from C#",
-                            Buttons =  new Message.Types.ButtonsMessage.Types.Button[] {
-                             new Message.Types.ButtonsMessage.Types.Button() {
-                              ButtonId = "btn1",
-                              ButtonText = new Message.Types.ButtonsMessage.Types.Button.Types.ButtonText()
-                              {
-                                  DisplayText = "Button 1"
-                              },
-                              Type = Message.Types.ButtonsMessage.Types.Button.Types.Type.Response
-                             }
-                            }
-                        });
                         // send a simple text!
                         var standard = await socket.SendMessage(msg.Key.RemoteJid, new TextMessageContent()
                         {
