@@ -248,6 +248,7 @@ namespace BaileysCSharp.Core.Utils
             {
                 var buttonsMessage = new ButtonsMessage()
                 {
+                    
                 };
                 foreach (var item in buttonable.Buttons)
                 {

@@ -4,6 +4,7 @@ using BaileysCSharp.Core.Models;
 using static BaileysCSharp.Core.Utils.JidUtils;
 using BaileysCSharp.Core.WABinary;
 using System.Text;
+using BaileysCSharp.Core.Extensions;
 
 namespace BaileysCSharp.Core.Signal
 {
@@ -68,7 +69,7 @@ namespace BaileysCSharp.Core.Signal
                             {
                                 Repository.ProcessSenderKeyDistributionMessage(Author, msg.SenderKeyDistributionMessage);
                             }
-
+                            Msg.MessageTimestamp = Stanza.getattr("t").ToUInt64();
                             Msg.Message = msg;
                         }
                     }
