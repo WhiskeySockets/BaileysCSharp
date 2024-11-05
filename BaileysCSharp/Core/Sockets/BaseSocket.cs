@@ -530,6 +530,44 @@ namespace BaileysCSharp.Core
 
         #endregion
 
+        #region Logout
+        public async Task Logout(string tag)
+        {
+            var jid = Creds != null ? Creds.Me.GetID() : string.Empty;
+
+            if (!string.IsNullOrEmpty(jid))
+            {
+                var iq = new BinaryNode("iq")
+                {
+                    attrs = new Dictionary<string, string>()
+                    {
+                        {"to",Constants.S_WHATSAPP_NET },
+                        {"xmlns" ,"md" },
+                        {"type","set" },
+                        {"id", GenerateMessageTag() }
+                    },
+                    content = new BinaryNode[]
+                    {
+                        new BinaryNode(tag)
+                        {
+                            attrs = new Dictionary<string, string>()
+                            {
+                                { "jid", jid },
+                                { "reason" , "user_initiated" }
+                            }
+                        },
+                    }
+                };
+
+                var result = await Query(iq);
+
+                var reason = result.getattr("reason") ?? "401";
+
+                End(new Boom("Intentional Logout", new BoomData(Convert.ToInt32(reason))));
+            }
+        }
+        #endregion
+
         #region Pairing
 
         /** connection handshake */
