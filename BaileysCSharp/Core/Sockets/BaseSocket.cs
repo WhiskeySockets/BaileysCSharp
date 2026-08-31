@@ -16,6 +16,7 @@ using Proto;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Xml.Linq;
 using static BaileysCSharp.Core.Utils.GenericUtils;
 using static BaileysCSharp.Core.WABinary.Constants;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -30,9 +31,9 @@ namespace BaileysCSharp.Core
         protected AbstractSocketClient WS;
         private NoiseHandler noise;
         private CancellationTokenSource qrTimerToken;
-        public Thread keepAliveThread;
+        //public Thread keepAliveThread;
         public CancellationTokenSource keepAliveToken;
-        public DateTime lastReceived;
+        public DateTime? lastReceived;
         public KeyPair EphemeralKeyPair { get; set; }
 
         protected Dictionary<string, int> MessageRetries = new Dictionary<string, int>();
@@ -56,11 +57,13 @@ namespace BaileysCSharp.Core
         {
             End(new Boom("Connection closed"));
             WS.Disconnect();
-            keepAliveToken.Cancel();
+            keepAliveToken?.Cancel();
+            keepAliveTimer?.Dispose();
 
             WS.Opened -= Client_Opened;
             WS.Disconnected -= Client_Disconnected;
             WS.MessageRecieved -= Client_MessageRecieved;
+            WS.ConnectFailed -= OnFailure_Connection;
 
             Store.Destroy();
             Store.DisposeDb();
@@ -76,11 +79,17 @@ namespace BaileysCSharp.Core
             MessageRetries.Clear();
         }
 
+        private void OnFailure_Connection(object? sender, EventArgs e)
+        {
+            _ = OnFailure(new BinaryNode() { attrs = new() });
+        }
+
         public void EndConnection(bool destroyStore = false)
         {
             End(new Boom("Connection closed"));
             WS.Disconnect();
-            keepAliveToken.Cancel();
+            keepAliveToken?.Cancel();
+            keepAliveTimer?.Dispose();
 
             if (destroyStore)
             {
@@ -158,60 +167,139 @@ namespace BaileysCSharp.Core
         }
 
         #region Receiving
+        private static Timer keepAliveTimer;
         private void StartKeepAliveRequest()
         {
+            keepAliveToken?.Cancel();
+            keepAliveTimer?.Dispose();
+            lastReceived = null;
             keepAliveToken = new CancellationTokenSource();
-            keepAliveThread = new Thread(() => KeepAliveHandler());
-            keepAliveThread.Start();
+            keepAliveTimer = new System.Threading.Timer(async (e) => {
+                await KeepAliveHandler(keepAliveToken.Token);
+            }, null,
+            TimeSpan.FromMilliseconds(SocketConfig.KeepAliveIntervalMs),
+            TimeSpan.FromMilliseconds(SocketConfig.KeepAliveIntervalMs));
+
         }
 
-        private async void KeepAliveHandler()
+        private async Task KeepAliveHandler(CancellationToken cancellationToken = default)
         {
-            lastReceived = DateTime.Now;
-            var keepAliveIntervalMs = 30000;
-            Thread.Sleep(keepAliveIntervalMs);
-            while (!keepAliveToken.IsCancellationRequested)
+            try
             {
-                var diff = DateTime.Now - lastReceived;
-                /*
-                    check if it's been a suspicious amount of time since the server responded with our last seen
-                    it could be that the network is down
-                */
-                if (diff.TotalMilliseconds > keepAliveIntervalMs + 5000)
+                if (!lastReceived.HasValue)
+                {
+                    lastReceived = DateTime.Now;
+                }
+
+                var diff = (DateTime.Now - lastReceived.Value).TotalMilliseconds;
+
+                if (diff > SocketConfig.KeepAliveIntervalMs + 5000)
                 {
                     End("Connection was lost", DisconnectReason.ConnectionLost);
-                    continue;
+                    return;
+                }
+
+                if (!WS.IsConnected)
+                {
+                    lastReceived = null;
+                    Logger.Warn("keep alive called when WS not open");
+                    return;
                 }
 
                 try
                 {
-                    // if its all good, send a keep alive request
-                    var result = await Query(new BinaryNode("iq")
+                    var res = Query(new BinaryNode("iq")
                     {
-                        attrs = new Dictionary<string, string>()
-                    {
-                        {"id", GenerateMessageTag() },
-                        {"to",S_WHATSAPP_NET },
-                        {"type","get" },
-                        {"xmlns" ,"w:p" }
-                    },
-                        content = new BinaryNode[]
-                        {
-                        new BinaryNode()
-                        {
-                            tag = "ping"
-                        }
-                        }
-                    });
-                    lastReceived = DateTime.Now;
-                    Thread.Sleep(keepAliveIntervalMs);
-                }
-                catch (Exception ex)
+                        attrs = new Dictionary<string, string>
                 {
-                    Logger.Error(new { trace = ex.StackTrace }, "error in sending keep alive");
+                    { "id", GenerateMessageTag() },
+                    { "to", S_WHATSAPP_NET },
+                    { "type", "get" },
+                    { "xmlns", "w:p" }
+                },
+                        content = new BinaryNode[] { new BinaryNode() { tag = "ping", attrs = new Dictionary<string, string>() { } } }
+                    });
+                    await res.WaitAsync(cancellationToken)
+                      .ContinueWith(t =>
+                      {
+                          Logger.Trace($"keep alive Result :{t.Result?.ToString()}, IsCompletedSuccessfully:{t.IsCompletedSuccessfully}");
+
+                          if (t.IsCompletedSuccessfully)
+                          {
+                              lastReceived = DateTime.Now;
+                          }
+                          else if (t.IsFaulted && !cancellationToken.IsCancellationRequested)
+                          {
+                              Logger.Error(t.Exception, "error in sending keep alive");
+                          }
+                      });
+                }
+                catch (Exception err) when (!cancellationToken.IsCancellationRequested)
+                {
+                    Logger.Error(err, "error in sending keep alive");
                 }
             }
+            catch (Exception ex)
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    Logger.Error(ex, "Error in keep alive handler");
+            }
         }
+
+        //private void StartKeepAliveRequest()
+        //{
+        //    keepAliveToken = new CancellationTokenSource();
+        //    keepAliveThread = new Thread(() => KeepAliveHandler());
+        //    keepAliveThread.Start();
+        //}
+
+        //private async void KeepAliveHandler()
+        //{
+        //    lastReceived = DateTime.Now;
+        //    var keepAliveIntervalMs = 30000;
+        //    Thread.Sleep(keepAliveIntervalMs);
+        //    while (!keepAliveToken.IsCancellationRequested)
+        //    {
+        //        var diff = DateTime.Now - lastReceived;
+        //        /*
+        //            check if it's been a suspicious amount of time since the server responded with our last seen
+        //            it could be that the network is down
+        //        */
+        //        if (diff.TotalMilliseconds > keepAliveIntervalMs + 5000)
+        //        {
+        //            End("Connection was lost", DisconnectReason.ConnectionLost);
+        //            continue;
+        //        }
+
+        //        try
+        //        {
+        //            // if its all good, send a keep alive request
+        //            var result = await Query(new BinaryNode("iq")
+        //            {
+        //                attrs = new Dictionary<string, string>()
+        //            {
+        //                {"id", GenerateMessageTag() },
+        //                {"to",S_WHATSAPP_NET },
+        //                {"type","get" },
+        //                {"xmlns" ,"w:p" }
+        //            },
+        //                content = new BinaryNode[]
+        //                {
+        //                new BinaryNode()
+        //                {
+        //                    tag = "ping"
+        //                }
+        //                }
+        //            });
+        //            lastReceived = DateTime.Now;
+        //            Thread.Sleep(keepAliveIntervalMs);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Logger.Error(new { trace = ex.StackTrace }, "error in sending keep alive");
+        //        }
+        //    }
+        //}
 
         private async void OnFrameDeecoded(BinaryNode frame)
         {
@@ -301,14 +389,17 @@ namespace BaileysCSharp.Core
             return true;
         }
 
+        
+        
         private Task<bool> OnFailure(BinaryNode node)
         {
             var reason = node.getattr("reason") ?? "500";
-            if (node.attrs["reason"] == "401")
+            if (reason == "401")
             {
                 WS.Opened -= Client_Opened;
                 WS.Disconnected -= Client_Disconnected;
                 WS.MessageRecieved -= Client_MessageRecieved;
+                WS.ConnectFailed -= OnFailure_Connection;
 
             }
 
@@ -476,7 +567,11 @@ namespace BaileysCSharp.Core
         {
             try
             {
-                ValidateConnection();
+                ExecuteWithExceptionUnwrap(() =>
+                {
+                    var resources = Task.Run(async () => await ValidateConnection().ConfigureAwait(false));
+                });
+
             }
             catch (Exception ex)
             {
@@ -484,19 +579,23 @@ namespace BaileysCSharp.Core
             }
         }
 
+
         private void Client_Disconnected(AbstractSocketClient sender, DisconnectReason reason)
         {
             WS.Opened -= Client_Opened;
             WS.Disconnected -= Client_Disconnected;
             WS.MessageRecieved -= Client_MessageRecieved;
-            EV.Emit(EmitType.Update, new ConnectionState()
-            {
-                Connection = WAConnectionState.Close,
-                LastDisconnect = new LastDisconnect()
-                {
-                    Date = DateTime.Now,
-                }
-            });
+            WS.ConnectFailed -= OnFailure_Connection;
+
+            //EV.Emit(EmitType.Update, new ConnectionState()
+            //{
+            //    Connection = WAConnectionState.Close,
+            //    LastDisconnect = new LastDisconnect()
+            //    {
+            //        Date = DateTime.Now,
+            //        Error = new Boom("Disconnected Connection", new BoomData(reason))
+            //    }
+            //});
         }
 
         private async Task<bool> Emit(string key, BinaryNode e)
@@ -579,7 +678,7 @@ namespace BaileysCSharp.Core
         #region Pairing
 
         /** connection handshake */
-        public async void ValidateConnection()
+        public async Task ValidateConnection()
         {
             var helloMsg = new HandshakeMessage()
             {
@@ -642,7 +741,7 @@ namespace BaileysCSharp.Core
             WS.Opened += Client_Opened;
             WS.Disconnected += Client_Disconnected;
             WS.MessageRecieved += Client_MessageRecieved;
-
+            WS.ConnectFailed += OnFailure_Connection;
             /** ephemeral key pair used to encrypt/decrypt communication. Unique for each connection */
             EphemeralKeyPair = Curve.GenerateKeyPair();
 
@@ -696,6 +795,7 @@ namespace BaileysCSharp.Core
 
             Logger.Trace(new { trace = error?.StackTrace }, error != null ? "connection errored" : "connection closed");
             keepAliveToken?.Cancel();
+            keepAliveTimer?.Dispose();
             qrTimerToken?.Cancel();
 
             //try
@@ -725,6 +825,7 @@ namespace BaileysCSharp.Core
             Logger.Trace(new { reason = connectionLost }, reason);
 
             keepAliveToken?.Cancel();
+            keepAliveTimer?.Dispose();
             qrTimerToken?.Cancel();
 
             closed = true;
@@ -769,5 +870,33 @@ namespace BaileysCSharp.Core
         {
             return Store.GetAllContact();
         }
+        public static T ExecuteWithExceptionUnwrap<T>(Func<T> func) where T : class
+        {
+            try
+            {
+                return func();
+            }
+            catch (AggregateException ex)
+            {
+                throw ex;
+            }
+        }
+        public static void ExecuteWithExceptionUnwrap(Action func)
+        {
+            try
+            {
+                func();
+            }
+            catch (AggregateException ex)
+            {
+                ex.Flatten();
+                throw ex.InnerExceptions[0];
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.ToString());
+            }
+        }
+
     }
 }

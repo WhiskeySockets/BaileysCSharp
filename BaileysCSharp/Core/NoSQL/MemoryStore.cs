@@ -13,10 +13,7 @@ namespace BaileysCSharp.Core.NoSQL
 {
     public class MemoryStore : IDisposable
     {
-        public void Dispose() 
-        {
-            database.Dispose();
-        }
+        
 
         private static object locker = new object();
         LiteDB.LiteDatabase database;
@@ -269,7 +266,24 @@ namespace BaileysCSharp.Core.NoSQL
 
         private void Contacts_Update(object? sender, ContactModel[] e)
         {
-            //TODO
+            if (e == null || e.Length == 0)
+                return;
+            lock (locker)
+            {
+                changes = true;
+                var ContactsWithName = e.Where(x => !(string.IsNullOrEmpty(x.Name) || string.IsNullOrWhiteSpace(x.Name))).ToList();
+                List<ContactModel> toAdd = new List<ContactModel>();
+                foreach (var item in ContactsWithName)
+                {
+                    if (!toAdd.Any(x => x.ID == item.ID))
+                    {
+                        toAdd.Add(item);
+                    }
+
+                }
+                contacts.InsertBulk(toAdd);
+            }
+
         }
 
         private void Connection_Update(object? sender, ConnectionState e)
@@ -443,10 +457,10 @@ namespace BaileysCSharp.Core.NoSQL
                 changes = false;
             }
         }
-
+        //error here if Collection was modified; enumeration operation may not execute
         public Message? GetMessage(MessageKey key)
         {
-            var raw = messages.FindByID(key.Id);
+            var raw = GetMessage(key.Id);
             if (raw == null)
             {
                 return null;
@@ -456,9 +470,14 @@ namespace BaileysCSharp.Core.NoSQL
         }
         public MessageModel? GetMessage(string key)
         {
-            var raw = messages.FindByID(key);
-            return raw;
+            lock (locker)
+            {
+                var raw = messages.FindByID(key);
+                return raw;
+            }
         }
+
+       
 
         public List<ContactModel> GetAllGroups()
         {
@@ -503,6 +522,12 @@ namespace BaileysCSharp.Core.NoSQL
         public List<ContactModel> GetAllContact()
         {
             return contacts.Where(x => x.IsUser).ToList();
+        }
+
+        public void Dispose()
+        {
+            DisposeDb();
+            //database.Dispose();
         }
     }
 }

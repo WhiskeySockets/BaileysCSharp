@@ -32,7 +32,7 @@ namespace WhatsSocketConsole
         {
             var config = new SocketConfig()
             {
-                SessionName = "27665458845745067",
+                SessionName = "56514245845745060",
             };
 
             var credsFile = Path.Join(config.CacheRoot, $"creds.json");
@@ -252,7 +252,7 @@ namespace WhatsSocketConsole
             if (connection.QR != null)
             {
                 QRCodeGenerator QrGenerator = new QRCodeGenerator();
-                QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(connection.QR, QRCodeGenerator.ECCLevel.L);
+                QRCodeData QrCodeInfo = QrGenerator.CreateQrCode(connection.QR, QRCodeGenerator.ECCLevel.Q);
                 AsciiQRCode qrCode = new AsciiQRCode(QrCodeInfo);
                 var data = qrCode.GetGraphic(1);
                 Console.WriteLine(data);
@@ -299,7 +299,6 @@ namespace WhatsSocketConsole
                 //});
 
                 var result = await socket.QueryRecommendedNewsletters();
-
                 //var onWhatsApp = await socket.OnWhatsApp("+27797798179", "+15558889234");
 
                 //var count = onWhatsApp.Length;

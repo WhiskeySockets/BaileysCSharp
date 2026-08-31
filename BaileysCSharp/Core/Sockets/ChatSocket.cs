@@ -720,11 +720,12 @@ namespace BaileysCSharp.Core
             }
         }
 
-        public void PresenceSubscribe(string toJid, byte[] tcToken)
+       
+        public void PresenceSubscribe(string toJid, byte[] tcToken = default)
         {
             var node = new BinaryNode()
             {
-                tag = "iq",
+                tag = "presence",
                 attrs =
                 {
                     {
@@ -737,14 +738,14 @@ namespace BaileysCSharp.Core
                         "type", "subscribe"
                     }
                 },
-                content = new BinaryNode[]
+                content = tcToken == default(byte[]) ? new BinaryNode[]
                 {
                     new BinaryNode()
                     {
                         tag = "tctoken",
                         content = tcToken
                     }
-                }
+                } : tcToken
             };
             SendNode(node);
         }

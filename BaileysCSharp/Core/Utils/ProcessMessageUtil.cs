@@ -1,4 +1,13 @@
-﻿using Proto;
+﻿using BaileysCSharp.Core.Events;
+using BaileysCSharp.Core.Extensions;
+using BaileysCSharp.Core.Helper;
+using BaileysCSharp.Core.Models;
+using BaileysCSharp.Core.NoSQL;
+using BaileysCSharp.Core.Signal;
+using BaileysCSharp.Core.Stores;
+using BaileysCSharp.Core.Types;
+using BaileysCSharp.Core.WABinary;
+using Proto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,15 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using BaileysCSharp.Core.Events;
-using BaileysCSharp.Core.Extensions;
-using BaileysCSharp.Core.Helper;
-using BaileysCSharp.Core.Models;
-using BaileysCSharp.Core.NoSQL;
-using BaileysCSharp.Core.Signal;
-using BaileysCSharp.Core.Stores;
-using BaileysCSharp.Core.WABinary;
-using BaileysCSharp.Core.Types;
+using static Proto.Message.Types;
 
 namespace BaileysCSharp.Core.Utils
 {
@@ -82,18 +83,24 @@ namespace BaileysCSharp.Core.Utils
                             var histNotification = content.ProtocolMessage.HistorySyncNotification;
                             var process = shouldProcessHistoryMsg;
                             var isLatest = creds.ProcessedHistoryMessages.Count == 0;
-
                             if (process)
                             {
-                                creds.ProcessedHistoryMessages.Add(new ProcessedHistoryMessage()
+
+                                if (histNotification.SyncType != HistorySyncNotification.Types.HistorySyncType.OnDemand)
                                 {
-                                    Key = message.Key,
-                                    MessageTimestamp = message.MessageTimestamp
-                                });
-                                ev.Emit(EmitType.Update, creds);
+                                    creds.ProcessedHistoryMessages.Add(new ProcessedHistoryMessage()
+                                    {
+                                        Key = message.Key,
+                                        MessageTimestamp = message.MessageTimestamp
+                                    });
+                                    ev.Emit(EmitType.Update, creds);
+                                }
+
                                 var data = await HistoryUtil.DownloadAndProcessHistorySyncNotification(histNotification);
+                                data.IsLatest = isLatest;
                                 ev.Emit(EmitType.Set, data);
                             }
+
                         }
                         break;
                     case Message.Types.ProtocolMessage.Types.Type.AppStateSyncKeyShare:
@@ -130,11 +137,16 @@ namespace BaileysCSharp.Core.Utils
                                 if (retryResponse != null)
                                 {
                                     var webMessageInfo = WebMessageInfo.Parser.ParseFrom(retryResponse.WebMessageInfoBytes);
-                                    ev.Emit(EmitType.Update,new MessageEventModel(MessageEventType.Update, webMessageInfo));
+                                    ev.Emit(EmitType.Update, new MessageEventModel(MessageEventType.Update, webMessageInfo));
                                 }
                             }
                         }
                         break;
+                    case Message.Types.ProtocolMessage.Types.Type.MessageEdit:
+                        var editerResponse = protocolMsg.EditedMessage;
+                        break;
+                            
+
                 }
             }
             else if (content?.ReactionMessage != null)

@@ -145,14 +145,27 @@ namespace BaileysCSharp.Core.Types
             MessageType = info.MessageStubType.ToString();
             RemoteJid = info.Key.RemoteJid;
             FromMe = info.Key.FromMe;
-            if (info.MessageTimestamp > 253402300799)
+           
+            try
             {
-                MessageDate = DateTimeOffset.FromUnixTimeMilliseconds((long)info.MessageTimestamp).LocalDateTime;
-            }
-            else
-            {
+                var protocolMsg = info.Message?.ProtocolMessage ?? null;
+                var messageTimestamp = protocolMsg != null && protocolMsg.TimestampMs != 0
+                                  ? Math.Floor((protocolMsg.TimestampMs / 1000M))
+                                  : info.MessageTimestamp;
                 MessageDate = DateTimeOffset.FromUnixTimeSeconds((long)info.MessageTimestamp).LocalDateTime;
             }
+            catch (Exception e)
+            {
+                if (info.MessageTimestamp > 253402300799)
+                {
+                    MessageDate = DateTimeOffset.FromUnixTimeMilliseconds((long)info.MessageTimestamp).LocalDateTime;
+                }
+                else
+                {
+                    MessageDate = DateTimeOffset.FromUnixTimeSeconds((long)info.MessageTimestamp).LocalDateTime;
+                }
+            }
+
 
             //THIS IS A VERY BAD APPROACH, TEMPORARY ONLY, I WAS LAZY
             Message = info.ToByteArray();

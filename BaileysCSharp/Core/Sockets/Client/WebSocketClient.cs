@@ -19,6 +19,7 @@ namespace BaileysCSharp.Core.Sockets.Client
 
         public override void MakeSocket()
         {
+            WebSocket?.Dispose();
             WebSocket = new ClientWebSocket();
             WebSocket.Options.SetRequestHeader("Origin", "https://web.whatsapp.com");
             WebSocket.Options.SetRequestHeader("Host", "web.whatsapp.com");
@@ -146,6 +147,9 @@ namespace BaileysCSharp.Core.Sockets.Client
         {
             if (WebSocket.State != WebSocketState.Open)
             {
+                Socket.Logger?.Error(string.Format("[Error on Send Menth]-[IsConnected={0}]-[WebSocket.State={1}] ", IsConnected, WebSocket.State));
+                if (IsConnected)
+                    OnConnectFailed();
                 throw new Exception("Cannot send data if not connected");
             }
             await WebSocket.SendAsync(data, WebSocketMessageType.Binary, true, CancellationToken.None);
